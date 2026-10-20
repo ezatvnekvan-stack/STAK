@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,18 +22,19 @@ class NativeSmokeTest {
         compose.runOnUiThread { vm = ViewModelProvider(compose.activity)[StakViewModel::class.java]; vm.appearance("reduced", false) }
         runBlocking(Dispatchers.IO) { vm.repository.db.clearAllTables() }
     }
+    @After fun recordFinalState() { runCatching { capture("last-screen") }; compose.onRoot().printToLog("STAK-NATIVE-TEST") }
 
     @Test fun nativeNavigationAndReducedMotionRemainUsable() {
-        compose.onNodeWithContentDescription("Settings").performClick()
+        compose.onNodeWithTag("nav-settings").performClick()
         compose.onNodeWithText("Appearance").assertIsDisplayed()
         capture("settings")
         compose.onAllNodes(isToggleable())[1].performClick()
-        compose.onNodeWithContentDescription("Watchlist").performClick()
+        compose.onNodeWithTag("nav-watchlist").performClick()
         compose.onNodeWithText("Your Watchlist is empty. Open a title to add it.").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Tracking").performClick()
+        compose.onNodeWithTag("nav-tracking").performClick()
         compose.onNodeWithText("Calendar").performClick()
         compose.onNodeWithText("Add series to Watchlist to follow their releases.").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Library").performClick()
+        compose.onNodeWithTag("nav-library").performClick()
         compose.onNodeWithText("TorBox").performClick()
         compose.waitUntil(10000) { compose.onAllNodesWithText("Connect TorBox in Settings.").fetchSemanticsNodes().isNotEmpty() }
     }
@@ -44,7 +46,7 @@ class NativeSmokeTest {
         ))
         vm.repository.remember(fixture)
         runBlocking(Dispatchers.IO) { vm.repository.dao.put(SavedMedia(fixture.key, "watchlist", fixture.json().toString())) }
-        compose.onNodeWithContentDescription("Watchlist").performClick()
+        compose.onNodeWithTag("nav-watchlist").performClick()
         compose.waitUntil(10000) { compose.onAllNodesWithText(fixture.name).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(fixture.name).performClick()
         compose.onNodeWithText("Watched").performClick()
@@ -58,6 +60,7 @@ class NativeSmokeTest {
         compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isNotEmpty() }
         capture("episodes-fixture")
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isEmpty() }
         compose.runOnUiThread { vm.appearance("reduced", true) }
         compose.onNodeWithText("Seasons & episodes").performScrollTo().performClick()
         compose.onNodeWithText("First episode", substring = true).performTouchInput { click() }

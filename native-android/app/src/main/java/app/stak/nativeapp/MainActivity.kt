@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -148,7 +149,7 @@ private fun MotionNavigation(selected: Int, onSelect: (Int) -> Unit) {
             labels.forEachIndexed { index, label ->
                 NavigationBarItem(selected == index, { onSelect(index) }, icon = { Icon(icons[index], label, Modifier.size(20.dp)) },
                     label = { Text(label, fontSize = 8.sp, maxLines = 1) },
-                    colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent), modifier = Modifier.weight(1f))
+                    colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent), modifier = Modifier.weight(1f).testTag("nav-${label.lowercase(java.util.Locale.ROOT)}"))
             }
         }
     }
