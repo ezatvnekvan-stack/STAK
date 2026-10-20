@@ -11,6 +11,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -68,8 +69,22 @@ fun StakApp(vm: StakViewModel = viewModel()) {
         onDispose { context.contentResolver.unregisterContentObserver(observer) }
     }
     val policy = MotionPreferences(reduced || systemReduced, haptics)
-    val colors = if (dark) darkColorScheme(primary = Color(0xfff2f2f2), onPrimary = Color(0xff111111), background = Color(0xff0a0a0a), surface = Color(0xff111111), surfaceContainer = Color(0xff171717), surfaceContainerHighest = Color(0xff303030), onSurface = Color(0xffeeeeee), onSurfaceVariant = Color(0xffaaaaaa), outlineVariant = Color(0xff303030))
+    val baseColors = if (dark) darkColorScheme(primary = Color(0xfff2f2f2), onPrimary = Color(0xff111111), background = Color(0xff0a0a0a), surface = Color(0xff111111), surfaceContainer = Color(0xff171717), surfaceContainerHighest = Color(0xff303030), onSurface = Color(0xffeeeeee), onSurfaceVariant = Color(0xffaaaaaa), outlineVariant = Color(0xff303030))
     else lightColorScheme(primary = Color(0xff171717), onPrimary = Color.White, background = Color(0xfff7f7f5), surface = Color.White, surfaceContainer = Color(0xffefefed), surfaceContainerHighest = Color(0xffddddda), onSurface = Color(0xff111111), onSurfaceVariant = Color(0xff555555), outlineVariant = Color(0xffddddda))
+    val colors = baseColors.copy(primaryContainer = baseColors.surfaceContainerHighest, onPrimaryContainer = baseColors.onSurface,
+        secondary = baseColors.primary, onSecondary = baseColors.onPrimary,
+        secondaryContainer = baseColors.surfaceContainerHighest, onSecondaryContainer = baseColors.onSurface,
+        tertiary = baseColors.primary, onTertiary = baseColors.onPrimary,
+        tertiaryContainer = baseColors.surfaceContainerHighest, onTertiaryContainer = baseColors.onSurface,
+        outline = if (dark) Color(0xff777777) else Color(0xff888888))
+    DisposableEffect(dark, context) {
+        (context as? ComponentActivity)?.enableEdgeToEdge(
+            statusBarStyle = if (dark) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = if (dark) SystemBarStyle.dark(android.graphics.Color.BLACK)
+                else SystemBarStyle.light(android.graphics.Color.WHITE, android.graphics.Color.BLACK))
+        onDispose { }
+    }
     MaterialTheme(colorScheme = colors, typography = Typography(
         displaySmall = TextStyle(fontFamily = DotFont, fontSize = 36.sp, lineHeight = 42.sp),
         headlineLarge = TextStyle(fontFamily = DotFont, fontSize = 32.sp, lineHeight = 38.sp),
