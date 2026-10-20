@@ -54,7 +54,8 @@ class NativeSmokeTest {
         compose.onNodeWithText("Undo").performClick()
         compose.waitUntil(10000) { compose.onAllNodesWithText("Watched").fetchSemanticsNodes().isNotEmpty() }
         capture("title-fixture")
-        compose.onNodeWithText("Seasons & episodes").performScrollTo().performClick()
+        compose.onNodeWithTag("title-scroll").performScrollToNode(hasText("Seasons & episodes"))
+        compose.onNodeWithText("Seasons & episodes").performClick()
         compose.onNodeWithText("0 / 2 episodes watched").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Mark episode watched")[0].performClick()
         compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isNotEmpty() }
@@ -62,7 +63,8 @@ class NativeSmokeTest {
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isEmpty() }
         compose.runOnUiThread { vm.appearance("reduced", true) }
-        compose.onNodeWithText("Seasons & episodes").performScrollTo().performClick()
+        compose.onNodeWithTag("title-scroll").performScrollToNode(hasText("Seasons & episodes"))
+        compose.onNodeWithText("Seasons & episodes").performClick()
         compose.onNodeWithText("First episode", substring = true).performTouchInput { click() }
         compose.onNodeWithText("1 / 2 episodes watched").assertIsDisplayed()
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
@@ -77,5 +79,8 @@ class NativeSmokeTest {
         val folder = java.io.File(compose.activity.getExternalFilesDir(null), "evidence").apply { mkdirs() }
         java.io.File(folder, "$name.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
         bitmap.recycle()
+        require(name.matches(Regex("[a-z-]+")))
+        val command = "mkdir -p /sdcard/Download/stak-native-evidence && cp ${folder.absolutePath}/$name.png /sdcard/Download/stak-native-evidence/$name.png"
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)).use { it.readBytes() }
     }
 }

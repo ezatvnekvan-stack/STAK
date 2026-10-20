@@ -31,6 +31,13 @@ data class Media(
     val progress: Float = 0f, val playbackTicks: Long = 0
 ) {
     val key get() = "$type:$id"
+    fun enrichedBy(previous: Media?): Media {
+        if (previous == null || previous.key != key) return this
+        return copy(poster = poster.ifBlank { previous.poster }, background = background.ifBlank { previous.background },
+            year = year.ifBlank { previous.year }, description = description.ifBlank { previous.description },
+            rating = rating.ifBlank { previous.rating }, runtime = runtime.ifBlank { previous.runtime },
+            genres = genres.ifEmpty { previous.genres }, episodes = episodes.ifEmpty { previous.episodes })
+    }
     fun json() = JSONObject().put("imdb_id", id).put("type", type).put("name", name)
         .put("poster", poster).put("background", background).put("year", year)
         .put("description", description).put("rating", rating).put("runtime", runtime)
@@ -133,7 +140,7 @@ class Repository(context: Context, private val client: OkHttpClient = OkHttpClie
     val dao = db.dao()
     val credentials = Credentials(context)
     private val metadataCache = java.util.concurrent.ConcurrentHashMap<String, Media>()
-    fun remember(media: Media): Media { metadataCache[media.key] = media; return media }
+    fun remember(media: Media): Media = metadataCache.compute(media.key) { _, previous -> media.enrichedBy(previous) }!!
     fun cached(key: String) = metadataCache[key]
     suspend fun request(url: String, token: String = "", jellyfin: Boolean = false, body: JSONObject? = null, delete: Boolean = false): JSONObject = withContext(Dispatchers.IO) {
         val parsed = url.toHttpUrl()

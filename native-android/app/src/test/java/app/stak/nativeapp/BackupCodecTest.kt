@@ -56,4 +56,15 @@ class BackupCodecTest {
         assertFalse(JSONObject(result.json).getBoolean("played"))
         assertEquals(42f, result.media().progress)
     }
+    @Test fun summaryCacheKeepsLoadedEpisodesAndDoesNotCopyPlaybackState() {
+        val full = Media("tt11280740", "series", "Severance", description = "Loaded overview", jellyfinId = "old-server-id", progress = 90f,
+            episodes = listOf(Episode("tt11280740:1:1", 1, 1, "First", "2026-01-01T00:00:00Z", "", "")))
+        val summary = Media(full.id, full.type, full.name)
+        val result = summary.enrichedBy(full)
+        assertEquals(full.episodes, result.episodes)
+        assertEquals(full.description, result.description)
+        assertEquals("", result.jellyfinId)
+        assertEquals(0f, result.progress)
+        assertTrue(summary.copy(id = "tt1234").enrichedBy(full).episodes.isEmpty())
+    }
 }
