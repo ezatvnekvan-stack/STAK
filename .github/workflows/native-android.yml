@@ -1,7 +1,7 @@
 name: Native Android
 on:
   push:
-    branches: [native-android-motion]
+    branches: [native-android-motion, native-original-parity]
     paths: ['native-android/**', '.github/workflows/native-android.yml']
   pull_request:
     paths: ['native-android/**', '.github/workflows/native-android.yml']
@@ -22,6 +22,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
       - name: Build, unit tests and lint
         working-directory: native-android
         run: ./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug assembleDebugAndroidTest
@@ -38,6 +40,11 @@ jobs:
           profile: pixel_6
           disable-animations: false
           script: bash native-android/ci-emulator.sh
+      - name: Compare original and native captures
+        if: always()
+        run: |
+          python3 -m pip install Pillow
+          python3 native-android/parity/compare.py --native native-evidence --output native-comparisons
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -47,3 +54,5 @@ jobs:
             native-android/app/build/reports/
             native-android/app/build/outputs/androidTest-results/
             native-evidence/
+            native-comparisons/
+            native-android/parity/reference-manifest.json

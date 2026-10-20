@@ -38,7 +38,7 @@ import kotlin.math.roundToInt
 
 data class MotionPreferences(val reduced: Boolean = false, val haptics: Boolean = true)
 val LocalStakMotion = staticCompositionLocalOf { MotionPreferences() }
-val StakEase = CubicBezierEasing(.2f, .7f, .2f, 1f)
+val StakEase = CubicBezierEasing(.22f, .68f, .18f, 1f)
 fun <T> motionSpec(reduced: Boolean, duration: Int = 220): FiniteAnimationSpec<T> = if (reduced) snap() else tween(duration, easing = StakEase)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,15 +65,15 @@ fun MotionButton(text: String, modifier: Modifier = Modifier, primary: Boolean =
     val scale by animateFloatAsState(if (pressed && enabled && !policy.reduced) .975f else 1f,
         if (policy.reduced) snap() else spring(dampingRatio = .9f, stiffness = 950f), label = "Tactile press")
     Surface(modifier.graphicsLayer { scaleX = scale; scaleY = scale }
-        .heightIn(min = 48.dp).clickable(enabled = enabled, interactionSource = interactions, indication = null, role = Role.Button) {
+        .heightIn(min = 44.dp).clickable(enabled = enabled, interactionSource = interactions, indication = null, role = Role.Button) {
             if (policy.haptics) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             onClick()
-        }, shape = CircleShape,
+        }, shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         color = if (primary) MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else .4f) else MaterialTheme.colorScheme.surfaceContainer,
         contentColor = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else .4f),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-            Text(text, style = MaterialTheme.typography.labelLarge)
+            Text(text.uppercase(java.util.Locale.ROOT), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -81,14 +81,14 @@ fun MotionButton(text: String, modifier: Modifier = Modifier, primary: Boolean =
 @Composable
 fun MotionTabs(labels: List<String>, selected: Int, modifier: Modifier = Modifier, onSelect: (Int) -> Unit) {
     val reduced = LocalStakMotion.current.reduced
-    BoxWithConstraints(modifier.fillMaxWidth().height(50.dp).background(MaterialTheme.colorScheme.surfaceContainer, CircleShape).selectableGroup()) {
+    BoxWithConstraints(modifier.fillMaxWidth().height(52.dp).background(MaterialTheme.colorScheme.surfaceContainer, androidx.compose.foundation.shape.RoundedCornerShape(13.dp)).selectableGroup()) {
         val width = maxWidth / labels.size
         val x = animateDpAsState(width * selected, if (reduced) snap() else spring(dampingRatio = .95f, stiffness = 650f), label = "Selection glide")
-        Box(Modifier.offset { IntOffset(x.value.roundToPx(), 0) }.width(width).fillMaxHeight().padding(4.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape))
+        Box(Modifier.offset { IntOffset(x.value.roundToPx(), 0) }.width(width).fillMaxHeight().padding(4.dp).background(MaterialTheme.colorScheme.onSurface, androidx.compose.foundation.shape.RoundedCornerShape(10.dp)))
         Row(Modifier.fillMaxSize()) {
             labels.forEachIndexed { index, text ->
                 Box(Modifier.weight(1f).fillMaxHeight().selectable(selected == index, role = Role.Tab, onClick = { onSelect(index) }), contentAlignment = Alignment.Center) {
-                    Text(text, style = MaterialTheme.typography.labelMedium, color = if (index == selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text.uppercase(java.util.Locale.ROOT), style = MaterialTheme.typography.labelLarge, color = if (index == selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

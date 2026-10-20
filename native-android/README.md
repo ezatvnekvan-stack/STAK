@@ -4,30 +4,15 @@ This is a separate Kotlin / Jetpack Compose Android application. It contains no 
 
 The native port retains STAK's monochrome surfaces, Doto headings, Hanken Grotesk text, Space Mono labels, poster grids, floating navigation, and Home / Discover / Watchlist / Tracking / Library / Settings structure. This is an initial native alpha, **not full feature parity with STAK 1.0**.
 
-## Implemented
+## Original-app parity work
 
-- Cinemeta movie/series browsing, debounced search, pagination, metadata and episode lists.
-- Persistent Room watchlist, watched-title journal, individual episode marks, and a month-based calendar following watchlisted series.
-- Jellyfin library (up to 300 titles), resume cards, watched/unwatched mutation, authenticated artwork, and external Jellyfin links.
-- TorBox task progress, file lists, and external playback/download links.
-- Existing `dmm-backup` v1 JSON import (watchlist, tracking, episode marks), native export/import, merge without overwriting existing entries. Credentials and legacy shares/Home configuration are not imported. Encrypted legacy backups must first be exported as ordinary JSON from the existing app.
-- AES-GCM credentials protected by Android Keystore; system certificate verification; no bundled API keys; no credentials in the local database or exported backup.
-- Resizable Android Watchlist widget.
+The user requires the original React/Capacitor UI and behavior, screen for screen, in Compose. The original components, CSS, fonts, assets and motion policy are the specification. Design and animation improvements are deferred. **Pixel-perfect visual and functional parity has not been achieved or verified. Do not publish this branch as a replica.**
 
-## Motion
+This branch replaces the simplified alpha layouts with the original dock, Settings destination index, theme controls, three-column shelves/grids, backdrop-led title screen and episode rail. It also adds direct TMDb browsing/details, Jellyfin user login and selection, source search, TorBox actions, remote and person destinations. These implementations need the full parity review; their presence does not establish equivalence.
 
-- Shared poster bounds animate into and out of the title screen (360 ms); each source has a distinct identity.
-- Navigation and segmented indicators use a restrained, retargetable spring.
-- Press feedback uses 0.975 / 0.98 scaling and optional Android haptics; success feedback follows successful mutations.
-- Draggable Material sheets follow touch and support Android Back. Reduced motion uses a static bottom dialog.
-- Watched checks draw on and reverse; segmented progress interpolates real values.
-- Pull-to-refresh dot sequences follow actual requests; indeterminate status never fabricates a percentage.
-- Dot animation stops when the app is not resumed. App and live system reduced-motion settings are respected. System animation duration scaling also applies to Compose animation clocks.
-- Navigation Compose handles Android predictive Back; scroll state is retained through navigation. Physical-device gesture quality and frame timing still need measurement.
+See [`parity/README.md`](parity/README.md) for original reference screenshots, comparison instructions, evidence limits and the blocking gap inventory. Hosted API 35 tests retain matching-viewport captures and functional smoke reports. Fixture tests cannot verify private live services.
 
-## Deliberate alpha limits
-
-Advanced TMDb/provider filters, cast/person pages, source aggregation/indexers, TorBox creation/deletion, account switching/isolation, Jellyfin remote controls, full playback tracking, theme accents/AMOLED/compact preferences, and automatic background sync are not ported yet. Episode marks are local; marking a series title watched does not mark every episode. Jellyfin playback opens its external web/client interface. There is no internal media player. The calendar depends on provider episode dates. Continue/Tonight widgets are future work; the included widget shows Watchlist.
+The original frontend and stable app remain unchanged. Existing alpha release notes describe the published alpha, not the unfinished branch.
 
 ## Build
 

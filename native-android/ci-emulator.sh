@@ -7,4 +7,10 @@ collect_evidence() {
 }
 trap collect_evidence EXIT
 cd "$stak_root/native-android"
+adb shell settings put system font_scale 1.0
+adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || true
+adb shell wm density 320
+adb shell wm size 824x1856
 ./gradlew connectedDebugAndroidTest
+adb shell wm size 720x1856
+./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest

@@ -12,14 +12,19 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 
-class StakViewModel(application: Application) : AndroidViewModel(application) {
-    val repository = Repository(application)
+class StakViewModel @JvmOverloads constructor(application: Application, val repository: Repository = Repository(application)) : AndroidViewModel(application) {
     val saved = repository.dao.observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val watchedEpisodes = repository.dao.episodes().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val preferences = application.getSharedPreferences("stak_appearance", 0)
     val reduced = MutableStateFlow(preferences.getBoolean("reduced", false))
     val haptics = MutableStateFlow(preferences.getBoolean("haptics", true))
     val dark = MutableStateFlow(preferences.getBoolean("dark", true))
+    val options = MutableStateFlow<Map<String, String>>(preferences.all.filterValues { it is String }.mapValues { it.value as String })
+    fun option(name: String, value: String) {
+        preferences.edit().putString(name, value).apply()
+        options.value = options.value + (name to value)
+        if (name == "theme" && value != "system") appearance("dark", value == "dark")
+    }
     val messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     private val mutationLock = Mutex()
     val catalogs = java.util.concurrent.ConcurrentHashMap<String, List<Media>>()

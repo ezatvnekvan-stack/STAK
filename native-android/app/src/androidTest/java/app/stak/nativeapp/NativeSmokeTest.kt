@@ -7,92 +7,49 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.lifecycle.ViewModelProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import org.junit.Before
-import org.junit.After
-import org.junit.Rule
-import org.junit.Test
+import org.junit.*
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class NativeSmokeTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     private lateinit var vm: StakViewModel
-
     @Before fun resetLocalData() {
-        compose.runOnUiThread { vm = ViewModelProvider(compose.activity)[StakViewModel::class.java]; vm.appearance("reduced", false) }
+        compose.runOnUiThread { vm = ViewModelProvider(compose.activity)[StakViewModel::class.java]; vm.appearance("reduced", true); vm.option("theme", "dark") }
+        listOf("tmdb_key", "torbox_token", "jellyfin_url", "jellyfin_token", "jellyfin_user").forEach { vm.repository.credentials.set(it, "") }
         runBlocking(Dispatchers.IO) { vm.repository.db.clearAllTables() }
     }
-    @After fun recordFinalState() { runCatching { capture("last-screen") }; compose.onRoot().printToLog("STAK-NATIVE-TEST") }
-
-    @Test fun nativeNavigationAndReducedMotionRemainUsable() {
+    @Test fun originalNavigationAndSettingsBackStack() {
         compose.onNodeWithTag("nav-settings").performClick()
-        compose.onNodeWithText("Appearance").assertIsDisplayed()
-        capture("settings")
-        compose.onAllNodes(isToggleable())[1].performClick()
+        compose.onNodeWithTag("settings-appearance").performClick()
+        compose.onNodeWithContentDescription("Reduce animations").performClick()
+        compose.onNodeWithText("All settings").performClick()
+        compose.onNodeWithTag("settings-metadata").assertIsDisplayed()
         compose.onNodeWithTag("nav-watchlist").performClick()
-        compose.onNodeWithText("Your Watchlist is empty. Open a title to add it.").assertIsDisplayed()
+        compose.onNodeWithText("Your next watch starts here").assertIsDisplayed()
+        compose.onNodeWithText("BROWSE DISCOVER").performClick()
+        compose.onNodeWithText("Find your next watch").assertIsDisplayed()
         compose.onNodeWithTag("nav-tracking").performClick()
-        compose.onNodeWithText("Calendar").performClick()
-        compose.onNodeWithText("Add series to Watchlist to follow their releases.").assertIsDisplayed()
+        compose.onNodeWithText("CALENDAR").performClick()
+        compose.onNodeWithText("Following").assertIsDisplayed()
         compose.onNodeWithTag("nav-library").performClick()
-        compose.onNodeWithText("TorBox").performClick()
-        compose.waitUntil(10000) { compose.onAllNodesWithText("Connect TorBox in Settings.").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Your library awaits").assertIsDisplayed()
     }
-
-    @Test fun posterNavigationWatchedUndoAndEpisodeSheet() {
-        val fixture = Media("jf:fixture-series", "series", "Motion test series", year = "2026", description = "An isolated test title for exercising native transitions.", episodes = listOf(
-            Episode("fixture:1:1", 1, 1, "First episode", "2026-01-01T00:00:00Z", "", "Episode sheet validation."),
-            Episode("fixture:1:2", 1, 2, "Second episode", "2026-01-02T00:00:00Z", "", "")
-        ))
-        vm.repository.remember(fixture)
-        runBlocking(Dispatchers.IO) { vm.repository.dao.put(SavedMedia(fixture.key, "watchlist", fixture.json().toString())) }
+    @Test fun episodeRailPersistsMarksAndSheetClosesWithSystemBack() {
+        val title = Media("jf:fixture-series", "series", "Test series", year = "2026", description = "Test-only title", episodes = listOf(Episode("fixture:1:1", 1, 1, "First episode", "2025-01-01T00:00:00Z", "", "Test-only episode"), Episode("fixture:1:2", 1, 2, "Second episode", "2025-01-02T00:00:00Z", "", "")))
+        vm.repository.remember(title)
+        runBlocking(Dispatchers.IO) { vm.repository.dao.put(SavedMedia(title.key, "watchlist", title.json().toString())) }
         compose.onNodeWithTag("nav-watchlist").performClick()
-        compose.waitUntil(10000) { compose.onAllNodesWithText(fixture.name).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText(fixture.name).performClick()
-        compose.onNodeWithText("Watched").performClick()
-        compose.waitUntil(10000) { compose.onAllNodesWithText("Unwatch").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Undo").performClick()
-        compose.waitUntil(10000) { compose.onAllNodesWithText("Watched").fetchSemanticsNodes().isNotEmpty() }
-        capture("title-fixture")
-        compose.onNodeWithTag("title-scroll").performScrollToNode(hasText("Seasons & episodes"))
-        compose.onNodeWithText("Seasons & episodes").performClick()
-        compose.onNodeWithText("0 / 2 episodes watched").assertIsDisplayed()
-        compose.onAllNodesWithContentDescription("Mark episode watched")[0].performClick()
-        compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isNotEmpty() }
-        capture("episodes-fixture")
-        pressSystemBack()
-        compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isEmpty() }
-        compose.runOnUiThread { vm.appearance("reduced", true) }
-        compose.onNodeWithTag("title-scroll").performScrollToNode(hasText("Seasons & episodes"))
-        compose.onNodeWithText("Seasons & episodes").performClick()
-        compose.onNodeWithText("First episode", substring = true).performTouchInput { click() }
-        compose.onNodeWithText("1 / 2 episodes watched").assertIsDisplayed()
-        pressSystemBack()
-        compose.waitForIdle()
-        pressSystemBack()
-        compose.onNodeWithText(fixture.name).assertIsDisplayed()
-    }
-
-    private fun capture(name: String) {
-        compose.waitForIdle()
-        val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-        val folder = java.io.File(compose.activity.getExternalFilesDir(null), "evidence").apply { mkdirs() }
-        java.io.File(folder, "$name.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
-        if (android.os.Build.VERSION.SDK_INT >= 29) {
-            val values = android.content.ContentValues().apply {
-                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "$name.png")
-                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
-                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/STAK-native-evidence")
-            }
-            val resolver = compose.activity.contentResolver
-            val uri = requireNotNull(resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values))
-            requireNotNull(resolver.openOutputStream(uri)).use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
-        }
-        bitmap.recycle()
-    }
-
-    private fun pressSystemBack() {
+        compose.waitUntil(10000) { compose.onAllNodesWithText(title.name).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(title.name).performClick()
+        compose.onNodeWithTag("title-scroll").performScrollToNode(hasText("1. First episode"))
+        compose.onNodeWithText("1. First episode").performClick()
+        compose.onNodeWithText("MARK WATCHED").performClick()
+        compose.waitUntil(10000) { runBlocking(Dispatchers.IO) { vm.repository.dao.allEpisodes().size == 1 } }
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-        compose.waitForIdle()
+        compose.waitUntil(10000) { compose.onAllNodesWithText("Test-only episode").fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithTag("title-scroll").performScrollToIndex(0)
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithText(title.name).assertIsDisplayed()
     }
 }
