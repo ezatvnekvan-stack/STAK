@@ -37,7 +37,7 @@ jobs:
         with:
           api-level: 35
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_2
           disable-animations: false
           script: bash native-android/ci-emulator.sh
       - name: Compare original and native captures
