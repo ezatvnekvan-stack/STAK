@@ -108,6 +108,13 @@ class HomeSearchTest {
         }
         compose.onNodeWithContentDescription("Clear search").performClick()
         compose.onNodeWithText("No results").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Search").assertTextEquals("")
+        compose
+            .onNodeWithContentDescription("Search")
+            .assert(
+                SemanticsMatcher.expectValue(
+                    androidx.compose.ui.semantics.SemanticsProperties.EditableText,
+                    androidx.compose.ui.text.AnnotatedString(""),
+                )
+            )
     }
 }

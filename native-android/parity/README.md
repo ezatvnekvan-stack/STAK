@@ -32,6 +32,8 @@ The normal-motion browser captures in `reference/motion/` contain the original 9
 
 At `f38175a`, [CI run 39509185904](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39509185904) passed build/unit/lint and four Android tests, including the 40 captures at 412×880. The motion test failed when TextureView bitmap readback returned null with a hosted GPU warning. The 360-pixel pass did not execute. These results are not a successful emulator validation. The next test uses system screenshots and preserves the second viewport pass even if another functional test fails, while retaining the failing exit status.
 
+At `39d333a`, [CI run 39510808710](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39510808710) produced all 88 captures with matching dimensions; all 88 still have differences. The functional run failed the cleared-search semantics assertion and the Rive preview after changing theme. A retained dark motion crop showed the static icon rather than the illustration. The next implementation waits for the native artboard/surface, uses the Android Canvas renderer and a real Android settling timer, and preserves functional-run reports separately from the second screenshot pass. This correction still requires device verification.
+
 ## Blocking gaps
 
 No screen has yet passed the complete parity gate. In addition to screenshot corrections, the following original behaviors remain incomplete or unverified:

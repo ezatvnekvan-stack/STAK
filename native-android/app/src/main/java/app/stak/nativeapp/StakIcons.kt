@@ -254,6 +254,16 @@ object StakIcons {
     val Database by lazy {
         ImageVector.Builder("Database", 24.dp, 24.dp, 24f, 24f)
             .apply {
+                // The original Lucide SVG includes this ellipse before its two paths.
+                addPath(
+                    PathParser().parsePathString("M3 5a9 3 0 1 0 18 0a9 3 0 1 0-18 0").toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+
                 addPath(
                     PathParser().parsePathString("M3 5V19A9 3 0 0 0 21 19V5").toNodes(),
                     fill = null,

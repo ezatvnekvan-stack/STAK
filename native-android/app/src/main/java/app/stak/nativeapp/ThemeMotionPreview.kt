@@ -23,8 +23,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
 import app.rive.runtime.kotlin.RiveAnimationView
 import app.rive.runtime.kotlin.core.Fit
+import app.rive.runtime.kotlin.core.RendererType
 import app.rive.runtime.kotlin.core.Rive
-import kotlinx.coroutines.delay
 
 private const val THEME_MACHINE = "Main State Machine"
 private var riveInitialized = false
@@ -67,7 +67,7 @@ private fun OriginalRiveThemeArt(dark: Boolean, modifier: Modifier) {
             factory = { context ->
                 try {
                     if (!riveInitialized) {
-                        Rive.init(context.applicationContext)
+                        Rive.init(context.applicationContext, RendererType.Canvas)
                         riveInitialized = true
                     }
                     RiveAnimationView.Builder(context)
@@ -77,6 +77,7 @@ private fun OriginalRiveThemeArt(dark: Boolean, modifier: Modifier) {
                         .setShouldLoadCDNAssets(false)
                         .setTouchPassThrough(true)
                         .setFit(Fit.CONTAIN)
+                        .setRendererType(RendererType.Canvas)
                         .build()
                         .also { art ->
                             art.isOpaque = false
@@ -103,21 +104,57 @@ private fun OriginalRiveThemeArt(dark: Boolean, modifier: Modifier) {
                 view = null
             },
         )
-    LaunchedEffect(view, dark) {
-        val art = view ?: return@LaunchedEffect
-        // Resource setup occurs synchronously when the AndroidView attaches to its window.
-        withFrameNanos {}
-        try {
-            art.play(THEME_MACHINE, isStateMachine = true)
-            if (dark != lastDark) {
-                art.fireState(THEME_MACHINE, "Click")
-                lastDark = dark
+    DisposableEffect(view, dark) {
+        val art = view
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val pause = Runnable { art?.pause() }
+        val deadline = android.os.SystemClock.uptimeMillis() + 5000
+        val start =
+            object : Runnable {
+                override fun run() {
+                    if (art == null) return
+                    // React waits for onLoad. On Android both the artboard and texture surface
+                    // must exist before applying the state-machine input.
+                    if (
+                        !art.isAttachedToWindow ||
+                            !art.isAvailable ||
+                            art.controller.activeArtboard == null
+                    ) {
+                        if (android.os.SystemClock.uptimeMillis() < deadline)
+                            art.postOnAnimation(this)
+                        else {
+                            android.util.Log.w(
+                                "StakThemeMotion",
+                                "Original theme art did not become ready",
+                            )
+                            failed = true
+                        }
+                        return
+                    }
+                    try {
+                        art.play(THEME_MACHINE, isStateMachine = true)
+                        if (dark != lastDark) {
+                            art.fireState(THEME_MACHINE, "Click")
+                            lastDark = dark
+                        }
+                        // This is native playback: its settling timer follows the real Android
+                        // frame clock, independently of Compose's animation/test clock.
+                        handler.postDelayed(pause, 1400)
+                    } catch (failure: IllegalStateException) {
+                        android.util.Log.w(
+                            "StakThemeMotion",
+                            "Original theme state machine could not play",
+                            failure,
+                        )
+                        failed = true
+                    }
+                }
             }
-            delay(1400)
-        } catch (_: IllegalStateException) {
-            failed = true
-        } finally {
-            art.pause()
+        art?.post(start)
+        onDispose {
+            handler.removeCallbacks(pause)
+            art?.removeCallbacks(start)
+            art?.pause()
         }
     }
 }
