@@ -174,7 +174,8 @@ fun Label(text: String, modifier: Modifier = Modifier) {
         modifier,
         fontFamily = MonoFont,
         fontSize = 10.sp,
-        letterSpacing = 1.sp,
+        lineHeight = 15.sp,
+        letterSpacing = 1.1.sp,
         color = Muted,
     )
 }

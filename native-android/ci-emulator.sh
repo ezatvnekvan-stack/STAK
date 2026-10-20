@@ -11,6 +11,8 @@ adb shell settings put system font_scale 1.0
 adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || true
 adb shell wm density 160
 adb shell wm size 412x928
-./gradlew connectedDebugAndroidTest
+stak_test_status=0
+./gradlew connectedDebugAndroidTest || stak_test_status=$?
 adb shell wm size 360x928
-./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest
+./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest || stak_test_status=$?
+exit "$stak_test_status"

@@ -29,7 +29,13 @@
     "frontend/src/styles/details.css": "16be51e85af2e6eb0cd928157e392b33e8287333e753de793b1a1de0310c6b52",
     "frontend/src/lib/motionPolicy.js": "08d69d90e25a8842f67dc7dba38484cc7bd9bfc98c4c88bbdd17251463e08bef",
     "frontend/src/lib/theme.js": "3a07c7e5a1f4c3a1c82233756e1ac0415ef9536ad5f750c3ef87730be6f0f4aa",
-    "frontend/src/lib/appearance.js": "0ca014f016b32029d25dd386c7a8aff94d0db97da24366a97a95bfa7e5a7d3dc"
+    "frontend/src/lib/appearance.js": "0ca014f016b32029d25dd386c7a8aff94d0db97da24366a97a95bfa7e5a7d3dc",
+    "frontend/public/fonts/fonts.css": "7c4b1c86b08964a8634bf12f9f6ebc9156991e6ad0e29fb321895ea2b4d51511",
+    "frontend/public/fonts/Doto.ttf": "6f4fe7d37853b91df3698daa84cde2dbe1c9695d88c986e6510134910337d426",
+    "frontend/public/fonts/HankenGrotesk.ttf": "813b3f8fa0965405669a89b38e51bbefd95eef6b8e20d1cb2d8c10cce062662f",
+    "frontend/public/fonts/SpaceMono-Regular.ttf": "95837e182baeeada83368f7748db28357f0a1b75c6b84ff7065b5edf933c8e18",
+    "frontend/public/fonts/SpaceMono-Bold.ttf": "405e73d41afb7e5906efce206a326af5c956f38e255f35421c260e861e599c59",
+    "frontend/public/animations/theme-switch.riv": "9b9c68b6319e5a186f99bb94ba5b3001f8a272cc3a4fd6a688e67b8bdf7310b4"
   },
   "screenshots": [
     "account-360-dark.png",
@@ -56,6 +62,14 @@
     "home-360-light.png",
     "home-412-dark.png",
     "home-412-light.png",
+    "homeSearch-360-dark.png",
+    "homeSearch-360-light.png",
+    "homeSearch-412-dark.png",
+    "homeSearch-412-light.png",
+    "homeSearchEmpty-360-dark.png",
+    "homeSearchEmpty-360-light.png",
+    "homeSearchEmpty-412-dark.png",
+    "homeSearchEmpty-412-light.png",
     "homeSettings-360-dark.png",
     "homeSettings-360-light.png",
     "homeSettings-412-dark.png",
@@ -112,5 +126,26 @@
     "watchlist-360-light.png",
     "watchlist-412-dark.png",
     "watchlist-412-light.png"
-  ]
+  ],
+  "motionReferences": {
+    "files": [
+      "motion/theme-motion-360-dark.png",
+      "motion/theme-motion-360-light.png",
+      "motion/theme-motion-412-dark.png",
+      "motion/theme-motion-412-light.png"
+    ],
+    "viewportWidths": [
+      360,
+      412
+    ],
+    "viewportHeight": 880,
+    "deviceScaleFactor": 1,
+    "cropSize": [
+      94,
+      52
+    ],
+    "reducedMotion": false,
+    "settleDelayMs": 1800,
+    "status": "Settled illustration states only; continuous animation timing is unverified."
+  }
 }

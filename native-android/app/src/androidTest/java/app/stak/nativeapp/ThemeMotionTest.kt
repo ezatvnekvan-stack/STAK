@@ -13,6 +13,7 @@ import app.rive.runtime.kotlin.RiveAnimationView
 import org.junit.*
 import org.junit.runner.RunWith
 
+@androidx.test.filters.SdkSuppress(minSdkVersion = 30)
 @RunWith(AndroidJUnit4::class)
 class ThemeMotionTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
@@ -28,10 +29,53 @@ class ThemeMotionTest {
         return null
     }
 
-    private fun frame(): Bitmap {
-        var frame: Bitmap? = null
-        compose.runOnUiThread { frame = art()?.bitmap }
-        return requireNotNull(frame) { "The original Rive art did not render a frame" }
+    private val artBounds = IntArray(4)
+
+    private fun frame(name: String, requireArt: Boolean = true): Bitmap {
+        val location = IntArray(2)
+        var width = 0
+        var height = 0
+        compose.runOnUiThread {
+            if (requireArt) {
+                val view = requireNotNull(art()) { "Original Rive view is missing" }
+                Assert.assertTrue("Original art surface must be available", view.isAvailable)
+                view.getLocationOnScreen(location)
+                width = view.width
+                height = view.height
+                artBounds[0] = location[0]
+                artBounds[1] = location[1]
+                artBounds[2] = width
+                artBounds[3] = height
+            } else {
+                location[0] = artBounds[0]
+                location[1] = artBounds[1]
+                width = artBounds[2]
+                height = artBounds[3]
+            }
+        }
+        // SurfaceFlinger readback includes TextureView. TextureView.getBitmap is unreliable
+        // on the hosted emulator GPU and returned null despite an attached surface.
+        val screen = requireNotNull(instrument.uiAutomation.takeScreenshot())
+        val frame = Bitmap.createBitmap(screen, location[0], location[1], width, height)
+        val resolver = compose.activity.contentResolver
+        val values =
+            android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "theme-motion-$name.png")
+                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                put(
+                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
+                    "Pictures/STAK-native-evidence",
+                )
+            }
+        val uri =
+            requireNotNull(
+                resolver.insert(
+                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    values,
+                )
+            )
+        resolver.openOutputStream(uri)!!.use { frame.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        return frame
     }
 
     @After
@@ -59,21 +103,21 @@ class ThemeMotionTest {
             present
         }
         Thread.sleep(1800)
-        val dark = frame()
+        val dark = frame("dark")
         compose.runOnUiThread {
             Assert.assertFalse("Theme illustration must stop after settling", art()!!.isPlaying)
         }
         compose.onNodeWithContentDescription("Switch to light theme").performClick()
         compose.onNodeWithContentDescription("Switch to dark theme").assertExists()
         Thread.sleep(1800)
-        val light = frame()
+        val light = frame("light")
         var changed = 0
         for (y in 0 until minOf(dark.height, light.height)) for (x in
             0 until minOf(dark.width, light.width)) if (dark.getPixel(x, y) != light.getPixel(x, y))
             changed++
         Assert.assertTrue(
             "The original state-machine input must change the rendered illustration",
-            changed > dark.width * dark.height / 100,
+            changed > dark.width * dark.height / 5,
         )
         compose.runOnUiThread {
             Assert.assertFalse(art()!!.isPlaying)
@@ -86,5 +130,15 @@ class ThemeMotionTest {
         }
         compose.onNodeWithContentDescription("Switch to dark theme").performClick()
         compose.onNodeWithContentDescription("Switch to light theme").assertExists()
+        val staticDark = frame("static-dark", requireArt = false)
+        var illustrated = 0
+        for (y in 0 until dark.height) for (x in 0 until dark.width) if (
+            dark.getPixel(x, y) != staticDark.getPixel(x, y)
+        )
+            illustrated++
+        Assert.assertTrue(
+            "Motion-enabled preview must render the bundled illustration, beyond the static icon",
+            illustrated > dark.width * dark.height / 5,
+        )
     }
 }

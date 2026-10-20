@@ -43,7 +43,7 @@ class OriginalReferenceTest {
                         if (request.url.host == "image.tmdb.org")
                             picture.toResponseBody("image/png".toMediaType())
                         else
-                            response(path)
+                            response(path, request.url.queryParameter("query").orEmpty())
                                 .toString()
                                 .toResponseBody("application/json".toMediaType())
                     Response.Builder()
@@ -95,6 +95,8 @@ class OriginalReferenceTest {
         val routes =
             linkedMapOf(
                 "home" to "home",
+                "homeSearch" to "home?q=Test%20title",
+                "homeSearchEmpty" to "home?q=stak-no-match",
                 "discover" to "discover",
                 "watchlist" to "watchlist",
                 "tracking" to "tracking",
@@ -152,8 +154,34 @@ class OriginalReferenceTest {
             .put("backdrop_path", "/b.jpg")
             .put("genre_ids", JSONArray(listOf(18)))
 
-    private fun response(path: String): JSONObject =
+    private fun response(path: String, query: String = ""): JSONObject =
         when {
+            path == "/3/search/multi" ->
+                JSONObject()
+                    .put("page", 1)
+                    .put("total_pages", 1)
+                    .put(
+                        "results",
+                        JSONArray(
+                            if (query == "stak-no-match") emptyList<JSONObject>()
+                            else
+                                (0..7).map {
+                                    movie(700 + it)
+                                        .put("media_type", if (it % 2 == 1) "tv" else "movie")
+                                }
+                        ),
+                    )
+            path.endsWith("/external_ids") ->
+                JSONObject()
+                    .put(
+                        "imdb_id",
+                        if (path.contains("/movie/603/")) "tt0133093"
+                        else if (path.contains("/tv/1396/")) "tt0903747"
+                        else
+                            "tt" +
+                                (if (path.contains("/tv/")) "1" else "0") +
+                                path.split('/')[3].padStart(6, '0'),
+                    )
             path.startsWith("/3/find/") ->
                 JSONObject()
                     .put(
@@ -210,6 +238,34 @@ class OriginalReferenceTest {
                             .put(
                                 "backdrops",
                                 JSONArray().put(JSONObject().put("file_path", "/b.jpg")),
+                            ),
+                    )
+                    .put(
+                        "content_ratings",
+                        JSONObject()
+                            .put(
+                                "results",
+                                JSONArray()
+                                    .put(
+                                        JSONObject().put("iso_3166_1", "US").put("rating", "TV-MA")
+                                    ),
+                            ),
+                    )
+                    .put(
+                        "release_dates",
+                        JSONObject()
+                            .put(
+                                "results",
+                                JSONArray()
+                                    .put(
+                                        JSONObject()
+                                            .put("iso_3166_1", "US")
+                                            .put(
+                                                "release_dates",
+                                                JSONArray()
+                                                    .put(JSONObject().put("certification", "PG-13")),
+                                            )
+                                    ),
                             ),
                     )
                     .put("credits", JSONObject().put("cast", JSONArray()).put("crew", JSONArray()))

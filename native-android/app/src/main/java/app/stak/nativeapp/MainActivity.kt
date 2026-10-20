@@ -54,6 +54,17 @@ val DotFont =
                 ),
         )
     )
+val SectionFont =
+    FontFamily(
+        Font(
+            R.font.doto,
+            FontWeight.ExtraBold,
+            variationSettings =
+                androidx.compose.ui.text.font.FontVariation.Settings(
+                    androidx.compose.ui.text.font.FontVariation.weight(800)
+                ),
+        )
+    )
 val BodyFont =
     FontFamily(
         *listOf(
@@ -310,11 +321,23 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
                                         fadeOut(tween(duration, easing = StakEase))
                                     },
                                 ) {
-                                    composable("home") {
+                                    composable(
+                                        "home?q={q}",
+                                        arguments =
+                                            listOf(
+                                                navArgument("q") {
+                                                    type = NavType.StringType
+                                                    defaultValue = ""
+                                                }
+                                            ),
+                                    ) {
                                         CompositionLocalProvider(LocalDestination provides this) {
-                                            HomeScreen(vm, saved, ::open) {
-                                                nav.navigate("discover")
-                                            }
+                                            HomeScreen(
+                                                vm,
+                                                saved,
+                                                ::open,
+                                                it.arguments?.getString("q").orEmpty(),
+                                            )
                                         }
                                     }
                                     composable("discover") {

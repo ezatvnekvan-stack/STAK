@@ -1,6 +1,7 @@
 @file:OptIn(
     androidx.compose.material3.ExperimentalMaterial3Api::class,
     androidx.compose.foundation.ExperimentalFoundationApi::class,
+    androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
 )
 
 package app.stak.nativeapp
@@ -190,6 +191,7 @@ fun RatingBadge(
     quiet: Boolean = false,
     hero: Boolean = false,
     bare: Boolean = false,
+    valueSize: TextUnit = 11.sp,
 ) {
     val number = media.rating.removeSuffix("%").toFloatOrNull() ?: return
     val max = if (media.ratingSource.lowercase() in listOf("imdb", "tmdb")) 10f else 100f
@@ -226,9 +228,10 @@ fun RatingBadge(
             RatingLogo(media.ratingSource, Modifier.alpha(if (quiet) .65f else .8f))
             Text(
                 media.rating,
+                Modifier.height(valueSize.value.dp),
                 fontFamily = MonoFont,
-                fontSize = 11.sp,
-                lineHeight = 11.sp,
+                fontSize = valueSize,
+                lineHeight = valueSize,
                 letterSpacing = 0.sp,
             )
         }
@@ -241,7 +244,10 @@ fun PosterCard(
     source: String,
     modifier: Modifier = Modifier,
     onOpen: (Media, String) -> Unit,
+    term: String = "",
 ) {
+    val isSearch = source.startsWith("search")
+    val highlight = AccentInk
     val interactions = remember { MutableInteractionSource() }
     var menu by remember { mutableStateOf(false) }
     val vm: StakViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -308,9 +314,20 @@ fun PosterCard(
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
-                media.name,
+                androidx.compose.ui.text.buildAnnotatedString {
+                    val offset =
+                        if (term.isBlank()) -1
+                        else media.name.indexOf(term.trim(), ignoreCase = true)
+                    append(media.name)
+                    if (offset >= 0)
+                        addStyle(
+                            androidx.compose.ui.text.SpanStyle(color = highlight),
+                            offset,
+                            offset + term.trim().length,
+                        )
+                },
                 fontSize = if (LocalOptions.current["compact"] == "true") 12.sp else 13.sp,
-                lineHeight = 18.sp,
+                lineHeight = 18.2.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -323,11 +340,14 @@ fun PosterCard(
                 color = Muted,
                 maxLines = 1,
             )
-            RatingBadge(
-                media,
-                compact = true,
-                bare = source.startsWith("discover") || source.startsWith("search"),
-            )
+            Box(Modifier.padding(bottom = 4.dp)) {
+                RatingBadge(
+                    media,
+                    compact = true,
+                    bare = source.startsWith("discover"),
+                    valueSize = if (isSearch) 9.sp else 11.sp,
+                )
+            }
         }
     }
     if (menu)
@@ -373,12 +393,65 @@ fun HomeScreen(
     vm: StakViewModel,
     saved: List<SavedMedia>,
     onOpen: (Media, String) -> Unit,
-    onDiscover: () -> Unit,
+    initialQuery: String = "",
 ) {
     var rows by remember { mutableStateOf<Map<String, List<Media>>>(emptyMap()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var refresh by remember { mutableIntStateOf(0) }
+    var input by rememberSaveable { mutableStateOf(initialQuery) }
+    var query by rememberSaveable { mutableStateOf(initialQuery) }
+    var searchPage by remember { mutableIntStateOf(1) }
+    var searchRetry by remember { mutableIntStateOf(0) }
+    var searchItems by remember { mutableStateOf(emptyList<Media>()) }
+    var searchNext by remember { mutableStateOf<Int?>(null) }
+    var searchNotices by remember { mutableStateOf(emptyList<String>()) }
+    var searchError by remember { mutableStateOf("") }
+    var searching by remember { mutableStateOf(false) }
+    var appliedRouteQuery by rememberSaveable { mutableStateOf(initialQuery) }
+    LaunchedEffect(initialQuery) {
+        if (initialQuery != appliedRouteQuery) {
+            appliedRouteQuery = initialQuery
+            input = initialQuery
+            query = initialQuery
+            searchPage = 1
+            searchItems = emptyList()
+        }
+    }
+    LaunchedEffect(input) {
+        delay(320)
+        if (query != input.trim()) {
+            query = input.trim()
+            searchPage = 1
+            searchItems = emptyList()
+        }
+    }
+    LaunchedEffect(query, searchPage, searchRetry) {
+        if (query.isBlank()) {
+            searchItems = emptyList()
+            searchNotices = emptyList()
+            searchError = ""
+            searching = false
+            return@LaunchedEffect
+        }
+        searching = true
+        try {
+            val result = vm.repository.searchTitles(query, searchPage)
+            searchItems =
+                (if (searchPage == 1) result.items else searchItems + result.items)
+                    .distinctBy { it.key }
+                    .sortedBy { searchRelevance(it, query) }
+            searchNext = result.next
+            searchNotices = result.notices
+            searchError = ""
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            searchError = e.message.orEmpty()
+        } finally {
+            searching = false
+        }
+    }
     val options = LocalOptions.current
     val navigate = LocalNavigate.current
     val rowSpecs =
@@ -390,7 +463,8 @@ fun HomeScreen(
             Triple("top_series", "Top rated series", "series"),
             Triple("new_series", "Released in ${Year.now()} · series", "series"),
         )
-    LaunchedEffect(refresh, options.filterKeys { it.startsWith("home_") }) {
+    LaunchedEffect(refresh, query, options.filterKeys { it.startsWith("home_") }) {
+        if (query.isNotBlank()) return@LaunchedEffect
         loading = true
         try {
             val result = linkedMapOf<String, List<Media>>()
@@ -443,10 +517,11 @@ fun HomeScreen(
                         StakBrand(Modifier.size(34.dp))
                         Text(
                             "STAK",
-                            Modifier.padding(start = 10.dp).weight(1f),
+                            Modifier.padding(start = 10.dp).weight(1f).height(25.dp),
                             fontFamily = DotFont,
                             fontWeight = FontWeight.Black,
                             fontSize = 25.sp,
+                            lineHeight = 25.sp,
                             letterSpacing = (-.06).em,
                         )
                         Row(
@@ -479,59 +554,110 @@ fun HomeScreen(
                             )
                         }
                     }
-                    Box(Modifier.clickable(onClick = onDiscover)) {
-                        SearchEntry("", {}, true)
-                        Box(Modifier.matchParentSize().clickable(onClick = onDiscover))
+                    HomeSearchInput(input, { input = it }) {
+                        input = ""
+                        query = ""
+                        searchItems = emptyList()
+                        searchPage = 1
                     }
                 }
             }
-            val heroes =
-                rows["trending_movie"]
-                    .orEmpty()
-                    .take(3)
-                    .zip(rows["trending_series"].orEmpty().take(3))
-                    .flatMap { listOf(it.first, it.second) }
-                    .ifEmpty { rows.values.flatten().take(6) }
-            if (heroes.isNotEmpty()) item { HomeHero(vm, heroes, onOpen) }
-            if (loading && rows.isEmpty()) item { PosterSkeletons() }
-            if (error.isNotBlank()) item { EmptyState(error) { refresh++ } }
-            if (options["home_continue"] != "false") {
-                if (rows["continue"].orEmpty().isNotEmpty())
+            if (query.isNotBlank()) {
+                if (searchNotices.isNotEmpty())
                     item {
-                        MediaRail(
-                            "Continue watching",
-                            rows["continue"].orEmpty(),
-                            "home-continue",
-                            onOpen,
-                        )
+                        searchNotices.forEach {
+                            Text(it, fontSize = 12.sp, lineHeight = 18.sp, color = Muted)
+                        }
                     }
-                else if (vm.repository.credentials.get("jellyfin_url").isBlank())
+                item {
+                    Column {
+                        Label("Results: “$query” · ${searchItems.size}")
+                        Spacer(Modifier.height(12.dp))
+                        if (searchError.isNotBlank())
+                            OriginalEmpty("Error", searchError, "Retry") { searchRetry++ }
+                        if (searching && searchItems.isEmpty()) PosterSkeletons()
+                        else if (searchItems.isEmpty() && searchError.isBlank())
+                            OriginalEmpty(
+                                "No results",
+                                "Try another term or loosen the filters.",
+                                "Clear filters",
+                            ) {
+                                input = ""
+                                query = ""
+                            }
+                        else if (searchItems.isNotEmpty())
+                            SearchPosterRow(searchItems.take(4), query, onOpen)
+                    }
+                }
+                items(searchItems.chunked(4).drop(1)) { row -> SearchPosterRow(row, query, onOpen) }
+                if (searchNext != null && searchItems.isNotEmpty())
                     item {
-                        Row(
-                            Modifier.padding(vertical = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Text(
-                                "Connect Jellyfin to resume watching.",
-                                Modifier.weight(1f),
-                                fontSize = 12.sp,
-                                color = Muted,
-                            )
-                            MotionButton("Connect Jellyfin") {
-                                navigate("settings?section=jellyfin")
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            MotionButton(
+                                if (searching) "Loading…" else "Load more",
+                                enabled = !searching,
+                            ) {
+                                searchPage = searchNext!!
                             }
                         }
                     }
-            }
-            val watchlist = saved.filter { it.collection == "watchlist" }.map { it.media() }
-            if (watchlist.isNotEmpty() && options["home_watchlist"] != "false")
-                item { MediaRail("Your watchlist", watchlist, "home-watchlist", onOpen) }
-            rowSpecs.forEach { (id, label, _) ->
-                if (rows[id].orEmpty().isNotEmpty())
-                    item { MediaRail(label, rows[id].orEmpty(), "home-$id", onOpen) }
+            } else {
+                val heroes =
+                    rows["trending_movie"]
+                        .orEmpty()
+                        .take(3)
+                        .zip(rows["trending_series"].orEmpty().take(3))
+                        .flatMap { listOf(it.first, it.second) }
+                        .ifEmpty { rows.values.flatten().take(6) }
+                if (heroes.isNotEmpty()) item { HomeHero(vm, heroes, onOpen) }
+                if (loading && rows.isEmpty()) item { PosterSkeletons() }
+                if (error.isNotBlank()) item { EmptyState(error) { refresh++ } }
+                if (options["home_continue"] != "false") {
+                    if (rows["continue"].orEmpty().isNotEmpty())
+                        item {
+                            MediaRail(
+                                "Continue watching",
+                                rows["continue"].orEmpty(),
+                                "home-continue",
+                                onOpen,
+                            )
+                        }
+                    else if (vm.repository.credentials.get("jellyfin_url").isBlank())
+                        item {
+                            FlowRow(
+                                Modifier.padding(vertical = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    "Connect Jellyfin to resume watching.",
+                                    Modifier.align(Alignment.CenterVertically),
+                                    fontSize = 12.sp,
+                                    lineHeight = 18.sp,
+                                    color = Muted,
+                                )
+                                MotionButton("Connect Jellyfin") {
+                                    navigate("settings?section=jellyfin")
+                                }
+                            }
+                        }
+                }
+                val watchlist = saved.filter { it.collection == "watchlist" }.map { it.media() }
+                if (watchlist.isNotEmpty() && options["home_watchlist"] != "false")
+                    item { MediaRail("Your watchlist", watchlist, "home-watchlist", onOpen) }
+                rowSpecs.forEach { (id, label, _) ->
+                    if (rows[id].orEmpty().isNotEmpty())
+                        item { MediaRail(label, rows[id].orEmpty(), "home-$id", onOpen) }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun SearchPosterRow(row: List<Media>, query: String, onOpen: (Media, String) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        row.forEach { PosterCard(it, "search-home", Modifier.weight(1f), onOpen, term = query) }
+        repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
     }
 }
 
@@ -613,7 +739,8 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                         Modifier.matchParentSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Transparent,
+                                    0f to Color.Black.copy(alpha = .03f),
+                                    .2f to Color.Black.copy(alpha = .03f),
                                     .44f to Color.Black.copy(alpha = .25f),
                                     1f to Color.Black.copy(alpha = .92f),
                                 )
@@ -622,7 +749,7 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                     Column(
                         Modifier.align(Alignment.BottomStart)
                             .padding(start = 20.dp, end = 20.dp, bottom = 48.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.Top,
                     ) {
                         Text(
                             title.name,
@@ -642,17 +769,47 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                             color = Color.White,
                             maxLines = 2,
                         )
-                        if (title.genres.isNotEmpty())
-                            Text(
-                                title.genres.take(2).joinToString(" · "),
-                                fontSize = 10.sp,
-                                color = Color.White.copy(alpha = .75f),
-                            )
+                        Spacer(Modifier.height(12.dp))
+                        if (title.genres.isNotEmpty() || title.certificate.isNotBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                if (title.genres.isNotEmpty())
+                                    Text(
+                                        title.genres.take(2).joinToString(" · "),
+                                        fontSize = 10.sp,
+                                        lineHeight = 15.sp,
+                                        color = Color.White.copy(alpha = .8f),
+                                    )
+                                if (title.certificate.isNotBlank())
+                                    Text(
+                                        title.certificate,
+                                        Modifier.border(
+                                                1.dp,
+                                                Color.White.copy(alpha = 101f / 255),
+                                                RoundedCornerShape(4.dp),
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                                        fontFamily =
+                                            androidx.compose.ui.text.font.FontFamily.Monospace,
+                                        fontSize = 9.sp,
+                                        lineHeight = 11.7.sp,
+                                        color = Color.White,
+                                    )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                        }
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(title.year, fontSize = 12.sp, color = Color.White)
+                            Text(
+                                title.year,
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp,
+                                color = Color.White,
+                            )
                             RatingBadge(title, hero = true)
                         }
                     }
@@ -702,7 +859,7 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
 @Composable
 fun MediaRail(title: String, media: List<Media>, source: String, onOpen: (Media, String) -> Unit) {
     val navigate = LocalNavigate.current
-    Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 44.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -710,9 +867,10 @@ fun MediaRail(title: String, media: List<Media>, source: String, onOpen: (Media,
             Text(
                 title.uppercase(),
                 Modifier.weight(1f),
-                fontFamily = DotFont,
-                fontWeight = FontWeight.Black,
+                fontFamily = SectionFont,
+                fontWeight = FontWeight.ExtraBold,
                 fontSize = 15.sp,
+                lineHeight = 21.75.sp,
                 letterSpacing = .7.sp,
             )
             Text(

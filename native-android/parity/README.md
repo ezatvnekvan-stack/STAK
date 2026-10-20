@@ -4,7 +4,7 @@ The original React/Capacitor app is the specification. No redesign or animation 
 
 ## Reference evidence
 
-`reference/` contains 80 original production React screenshots: 20 route/state captures, at 360×880 and 412×880 CSS pixels, in dark/light themes, with reduced motion and intercepted **test-only** provider data. `reference-manifest.json` identifies the source commit and hashes of the original styles/tokens. These browser references do not establish Capacitor-specific behavior or live account correctness. The original frontend is unchanged.
+`reference/` contains 88 original production React screenshots: 22 route/state captures, at 360×880 and 412×880 CSS pixels, in dark/light themes, with reduced motion and intercepted **test-only** provider data. `reference-manifest.json` identifies the source commit and hashes of the original styles/tokens. These browser references do not establish Capacitor-specific behavior or live account correctness. The original frontend is unchanged.
 
 Regenerate only from the original production frontend build, with Playwright/Chromium available:
 
@@ -24,7 +24,13 @@ This produces original/native/difference images and a coverage report. A similar
 
 At `d87b001`, [CI run 39505164911](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39505164911) passed build, unit tests, lint and emulator checks. All 80 expected captures had matching dimensions. All 80 still required visual corrections; no screen was certified. Review found inherited Material letter spacing, missing Space Mono Bold, header/hero measurements, the theme-preview layout, and tracking/calendar differences.
 
-The next implementation ports the original rating-logo cells, original Rive asset/state machine, measured appearance controls, calendar geometry, runtime rules and episode journal transactions. These changes require a new emulator comparison. Custom colour dialog geometry and all animation timing still need comparison. Rive is native; the unchanged asset SHA-256 is `9b9c68b6319e5a186f99bb94ba5b3001f8a272cc3a4fd6a688e67b8bdf7310b4`.
+The latest implementation ports the original rating-logo cells, original Rive asset/state machine, measured appearance controls, calendar geometry, runtime rules and episode journal transactions. These changes require a new emulator comparison. Custom colour dialog geometry and all animation timing still need comparison. Rive is native; the unchanged asset SHA-256 is `9b9c68b6319e5a186f99bb94ba5b3001f8a272cc3a4fd6a688e67b8bdf7310b4`.
+
+Home now supports inline unified search, IMDb identity, original result ranking, clearing and pagination, with populated and empty-query references added at both viewports/themes. Suggestions, aliases and all search failure/filter states still require parity work.
+
+The normal-motion browser captures in `reference/motion/` contain the original 94×52 theme illustration after settling. Reproduce them with `STAK_REFERENCE_MODE=motion` and the same capture command. They do not verify continuous frame timing. The Android motion test retains dark/light/static crops and requires the bundled illustration to render beyond the static icon.
+
+At `f38175a`, [CI run 39509185904](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39509185904) passed build/unit/lint and four Android tests, including the 40 captures at 412×880. The motion test failed when TextureView bitmap readback returned null with a hosted GPU warning. The 360-pixel pass did not execute. These results are not a successful emulator validation. The next test uses system screenshots and preserves the second viewport pass even if another functional test fails, while retaining the failing exit status.
 
 ## Blocking gaps
 

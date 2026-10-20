@@ -433,7 +433,7 @@ class Repository(
         val extra =
             if (query.isBlank()) (if (skip == 0) "" else "/skip=$skip")
             else
-                "/search=${java.net.URLEncoder.encode(query, "UTF-8")}" +
+                "/search=${java.net.URLEncoder.encode(query, "UTF-8").replace("+", "%20")}" +
                     if (skip > 0) "&skip=$skip" else ""
         val root = request("https://v3-cinemeta.strem.io/catalog/$type/top$extra.json")
         return root.optJSONArray("metas").objects().map { remember(Media.fromJson(it)) }

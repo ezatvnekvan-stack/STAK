@@ -143,9 +143,12 @@ fun AppearanceSettings(vm: StakViewModel) {
             OriginalAccents.chunked(4).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { choice ->
-                        val selected = rawAccent == choice.id || rawAccent.equals(choice.hex, true)
+                        val selected = rawAccent == choice.id
                         val paint = colorFromHex(choice.hex)
-                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier.weight(1f).height(44.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             if (selected)
                                 Box(Modifier.requiredSize(52.dp).border(2.dp, paint, CircleShape))
                             Box(
@@ -182,7 +185,7 @@ fun AppearanceSettings(vm: StakViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            AppearanceLabel("Custom colour", Modifier.weight(1f), bottom = 0.dp)
+            AppearanceLabel("Custom colour", Modifier.weight(1f))
             Box(
                 Modifier.size(44.dp)
                     .clip(RoundedCornerShape(12.dp))
