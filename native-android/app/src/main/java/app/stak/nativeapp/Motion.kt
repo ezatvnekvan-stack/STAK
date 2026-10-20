@@ -46,8 +46,9 @@ fun <T> motionSpec(reduced: Boolean, duration: Int = 220): FiniteAnimationSpec<T
 fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     if (LocalStakMotion.current.reduced) {
         Dialog(onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Box(Modifier.fillMaxSize().clickable(onClick = onDismissRequest), contentAlignment = Alignment.BottomCenter) {
-                Surface(Modifier.fillMaxWidth().clickable(enabled = false) {}, shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), color = MaterialTheme.colorScheme.surface) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                Box(Modifier.matchParentSize().clickable(onClick = onDismissRequest))
+                Surface(Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), color = MaterialTheme.colorScheme.surface) {
                     Column(Modifier.navigationBarsPadding().padding(top = 20.dp), content = content)
                 }
             }

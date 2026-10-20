@@ -58,6 +58,11 @@ class NativeSmokeTest {
         compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isNotEmpty() }
         capture("episodes-fixture")
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.runOnUiThread { vm.appearance("reduced", true) }
+        compose.onNodeWithText("Seasons & episodes").performScrollTo().performClick()
+        compose.onNodeWithText("First episode", substring = true).performTouchInput { click() }
+        compose.onNodeWithText("1 / 2 episodes watched").assertIsDisplayed()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText(fixture.name).assertIsDisplayed()
     }
