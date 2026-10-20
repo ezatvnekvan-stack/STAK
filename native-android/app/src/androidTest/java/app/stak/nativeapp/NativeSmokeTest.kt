@@ -60,16 +60,16 @@ class NativeSmokeTest {
         compose.onAllNodesWithContentDescription("Mark episode watched")[0].performClick()
         compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isNotEmpty() }
         capture("episodes-fixture")
-        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        pressSystemBack()
         compose.waitUntil(10000) { compose.onAllNodesWithText("1 / 2 episodes watched").fetchSemanticsNodes().isEmpty() }
         compose.runOnUiThread { vm.appearance("reduced", true) }
         compose.onNodeWithTag("title-scroll").performScrollToNode(hasText("Seasons & episodes"))
         compose.onNodeWithText("Seasons & episodes").performClick()
         compose.onNodeWithText("First episode", substring = true).performTouchInput { click() }
         compose.onNodeWithText("1 / 2 episodes watched").assertIsDisplayed()
-        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        pressSystemBack()
         compose.waitForIdle()
-        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        pressSystemBack()
         compose.onNodeWithText(fixture.name).assertIsDisplayed()
     }
 
@@ -82,5 +82,10 @@ class NativeSmokeTest {
         require(name.matches(Regex("[a-z-]+")))
         val command = "mkdir -p /sdcard/Download/stak-native-evidence && cp ${folder.absolutePath}/$name.png /sdcard/Download/stak-native-evidence/$name.png"
         android.os.ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)).use { it.readBytes() }
+    }
+
+    private fun pressSystemBack() {
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        compose.waitForIdle()
     }
 }
