@@ -1,0 +1,1 @@
+PASS: no .env files or signing keys; telemetry scripts/key removed; user credential records are not packaged. Unit tests contain explicitly named synthetic fixtures only. This is a packaging check, not a dependency vulnerability audit.

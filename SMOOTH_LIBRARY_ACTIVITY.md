@@ -1,0 +1,28 @@
+# Android 14.4 — smoother presentation and Nothing library/activity update
+
+## Request checklist
+- [x] Ask Android for its highest supported same-resolution display mode up to 120 Hz, including 90 Hz where available. Power saver clears the preference. No new permissions. This is an OS hint, not proof of 90/120 FPS; user display settings, thermals, WebView and device capability prevail.
+- [x] Shared bounded-duration in-memory query cache for title metadata, logos, certification and ratings across Home/Details; request deduplication and no blank reset for fresh cached data. Existing native provider cache remains.
+- [x] Preload the adjacent hero backdrop, logo and metadata/ratings; skip on data saver. Do not download the whole catalog in advance.
+- [x] Asynchronous image decoding and artwork priorities; avoid repeated clearing of authenticated Jellyfin artwork. Existing concurrency-4/LRU-75 private artwork cache and connection-change purge remain. No credentials added to artwork URLs or persistent public caches.
+- [x] Remove artificial 900ms startup splash delay; dismiss after hydrated React can paint. Recovery errors also dismiss splash.
+- [x] Remove expensive blur-on-every-poster loading effect; preserve opacity/transform motion and reduced-motion preferences.
+- [x] Smaller horizontal episode cards (188px maximum, 106px thumbnail maximum), one-line synopsis, no TMDb episode score or reserved empty rating row. IMDb episode scores, selection, watched actions and source-search coordinates remain.
+- [x] Jellyfin Library: Nothing connection/collection header, compact library tabs, one selected collection fetched at a time, 36-title pages, cached revisits, real server search with 300ms debounce, server sorting and watched filters, artwork/year/type/watched/progress indicators, honest errors/reconnect/empty/retry. Existing compact Home library component remains multi-library; remote and admin scan preserved.
+- [x] Progress: restrained activity overview, unified compact statistics, 12-week interactive dot grid, selected-day history and incremental 40-row history rendering. Existing sync, local tracking and truthful runtime labels remain.
+- [x] History: shared artwork/progress rows, date timeline, Movies/Episodes filtering and incremental rendering. Episode links retain actual coordinates; unsupported IDs offer search rather than broken Details links. Undated manual records are not lost.
+- [x] Calendar: Nothing schedule overview and date timeline, cached ranges/scopes, account-scoped cancellable queries, refresh and retry, partial-failure visibility, honest page-open notification limitation. Out-of-order filter responses cannot replace current results.
+- [x] Keep package identity, secure storage, user data, backups, provider integrations, menus, six-service Discovery and YouTube trailer dialog. No general internal movie player/VLC, new provider or Linux webapp dependency.
+
+## What “instant” can and cannot mean
+Fresh cached metadata/artwork returns without another network request. Cold startup, new titles, server authentication, cache misses and remote images still require network/decode time. There is no invented preloaded metadata and no claim of zero latency. Memory caches intentionally expire (metadata fresh 10 minutes, retained 30 minutes; library fresh 1 minute) and refresh is available. Nothing sensitive is persisted to a new cache.
+
+## Verification and device acceptance
+Automated tests cover shared metadata request/cache behavior, server library search/sort/watch parameters, selected-library-only fetch and cached switch, stale Calendar response isolation/cache reuse, safe episode links/date grouping/progress bounds, plus existing provider/state regressions. Production Chromium checks four phone-width/theme combinations, new page bounds and episode rating removal. Provider responses in these tests are isolated fixtures, not evidence of live integrations.
+
+Local dependency install cannot access the proxy socket (EPERM); offline install lacks dependencies (ENOTCACHED). The matching GitHub Actions run is authoritative for ESLint, Jest, production build, browser smoke, Capacitor sync, Gradle APK and signing/ZIP checks. CI_TEST_RESULTS.md in the artifact records actual step outcomes. Prior releases' test results are historical.
+
+Not performed: physical Android/Nothing Phone, emulator, real server credentials, real high refresh/FPS/jank/battery measurements, real YouTube playback. On Nothing Phone 3a enable high refresh in Android; test power saver on/off, scroll a large library and episode rail, swipe hero, revisit warmed Details, switch/disconnect Jellyfin, test flaky LAN and Calendar filter changes. Use Android Profile HWUI / Perfetto FrameTimeline: aim for <1% visibly janky frames in warmed 30s scroll, p95 frame interval <=11.1ms at 90Hz or <=8.33ms at 120Hz where OS grants that rate. Targets are not measured results. Compare cold/warm navigation and peak memory with identical catalogs; do not equate browser screenshots with smoothness evidence.
+
+## Build/download
+See BUILD_ANDROID.md. APK version 14.4.0 / code18, app.dmmstudio.cinema. CI packages complete source, documentation, actual build report, browser screenshots and compiled debug APK when all gates succeed into DMM-Studio-Android-FINAL.zip. Binaries/caches/credentials are not committed. Sign into private GitHub to download the matching Actions artifact, extract outer artifact, then inner project ZIP; APK is studio-dmm-android/artifacts/DMM-Studio-debug.apk. Updating an existing installation requires its original signing certificate; do not uninstall/clear data to bypass signature mismatch.

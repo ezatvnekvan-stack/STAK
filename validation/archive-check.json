@@ -1,0 +1,11 @@
+{
+  "archive_name": "DMM-Studio-Android-FINAL.zip",
+  "zip_crc": "PASS",
+  "extraction": "PASS",
+  "all_packaged_files_byte_compared": "PASS",
+  "required_sources_and_documentation": "PASS",
+  "file_count": 260,
+  "excluded_dependencies_caches_env_secrets_signing_material": "PASS",
+  "compiled_apk_included": false,
+  "manifest": "SOURCE_MANIFEST.sha256 covers files except itself and archive-check.json; no self-referential archive checksum."
+}

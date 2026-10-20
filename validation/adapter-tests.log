@@ -1,0 +1,43 @@
+(node:2007) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ LAN HTTP and HTTPS accepted; public HTTP, userinfo and unsafe schemes rejected (15.92926ms)
+✔ invalid TorBox envelopes and malformed torrent lists reject without fake success (10.364723ms)
+✔ normalizes missing torrent names/files and bounds progress (6.170303ms)
+✔ key validation requires an object user response (4.814447ms)
+✔ credential failures never include echoed provider secrets (5.473327ms)
+✔ POST errors are not automatically retried (2.946059ms)
+✔ long Retry-After rate limits do not hammer providers (3.621704ms)
+✔ GET transient errors retry once then succeed (1004.594201ms)
+✔ abort discards in-flight native response and cleans up without waiting (4.266302ms)
+✔ corrupt local list recovers; subsequent writes preserve usability (5.510341ms)
+✔ account namespaces isolate local state without plaintext credential keys (5.190386ms)
+✔ TMDb discovery IDs preserve numeric provider ID; TMDb scores are not IMDb (5.728497ms)
+✔ series discovery translates movie date filters and sorting to TV parameters (4.681119ms)
+✔ genres return usable values without metadata credentials (4.844382ms)
+✔ TMDb resolve strips legacy prefix before calling external_ids (4.572597ms)
+✔ hash validation/base32 normalization and Torznab XML metadata/deduplication (4.685305ms)
+✔ bad magnets fail before a remote request; supported creation uses multipart (5.132991ms)
+✔ cache checks normalize hashes and parse supported list envelope (4.826015ms)
+✔ a failed indexer is isolated and other results remain available (4.643493ms)
+✔ Jellyfin configuration returns no auth token and disconnect removes active credentials (7.506999ms)
+✔ Jellyfin login calls real AuthenticateByName with client authorization (10.436515ms)
+✔ Jellyfin resume playback sends actual saved position; unpause uses Unpause (5.016688ms)
+✔ Jellyfin library pagination requests only movies/series and preserves total (5.070277ms)
+✔ local-first tracking remains saved when Jellyfin synchronization fails (5.51596ms)
+✔ calendar uses following metadata and exposes partial failures (5.226069ms)
+✔ unknown endpoint rejects rather than pretending success (4.737402ms)
+✔ concurrent local watchlist mutations cannot overwrite each other (4.843381ms)
+✔ backups exclude credentials and merge missing records without deleting existing records (5.158198ms)
+✔ invalid backup schemas reject before state writes (5.252057ms)
+✔ manual watched titles have useful local history without Jellyfin (5.188262ms)
+✔ theme and accent setters use the selected mode and CSS variables (3.772648ms)
+✔ appearance settings normalize corrupt flags and preserve per-source ratings (3.205896ms)
+✔ storage wrappers tolerate denied storage and malformed JSON (2.908233ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1190.328437

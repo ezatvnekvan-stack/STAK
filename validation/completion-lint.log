@@ -1,0 +1,5 @@
+
+> frontend@4.0.0 lint
+> eslint src --ext .js,.jsx
+
+sh: 1: eslint: not found

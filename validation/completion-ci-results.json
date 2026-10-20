@@ -1,0 +1,27 @@
+{
+  "verified_application_commit": "84e047723f1581b61f0322b05f61dbf560a86ece",
+  "run_id": 38690707832,
+  "run_url": "https://github.com/ezatvnekvan-stack/studio-dmm-android/actions/runs/38690707832",
+  "conclusion": "success",
+  "jest": {
+    "suites": 13,
+    "passed": 57,
+    "failed": 0
+  },
+  "adapters": {
+    "passed": 49,
+    "failed": 0
+  },
+  "structural_modules": 165,
+  "lint": "success",
+  "web_build": "success",
+  "capacitor_sync": "success",
+  "gradle_debug_apk": "success",
+  "artifact_id": 11951479831,
+  "artifact_url": "https://github.com/ezatvnekvan-stack/studio-dmm-android/actions/runs/38690707832/artifacts/11951479831",
+  "inner_zip_sha256": "e8681e6b75a3e6baa356c923b195f7703c8dd6a8e30abc3c58e7ddcc549bd14f",
+  "zip_integrity_and_extraction": "PASS",
+  "live_provider_testing": false,
+  "device_or_emulator_testing": false,
+  "additional_final_apk_inspection": "Read latest actual workflow; not assumed in this baseline record"
+}

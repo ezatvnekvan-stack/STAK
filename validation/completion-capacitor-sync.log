@@ -1,0 +1,9 @@
+
+> frontend@4.0.0 cap:sync
+> npm run check:web-build && cap sync android
+
+
+> frontend@4.0.0 check:web-build
+> node ../scripts/verify_web_build.cjs
+
+Missing frontend/build/index.html. Run npm run build:android successfully before Capacitor sync. No placeholder assets were generated.

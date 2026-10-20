@@ -1,0 +1,5 @@
+
+> frontend@4.0.0 test:ci
+> craco test --watchAll=false --runInBand
+
+sh: 1: craco: not found

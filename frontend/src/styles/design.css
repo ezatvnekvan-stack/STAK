@@ -1,0 +1,199 @@
+/* STAK's shared visual contract. The original provider/data layer is unchanged.
+   Controls retain Radix/shadcn behaviour; Intent UI informs grouped fields,
+   toolbars and collection composition. See OPEN_SOURCE_UI.md for provenance. */
+:root {
+  --stak-radius-card:12px; --stak-radius-panel:22px; --stak-radius-field:12px;
+  --stak-radius-pill:12px; --stak-shelf-gap:32px;
+  --stak-border:rgb(var(--fg-rgb)/.13);
+  --design-panel:rgb(var(--c-111111-rgb)/.74);
+  --design-soft:rgb(var(--fg-rgb)/.045);
+  --design-rule:rgb(var(--fg-rgb)/.12);
+}
+.stak-shell { isolation:isolate; }
+.stak-page { padding-bottom:calc(112px + env(safe-area-inset-bottom,0px)); }
+.stak-page-header,.tracking-heading,.discovery-heading { padding-bottom:18px; border-bottom:1px solid var(--design-rule); }
+.stak-page-title,.tracking-heading h1,.discovery-refresh .discovery-heading h1 { font:900 clamp(34px,9vw,48px)/1.08 var(--stak-font-title); letter-spacing:-.045em; }
+.stak-page-header .n-label { display:flex; align-items:center; gap:7px; }
+.stak-page-header .n-label::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--n-accent-ink); }
+.n-h2 { font:800 15px/1.45 var(--stak-font-title); letter-spacing:.045em; }
+.n-label { font-size:10px; letter-spacing:.11em; }
+.stak-page :is(.n-card,.stak-card) { border-radius:var(--stak-radius-card); background-color:var(--design-panel); background-image:none; }
+.stak-page :is(.n-btn,.n-btn-primary,.n-btn-red,.n-btn-ghost,.n-chip,.stak-button,.nothing-action) { border-radius:var(--stak-radius-pill); font-size:10px; letter-spacing:.04em; }
+.stak-page .n-icon-btn,.stak-dialog .n-icon-btn { border-radius:50%; }
+.stak-page .n-input,.nothing-select-trigger { border-radius:var(--stak-radius-field); background:var(--design-panel); font-size:14px; }
+.stak-page .n-input:focus,.nothing-select-trigger:focus-visible { border-color:var(--n-accent-ink); box-shadow:0 0 0 3px rgb(var(--n-accent-rgb)/.09); }
+.stak-page :is(.n-btn-primary,.n-btn-red) { min-height:46px; font-weight:700; }
+.stak-button--link { padding-inline:6px; text-transform:none; letter-spacing:0; }
+.stak-page :is(.collection-toggle,.filter-label,.ambient-setting) { padding-block:12px; }
+.collection-toggle+.collection-toggle { border-top:1px solid var(--design-rule); }
+.n-icon-btn svg { transition:transform var(--stak-motion-normal) var(--stak-ease); }
+@media(hover:hover) { .n-icon-btn:hover:not(:disabled) svg { transform:rotate(-8deg); } }
+
+/* Shared animated selection: the indicator moves, the labels remain stable. */
+.animated-selection { isolation:isolate; }
+.selection-item { position:relative; isolation:isolate; }
+.selection-fill { position:absolute; inset:0; z-index:0; border-radius:inherit; background:var(--fg-1); pointer-events:none; }
+.selection-content { position:relative; z-index:1; display:inherit; align-items:inherit; justify-content:inherit; flex-direction:inherit; gap:inherit; min-width:0; }
+.selection-item[data-selected="true"] { color:var(--c-080808)!important; background:transparent!important; }
+.transition-panel { min-width:0; }
+.animated-number { font-variant-numeric:tabular-nums; }
+
+/* A compact, labelled navigation dock with a shared moving icon surface. */
+.dmm-floating-nav,.dmm-floating-nav[data-discover="true"] { border-radius:22px; background:rgb(var(--c-111111-rgb)/.97); border-color:var(--design-rule); box-shadow:0 8px 28px rgb(0 0 0/.14); }
+.dmm-floating-nav .stak-nav-link,.dmm-floating-nav[data-discover="true"] .stak-nav-link { gap:5px; min-height:62px; padding:8px 1px; color:var(--fg-400); }
+.stak-nav-link>.selection-content { display:flex; flex-direction:column; align-items:center; gap:5px; width:100%; }
+.stak-nav-link .selection-fill { inset:6px auto auto calc(50% - 18px); width:36px; height:30px; border-radius:12px; background:var(--fg-1); }
+.stak-nav-link[data-selected="true"] { color:var(--fg-1)!important; }
+.stak-nav-link[data-selected="true"] .stak-nav-icon { color:var(--c-080808); background:transparent; }
+.stak-nav-label,.dmm-floating-nav[data-discover="true"] .stak-nav-label { visibility:visible; font:9px/1.25 var(--stak-font-label); letter-spacing:-.04em; }
+
+/* Media-first Home and browsing: three phone posters, tight title/year copy. */
+.stak-header-home .stak-brand-icon { width:34px; height:34px; border-radius:9px; }
+.stak-brand-name { margin-left:10px; font:900 25px/1 var(--stak-font-title); letter-spacing:-.06em; }
+.home-connection { border:1px solid var(--design-rule); border-radius:99px; padding:0 12px; min-height:34px; font-size:10px; }
+.stak-home .compact-home-hero { border-radius:14px; border:0; height:clamp(240px,65vw,310px); }
+.hero-viewport,.hero-container { height:100%; }
+.hero-viewport { overflow:hidden; touch-action:pan-y pinch-zoom; }
+.hero-container { display:flex; }
+.hero-container .hero-slide { position:relative; inset:auto; flex:0 0 100%; min-width:0; height:100%; }
+.stak-hero-content { padding:24px 20px 48px; }
+.hero-pagination { position:absolute; inset:auto 16px 0; display:flex; align-items:center; height:44px; gap:4px; }
+.hero-pagination button { width:32px; height:44px; display:grid; place-items:center; flex:none; }
+.hero-pagination .hero-dot { width:4px; height:4px; background:#ffffff80; }
+.hero-pagination .hero-dot.is-active { width:20px; height:4px; background:#fff; }
+.hero-count { margin-left:auto; font:10px var(--stak-font-label); color:#ffffffb3; }
+.gesture-viewport { min-width:0; overflow:hidden; touch-action:pan-y pinch-zoom; }
+.gesture-track { display:flex; overflow:visible!important; min-width:0; }
+.home-feed section>div:first-child:has(>h2) { align-items:center; }
+.home-feed .home-queue-group .n-card { border-radius:12px; background:var(--design-panel); }
+.queue-subheading { font:11px var(--stak-font-label); color:var(--fg-400); }
+.media-poster .poster-art,.stak-page .discovery-refresh .media-poster .poster-art,.collection-grid .library-art { border-radius:9px; border-color:var(--design-rule); }
+.media-poster .poster-info { gap:3px; padding-inline:1px; margin-top:8px; }
+.stak-page .media-poster .poster-title { min-height:0; font-size:13px; line-height:1.4; }
+.poster-meta .poster-year { font-size:10px; line-height:1.5; }
+.poster-availability { color:var(--fg-300); }
+.discovery-refresh { gap:14px; }
+.discovery-refresh .discovery-heading { margin-bottom:0; padding-bottom:14px; }
+.discovery-refresh .discovery-heading h1 { font-size:clamp(32px,8vw,42px); }
+.discovery-subtitle { font-size:12px; margin-top:6px; }
+.discovery-refresh .discover-browse-type .stak-segments { border-radius:13px; padding:4px; background:var(--design-soft); border:0; }
+.discovery-refresh .discover-browse-type .stak-button { border-radius:10px; min-height:44px; }
+.discovery-category-tabs { gap:18px; }
+.discovery-category-tabs button { font-size:12px; min-height:44px; }
+.discovery-category-tabs .selection-fill { inset:auto 0 0; height:2px; background:var(--n-accent-ink); border-radius:0; }
+.discovery-category-tabs .selection-item[data-selected="true"] { color:var(--fg-1)!important; border-bottom-color:transparent; }
+.discovery-sort .nothing-select-trigger { min-height:44px; border-radius:10px; }
+.discovery-refresh .service-catalog-grid { gap:22px 10px; }
+
+/* Collections share one composition and use typography, not nested boxes. */
+.collection-page .collection-subtitle { margin:0 0 16px; font-size:11px; }
+.collection-page .library-switch { margin-bottom:16px; padding:4px; gap:4px; border:0; background:var(--design-soft); border-radius:13px; }
+.collection-page .library-switch .n-chip { min-height:44px; border-radius:10px; }
+.collection-page .library-switch .n-chip[aria-current="page"] { background:transparent; }
+.collection-server-summary { border:0; border-left:2px solid var(--n-accent-ink); border-radius:0; padding:8px 12px; background:transparent; }
+.collection-search-row { gap:8px; margin-block:16px; }
+.collection-search { border-radius:12px; background:var(--design-panel); }
+.collection-layout { border-radius:10px; background:var(--design-soft); padding:2px; }
+.collection-layout button { border-radius:8px; width:40px; height:40px; }
+.collection-segments { padding:0; background:transparent; gap:5px; }
+.collection-segments button { border-radius:10px; font-size:10px; border:1px solid transparent; }
+.collection-segments button[aria-pressed="true"] { background:var(--design-soft); color:var(--fg-1); border-color:var(--design-rule); }
+.collection-torrent { border-radius:12px; border-color:var(--design-rule); background:var(--design-panel); }
+.collection-torrent+.collection-torrent { margin-top:10px; }
+.collection-results-meta { padding-bottom:10px; border-bottom:1px solid var(--design-rule); }
+
+/* Tracking: editorial statistics and a calendar with deliberate date hierarchy. */
+.tracking-heading { align-items:center; margin-bottom:18px; }
+.tracking-heading p { font-size:12px; margin-top:7px; }
+.tracking-tabs { padding:4px; gap:4px; border:0; border-radius:13px; background:var(--design-soft); }
+.tracking-tabs button { min-height:44px; border-radius:10px; border:0; font:600 11px var(--stak-font-label); }
+.tracking-tabs button[aria-selected="true"] { background:transparent; }
+.tracking-summary { padding:16px; border-radius:14px; background:var(--design-panel); }
+.tracking-summary-values { gap:0; padding-block:18px; }
+.tracking-summary-values>div { padding-left:14px; border-left:1px solid var(--design-rule); }
+.tracking-summary-values>div:first-child { padding-left:0; border:0; }
+.tracking-summary-values strong { font:900 clamp(26px,8vw,38px)/1.1 var(--stak-font-title); }
+.tracking-summary-values>div>span { margin-top:7px; font:10px var(--stak-font-label); }
+.tracking-segments button { border-radius:10px; }
+.activity-row { border-radius:12px; background:var(--design-panel); }
+.calendar-month { border-radius:14px; }
+.calendar-month-heading h2 { font:800 20px var(--stak-font-title); }
+.calendar-week-row button { border-radius:7px; }
+.calendar-release-card { border-radius:12px; }
+.calendar-day-heading { font:800 20px var(--stak-font-title); }
+
+/* Cinematic Details retains the user's stronger sampled atmosphere. */
+.title-hero-content { padding-top:205px; }
+.title-identity { padding-bottom:8px; }
+.title-branding { margin-bottom:10px; }
+.title-page .detail-quick-actions { gap:8px; margin-block:8px 14px; }
+.title-page .detail-quick-actions .n-chip { border-radius:12px; }
+.detail-progress { padding-block:10px 18px; }
+.title-page .compact-watch-action { border-radius:11px; }
+.detail-synopsis { padding-block:18px 24px; }
+.detail-synopsis p { font-size:14px; line-height:1.8; }
+.title-page .compact-episodes { padding-block:14px; border-top:1px solid var(--design-rule); }
+.title-page .compact-episodes .episode-thumb { border-radius:9px; aspect-ratio:4/3; }
+.title-page .episode-copy { padding:9px 1px; }
+.title-page .episode-name { font-size:12px; }
+.title-page .stak-credits { padding-top:18px; border-top:1px solid var(--design-rule); }
+.title-page .crew-grid .n-card { border-radius:10px; }
+.cast-person img { border-radius:9px; }
+.title-action-dock { border-radius:16px; border-color:var(--design-rule); padding:5px; }
+.title-action-dock .n-btn-primary { border-radius:11px; }
+
+/* Settings: a clear index and grouped form rows with the same control scale. */
+.settings-connections { border-radius:14px; padding:8px 14px; background:var(--design-panel); }
+.settings-page>.space-y-3 { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.settings-page>.space-y-3>.settings-connections,.settings-page>.space-y-3>.settings-detail { grid-column:1/-1; }
+.settings-connections { margin-bottom:8px; }
+.settings-row { border:1px solid var(--design-rule); border-radius:14px; background:var(--design-panel); overflow:hidden; }
+.settings-row .settings-group-trigger { position:relative; height:100%; min-height:124px; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:10px; padding:14px; }
+.settings-row .settings-row-chevron { position:absolute; right:12px; top:20px; }
+.settings-group-trigger { min-height:76px; gap:14px; padding:14px 0; }
+.settings-row-icon { width:40px; height:40px; border:0; border-radius:12px; color:var(--fg-1); background:var(--design-soft); }
+.settings-row-title { font-size:15px; font-weight:600; }
+.settings-row-summary { font-size:11px; line-height:1.5; margin-top:3px; }
+.settings-detail .settings-group-trigger { border:0; }
+.settings-group-content { animation:designPanelIn var(--stak-motion-page) var(--stak-ease); }
+.settings-group-content>.n-card { border:0; background:transparent; padding-inline:0!important; }
+.settings-group-content :is(.n-label,.n-h2) { margin-bottom:10px; }
+.appearance-preview { position:relative; overflow:hidden; padding:20px; border-radius:14px; min-height:164px; }
+.appearance-preview>strong { font-size:30px; letter-spacing:-.04em; }
+.appearance-preview-cards { gap:8px; }
+.appearance-preview-cards i { border-radius:6px; }
+.theme-motion-preview { position:absolute; right:14px; top:14px; width:94px; height:52px; border-radius:12px; overflow:hidden; border:1px solid var(--design-rule); background:var(--c-111111); }
+.theme-motion-static { display:grid; place-items:center; height:100%; color:var(--fg-300); }
+.rive-theme-art { position:absolute; inset:0; pointer-events:none; filter:grayscale(1); background:var(--c-111111); }
+.rive-theme-art>div { width:100%; height:100%; }
+.accent-options { gap:12px; }
+.stak-person-photo { border-radius:12px; }
+.person-page .stak-person-heading { align-items:flex-end; gap:18px; padding-block:12px 22px; border-bottom:1px solid var(--design-rule); }
+.person-page .stak-person-heading h1 { font:900 clamp(28px,8vw,46px)/1.1 var(--stak-font-title); }
+.stak-screen-remote>.n-card { border-radius:16px; }
+.stak-screen-remote .n-icon-btn[aria-label="play"],.stak-screen-remote .n-icon-btn[aria-label="pause"] { width:60px!important; height:60px!important; background:var(--fg-1); color:var(--c-080808); }
+
+/* Shared overlays retain Radix focus trapping and native back registration. */
+.stak-dialog,.stak-side-sheet,.stak-drawer { border-radius:22px; border-color:var(--design-rule); background-color:var(--c-101010); }
+.stak-dialog-title { font:900 25px/1.15 var(--stak-font-title); letter-spacing:-.03em; }
+.stak-menu,.nothing-select-menu { border-radius:13px; border-color:var(--design-rule); }
+.stak-menu-item,.nothing-select-option { border-radius:8px; }
+.stak-dialog .n-btn-primary,.stak-dialog .n-btn-ghost,.collection-sheet-footer button { border-radius:12px; }
+.collection-sheet,.discovery-filter-sheet,.dmm-source-sheet.stak-dialog { border-radius:22px 22px 0 0; }
+.source-release { border-radius:12px!important; }
+.source-title-header { background:var(--c-101010); }
+.stak-empty { position:relative; border:1px dashed var(--design-rule)!important; border-radius:16px!important; background:var(--design-panel); }
+.state-glyph { display:grid; place-items:center; width:52px; height:52px; border-radius:16px; background:var(--design-soft); color:var(--fg-400); }
+.dot-skel { border-radius:9px; }
+
+@keyframes designPanelIn { from { opacity:.4; transform:translateY(6px); } to { opacity:1; transform:none; } }
+html[data-compact="true"] { --stak-shelf-gap:24px; }
+html[data-compact="true"] .settings-group-trigger { min-height:64px; }
+html[data-compact="true"] .stak-page-title { font-size:32px; }
+html[data-compact="true"] .stak-page .media-poster .poster-title { font-size:12px; min-height:0; }
+html[data-theme="light"] { --design-panel:rgb(255 255 255/.72); --design-soft:rgb(0 0 0/.045); }
+html[data-amoled="true"][data-theme="dark"] { --design-panel:rgb(8 8 8/.82); }
+html[data-reduced-motion="true"] :is(.transition-panel,.settings-group-content) { animation:none!important; transform:none!important; }
+@media(prefers-reduced-motion:reduce) { .transition-panel,.settings-group-content { animation:none!important; transform:none!important; } }
+@media(min-width:640px) { .stak-home .compact-home-hero { height:360px; } .hero-pagination { inset-inline:22px; } .settings-row-summary { font-size:12px; } }
+@media(max-width:359px) { .stak-nav-label { font-size:8px; } .discovery-subtitle { font-size:11px; } }

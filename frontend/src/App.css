@@ -1,0 +1,7 @@
+.App { min-height:100dvh; }
+/* Page entrance lives in index.css; controls/motion use the shared STAK tokens. */
+@keyframes dmmModalEnter { from { opacity:.35;transform:translateY(16px); } to { opacity:1;transform:translateY(0); } }
+.dmm-modal-enter { animation:dmmModalEnter var(--stak-motion-normal) var(--stak-ease) both; }
+.dmm-picker-overlay { isolation:isolate; animation:stakReveal var(--stak-motion-normal) var(--stak-ease); }
+@media(prefers-reduced-motion:reduce) { .dmm-modal-enter,.dmm-picker-overlay { animation:none!important; } }
+html[data-reduced-motion="true"] .dmm-modal-enter,html[data-reduced-motion="true"] .dmm-picker-overlay { animation:none!important; }

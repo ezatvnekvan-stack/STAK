@@ -1,0 +1,19 @@
+{
+  "appId": "app.dmmstudio.cinema",
+  "appName": "STAK",
+  "webDir": "build",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  },
+  "android": {
+    "allowMixedContent": false,
+    "adjustMarginsForEdgeToEdge": "auto"
+  },
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https"
+  },
+  "loggingBehavior": "none"
+}

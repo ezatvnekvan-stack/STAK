@@ -1,0 +1,208 @@
+name: Android validation and project export
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Existing STAK 1.0 source ref to validate (APK build only)
+        default: main
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: dmm-android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || inputs.ref || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        timeout-minutes: 5
+        env:
+          NPM_CONFIG_FETCH_TIMEOUT: 20000
+          NPM_CONFIG_FETCH_RETRIES: 1
+        id: install
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then npm ci --legacy-peer-deps --no-audit --no-fund; else npm install --legacy-peer-deps --no-audit --no-fund; fi
+      - name: Export dependency lock for reproducible follow-up validation
+        run: |
+          mkdir -p validation
+          cp frontend/package-lock.json validation/package-lock.json
+          python3 - <<'PY_LOCK'
+          import base64,gzip
+          from pathlib import Path
+          payload=base64.b64encode(gzip.compress(Path('frontend/package-lock.json').read_bytes(),mtime=0)).decode()
+          for index in range(0,len(payload),12000):
+              print('STAK_LOCKFILE_PART',index//12000,payload[index:index+12000])
+          PY_LOCK
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        working-directory: frontend
+        run: npm run lint
+      - name: React regression tests
+        id: jest
+        continue-on-error: true
+        working-directory: frontend
+        run: npm run test:ci
+      - name: Adapter regressions and source checks
+        id: adapters
+        run: |
+          node --experimental-vm-modules scripts/tests/adapters.test.mjs
+          node --expose-internals scripts/check-source.cjs
+          python3 scripts/verify_android.py
+      - name: Build standalone web assets
+        id: web
+        working-directory: frontend
+        run: npm run build:android
+      - name: Production browser layout smoke tests
+        timeout-minutes: 8
+        id: browser
+        continue-on-error: true
+        working-directory: frontend
+        run: |
+          npm install --no-save --legacy-peer-deps --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+          mkdir -p ../artifacts
+          node ../scripts/browser-smoke.cjs
+      - name: Enforce lint, React and browser test gates
+        env:
+          LINT: ${{ steps.lint.outcome }}
+          JEST: ${{ steps.jest.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+        run: test "$LINT" = success && test "$JEST" = success && test "$BROWSER" = success
+      - name: Synchronize Capacitor
+        id: sync
+        working-directory: frontend
+        run: |
+          npm run cap:sync
+          npm run android:prepare
+          npm run android:verify
+      - name: Verify preinstalled Android SDK
+        timeout-minutes: 1
+        run: |
+          STAK_SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          test -x "$STAK_SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+          echo "ANDROID_HOME=$STAK_SDK_DIR" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$STAK_SDK_DIR" >> "$GITHUB_ENV"
+          echo "$STAK_SDK_DIR/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          timeout 15s "$STAK_SDK_DIR/cmdline-tools/latest/bin/sdkmanager" --version
+          for STAK_SDK_FILE in platforms/android-35/android.jar build-tools/35.0.0/aapt build-tools/35.0.0/apksigner; do
+            if [ -f "$STAK_SDK_DIR/$STAK_SDK_FILE" ]; then echo "Preinstalled: $STAK_SDK_FILE"; else echo "Missing required component: $STAK_SDK_FILE"; fi
+          done
+      - name: Build and verify debug-signed release APK
+        timeout-minutes: 8
+        id: apk
+        working-directory: frontend/android
+        run: |
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -x "$ANDROID_HOME/build-tools/35.0.0/apksigner" ] || [ ! -x "$ANDROID_HOME/build-tools/35.0.0/aapt" ]; then
+            timeout 120s sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          fi
+          chmod +x gradlew
+          ./gradlew assembleRelease
+          python3 ../../scripts/verify_apk.py app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+      - name: Compare public signing certificates with original v2.0.2-polish
+        id: signing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir -p /tmp/stak-original-202
+          if ! timeout 60s gh release download v2.0.2-polish --pattern STAK-2.0.2-polish-debug-signed.apk --dir /tmp/stak-original-202; then
+            echo 'Previous APK could not be read; compatibility will be recorded as unverified.'
+          fi
+          if [ -f /tmp/stak-original-202/STAK-2.0.2-polish-debug-signed.apk ]; then
+            echo '08e4a5de15c3cb0dba960637ae2c61baafe09d9988afda8f476d6286810ee8dc  /tmp/stak-original-202/STAK-2.0.2-polish-debug-signed.apk' | sha256sum --check
+          fi
+          python3 scripts/check_signing_compatibility.py "$ANDROID_HOME/build-tools/35.0.0/apksigner" frontend/android/app/build/outputs/apk/release/app-release.apk /tmp/stak-original-202/STAK-2.0.2-polish-debug-signed.apk validation/signing-compatibility.json v2.0.2-polish
+          mkdir -p /tmp/stak-current-one
+          if timeout 60s gh release download stak-v1.0.0 --pattern STAK-1.0.0.apk --dir /tmp/stak-current-one; then
+            python3 scripts/check_signing_compatibility.py "$ANDROID_HOME/build-tools/35.0.0/apksigner" frontend/android/app/build/outputs/apk/release/app-release.apk /tmp/stak-current-one/STAK-1.0.0.apk validation/signing-compatibility-1.0.json stak-v1.0.0
+          fi
+      - name: Record APK identity and checksum
+        if: steps.apk.outcome == 'success'
+        run: |
+          mkdir -p artifacts/apk
+          cp frontend/android/app/build/outputs/apk/release/app-release.apk artifacts/apk/STAK-1.0.0-design.apk
+          cd artifacts/apk
+          sha256sum STAK-1.0.0-design.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging STAK-1.0.0-design.apk | head -1 | tee APK_IDENTITY.txt
+          grep -q "name='app.dmmstudio.cinema' versionCode='38' versionName='1.0.0'" APK_IDENTITY.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs STAK-1.0.0-design.apk > APK_CERTIFICATE.txt
+          cp ../../validation/signing-compatibility*.json .
+      - uses: actions/upload-artifact@v4
+        if: steps.apk.outcome == 'success'
+        with:
+          name: STAK-1.0.0-design-APK
+          path: artifacts/apk/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: STAK-1.0.0-design-visual-evidence
+          path: |
+            artifacts/discover-*.png
+            artifacts/tracking-*.png
+            artifacts/collections-*.png
+            artifacts/details-refresh-*.png
+            artifacts/refinement-*.png
+            validation/discover-*.json
+            validation/tracking-*.json
+            validation/collections-*.json
+            validation/details-refresh-*.json
+            validation/refinement-*.json
+            validation/design-*.json
+            validation/package-lock.json
+            artifacts/design-*.png
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Record actual CI outcomes and export project
+        if: always()
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+          JEST: ${{ steps.jest.outcome }}
+          ADAPTERS: ${{ steps.adapters.outcome }}
+          WEB: ${{ steps.web.outcome }}
+          SYNC: ${{ steps.sync.outcome }}
+          APK: ${{ steps.apk.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+          SIGNING: ${{ steps.signing.outcome }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          outcomes = '\n'.join(f'| {key} | {os.environ[key]} |' for key in ['INSTALL','LINT','JEST','ADAPTERS','WEB','SYNC','APK','BROWSER','SIGNING'])
+          Path('CI_TEST_RESULTS.md').write_text('# Actual GitHub Actions results\n\n| Check | Outcome |\n|---|---|\n' + outcomes + '\n\nThese are build/automated checks. No live provider, emulator, or physical-device success is claimed. See the workflow run logs for details.\n')
+          PY
+          if [ -f frontend/android/app/build/outputs/apk/release/app-release.apk ]; then
+            mkdir -p artifacts
+            cp frontend/android/app/build/outputs/apk/release/app-release.apk artifacts/DMM-Studio-debug.apk
+          fi
+          python3 scripts/package_final.py
+          mkdir -p export
+          cp ../DMM-Studio-Android-FINAL.zip export/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DMM-Studio-Android-FINAL
+          path: export/DMM-Studio-Android-FINAL.zip
+          if-no-files-found: error
+          retention-days: 30

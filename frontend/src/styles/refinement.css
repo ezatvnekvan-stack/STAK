@@ -1,0 +1,140 @@
+/* STAK 1.0 refinement layer. Reuses the original theme, artwork and motion
+   tokens; no second atmosphere renderer or permanent animation loop. */
+:root { --stak-shelf-gap:26px; --stak-hairline:rgb(var(--fg-rgb)/.08); }
+.stak-shell { font-family:var(--stak-font-body); -webkit-tap-highlight-color:transparent; }
+.stak-page:not([data-screen="home"]):not([data-screen="title"]) { padding-top:max(24px,env(safe-area-inset-top,0px)); }
+.stak-page-header { align-items:center; margin-bottom:20px; }
+.stak-page-title { padding-block:3px; }
+.n-h2 { font-family:var(--stak-font-label); font-size:13px; font-weight:700; line-height:1.5; letter-spacing:.09em; }
+.n-label { line-height:1.5; }
+.stak-page :is(.n-input,.nothing-select-trigger) { font-family:var(--stak-font-body); font-size:14px; }
+.stak-page :is(.n-card,.stak-card) { background-image:linear-gradient(145deg,rgb(var(--fg-rgb)/.018),transparent 65%); }
+.stak-dialog,.stak-drawer { background-image:var(--stak-dot-texture),linear-gradient(145deg,rgb(var(--fg-rgb)/.025),transparent 65%); background-size:var(--stak-dot-spacing) var(--stak-dot-spacing),100% 100%; scrollbar-width:thin; }
+.stak-dialog-title { font-weight:900; }
+.stak-dialog-description { line-height:1.6; }
+.dmm-floating-nav { background:rgb(var(--c-111111-rgb)/.97); }
+.stak-nav-link { min-height:66px; }
+.stak-nav-label { font-size:10px; letter-spacing:-.04em; }
+.stak-nav-icon { width:38px; height:30px; }
+.stak-page .media-poster .poster-title { order:0; min-height:0; font:600 13px/1.35 var(--stak-font-body); overflow-wrap:anywhere; }
+.media-poster .poster-info { display:flex; flex-direction:column; gap:4px; }
+.media-poster .poster-ratings { order:2; display:flex; flex-wrap:wrap; gap:5px; }
+.poster-meta { order:1; display:flex; align-items:center; justify-content:space-between; gap:5px; }
+.poster-meta .poster-year { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.poster-availability { flex:none; display:inline-flex; color:var(--n-accent-ink); }
+.poster-info .poster-ratings:empty { display:none; }
+.media-poster .poster-art { border-radius:16px; }
+.stak-page .collection-media-row .poster-title { min-height:0; font-size:15px; }
+.stak-page :is(.activity-row,.calendar-release-card,.collection-media-row) { scroll-margin-block:16px; }
+.stak-page [data-testid="loading-indicator"] { color:var(--fg-400); }
+.stak-page [data-testid="loading-indicator"] .n-label { text-transform:none; letter-spacing:.02em; }
+.stak-page .n-card:has(> .red-dot) { border-style:dashed; background:rgb(var(--c-111111-rgb)/.65); }
+.stak-page .n-card > .red-dot { width:6px; height:6px; background:var(--fg-500); box-shadow:none; }
+
+/* Home: media first, with three complete phone posters and aligned metadata. */
+.stak-header-home > div { min-height:54px; }
+.stak-header-home .stak-brand-icon { width:36px; height:36px; }
+.home-connection { display:inline-flex; align-items:center; gap:7px; min-height:44px; padding:8px 0 8px 14px; color:var(--fg-300); font:11px var(--stak-font-label); }
+.stak-page[data-screen="home"] { padding-top:8px; }
+.stak-home > :first-child { margin-bottom:16px; }
+.stak-home .home-feed .section-gap { margin-bottom:var(--stak-shelf-gap); }
+.home-feed .home-poster-rail { gap:10px; }
+.home-poster-slot { width:calc((100% - 20px)/3); }
+.home-feed .home-poster-rail { margin-inline:0; padding-inline:0; scroll-padding-inline:0; }
+.home-feed section > div:first-child:has(>h2) { gap:12px; }
+.home-feed section > div:first-child > h2 { min-width:0; }
+.home-feed section > div:first-child > a { min-height:44px; flex:none; }
+.home-deferred-section { min-width:0; }
+.home-shelf-placeholder { height:240px; margin-bottom:var(--stak-shelf-gap); border-radius:16px; background:linear-gradient(110deg,rgb(var(--fg-rgb)/.025),transparent); }
+.stak-home .compact-home-hero { height:clamp(226px,62vw,300px); border-radius:20px; }
+.stak-hero-content { padding:20px 18px 44px; }
+.stak-hero-content > .font-dot { font-family:var(--stak-font-body); font-weight:700; font-size:clamp(26px,7vw,40px); line-height:1.1; letter-spacing:-.025em; }
+.home-hero-shade { background:linear-gradient(180deg,rgba(0,0,0,.03) 20%,rgba(0,0,0,.25) 44%,rgba(0,0,0,.92) 100%); }
+.hero-dot { transition:width var(--stak-motion-normal),background var(--stak-motion-normal); }
+.queue-subheading { display:flex; align-items:center; gap:8px; margin:0 0 12px; font:600 13px var(--stak-font-body); color:var(--fg-300); }
+.queue-subheading span { font:10px var(--stak-font-label); color:var(--fg-500); }
+.home-queue-group+.home-queue-group { margin-top:20px; }
+
+/* Settings: compact index, focused pages, no duplicate credential forms. */
+.settings-page { max-width:720px; margin-inline:auto; }
+.settings-page > .space-y-3 { display:grid; gap:0; }
+.settings-page > .space-y-3 > * { margin-top:0!important; }
+.settings-connections { padding:4px 14px 8px; border:1px solid var(--stak-border); border-radius:18px; background:rgb(var(--c-111111-rgb)/.8); margin-bottom:18px; }
+.settings-connections header { display:flex; align-items:center; justify-content:space-between; }
+.settings-connections header .n-icon-btn { border:0; }
+.connection-row { display:flex; align-items:center; gap:10px; min-height:48px; border-top:1px solid var(--stak-hairline); font-size:14px; }
+.connection-dot { width:6px; height:6px; border-radius:50%; flex:none; background:var(--fg-500); }
+.connection-dot[data-state="ok"] { background:#10b981; }
+.connection-dot[data-state="configured"] { background:var(--fg-300); }
+.connection-dot[data-state="bad"] { background:#ef4444; }
+.connection-dot[data-state="wait"] { background:#d99b30; }
+.connection-detail { margin-left:auto; color:var(--fg-400); font:10px var(--stak-font-label); }
+.connection-row > svg { flex:none; color:var(--fg-500); }
+.settings-connection-error { color:var(--fg-300); font-size:12px; line-height:1.5; padding-block:8px; }
+.settings-row { border-bottom:1px solid var(--stak-hairline); }
+.settings-group-trigger { display:flex; width:100%; min-height:72px; align-items:center; gap:14px; padding:12px 4px; text-align:left; }
+.settings-row-icon { display:grid; place-items:center; width:38px; height:38px; flex:none; border-radius:12px; border:1px solid var(--stak-border); background:rgb(var(--fg-rgb)/.025); color:var(--fg-300); }
+.settings-row-title { display:block; font:600 15px/1.4 var(--stak-font-body); color:var(--fg-1); }
+.settings-row-summary { display:block; margin-top:4px; font:12px/1.4 var(--stak-font-body); color:var(--fg-400); }
+.settings-row-chevron { margin-left:auto; color:var(--fg-500); flex:none; }
+.settings-detail > .settings-group-trigger { min-height:48px; width:auto; gap:10px; margin-bottom:16px; padding:0 4px; }
+.settings-detail > .settings-group-trigger .settings-row-title { font-size:13px; color:var(--fg-400); }
+[data-screen="account"] .settings-detail .settings-group-content { padding:0; }
+.settings-detail .settings-group-content > .n-card { padding:16px; border-radius:18px; }
+.settings-provider-link { display:inline-flex; min-height:44px; align-items:center; font-size:12px; color:var(--n-accent-ink); }
+.appearance-preview { display:grid; gap:12px; padding:18px; border:1px solid var(--stak-border); border-radius:16px; background:radial-gradient(ellipse at top right,rgb(var(--n-accent-rgb)/.12),transparent 70%),var(--c-080808); margin-bottom:24px; }
+.appearance-preview > strong { font-size:27px; line-height:1.2; }
+.appearance-preview .n-label { font-size:9px; }
+.appearance-preview-cards { display:flex; gap:8px; }
+.appearance-preview-cards i { height:48px; width:34px; border-radius:6px; border:1px solid var(--stak-border); background:linear-gradient(150deg,rgb(var(--fg-rgb)/.15),transparent); }
+.appearance-preview-cards i:first-child { border-color:var(--n-accent-ink); }
+.appearance-preview-accent { color:var(--n-accent-ink); font:11px var(--stak-font-label); }
+
+/* Artwork calendar: compact dates above a readable selected-day agenda. */
+.calendar-media-filter { border-bottom:1px solid var(--tracking-line); }
+.calendar-media-filter button { padding:8px; font-size:12px; }
+.artwork-calendar .calendar-week-row { gap:3px; }
+.artwork-calendar .calendar-week-row+[role="row"] { margin-top:3px; }
+.artwork-calendar .calendar-week-row button { min-height:56px; height:clamp(56px,16vw,90px); align-items:flex-start; justify-content:flex-start; padding:5px; border:1px solid var(--stak-hairline); border-radius:9px; overflow:hidden; background:rgb(var(--c-111111-rgb)/.5); isolation:isolate; }
+.artwork-calendar .calendar-week-row button[data-selected="true"] { border-color:var(--n-accent-ink); box-shadow:inset 0 0 0 1px var(--n-accent-ink); background:rgb(var(--n-accent-rgb)/.14); color:var(--fg-1); }
+.artwork-calendar .calendar-week-row button[aria-current="date"] { border-color:var(--n-accent-ink); }
+.artwork-calendar .calendar-week-row button[data-artwork="true"] { color:#fff; }
+.artwork-calendar button > img,.calendar-art-shade { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2; }
+.calendar-art-shade { z-index:-1; background:linear-gradient(180deg,rgba(0,0,0,.65),rgba(0,0,0,.18) 48%,rgba(0,0,0,.7)); }
+.calendar-date-number { font:600 12px/1.5 var(--stak-font-body); position:relative; }
+.artwork-calendar .calendar-release-mark { position:absolute; bottom:6px; right:5px; color:var(--fg-300); }
+.artwork-calendar [data-artwork="true"] .calendar-release-mark { color:#fff; }
+.artwork-calendar [data-current-month="false"]:not([data-artwork="true"]) { opacity:.5; }
+.artwork-calendar [data-selected="true"] .calendar-date-number { color:var(--n-accent-fg); background:var(--n-accent); border-radius:5px; padding-inline:3px; }
+.artwork-calendar .calendar-grid-legend { flex-wrap:wrap; line-height:1.5; }
+.artwork-calendar[data-layout="week"] .calendar-week-row button { height:76px; }
+.calendar-release-backdrop { display:block; position:relative; height:148px; overflow:hidden; background:var(--c-111111); }
+.calendar-release-backdrop img { width:100%; height:100%; object-fit:cover; }
+.calendar-release-backdrop > span { position:absolute; inset:0; background:linear-gradient(transparent,rgba(0,0,0,.85)); }
+.calendar-release-backdrop strong { position:absolute; bottom:14px; left:14px; right:14px; color:#fff; font:600 20px/1.3 var(--stak-font-body); }
+.calendar-cinematic-card:has(.calendar-release-backdrop:not([data-failed="true"])) .calendar-release-heading { min-height:0; padding:10px 14px; }
+.calendar-cinematic-card:has(.calendar-release-backdrop:not([data-failed="true"])) .calendar-release-heading img,.calendar-cinematic-card:has(.calendar-release-backdrop:not([data-failed="true"])) .calendar-release-heading h4 { display:none; }
+.calendar-cinematic-card .calendar-episode-link { min-height:52px; }
+html[data-compact="true"] { --stak-shelf-gap:20px; }
+html[data-compact="true"] .settings-group-trigger { min-height:64px; }
+html[data-compact="true"] .stak-page .media-poster .poster-title { font-size:12px; }
+@media(min-width:640px) {
+ .home-poster-slot { width:calc((100% - 40px)/5); }
+ .artwork-calendar .calendar-week-row button { height:90px; }
+ .artwork-calendar[data-layout="week"] .calendar-week-row button { height:110px; }
+ .calendar-release-backdrop { height:220px; }
+ .calendar-selected-day .calendar-release-list { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }
+}
+@media(prefers-reduced-motion:reduce) { .hero-dot { transition:none; } }
+html[data-reduced-motion="true"] .hero-dot { transition:none; }
+
+/* Leave room for the complete month grid before the selected-day agenda. */
+.tracking-calendar { gap:8px; }
+.tracking-calendar .tracking-segments button { min-height:44px; }
+.tracking-calendar .calendar-month-heading .n-icon-btn { min-height:44px; }
+.artwork-calendar[data-layout="month"] .calendar-week-row button { min-height:48px; height:clamp(48px,14vw,80px); }
+.calendar-loaded-at { margin-top:-3px; color:var(--fg-400); font-size:11px; line-height:1.5; }
+
+.artwork-calendar [data-artwork="false"] .calendar-art-shade { display:none; }
+
+.calendar-release-backdrop[data-failed="true"] { display:none; }

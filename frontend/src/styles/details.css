@@ -1,0 +1,80 @@
+/* Details and source selection share the existing theme and atmosphere tokens. */
+.detail-quick-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 18px}
+.detail-quick-actions>div{margin:0}.detail-quick-actions .n-chip{min-height:44px;font-size:10px;padding:10px 14px;gap:8px}
+.detail-watchlist{position:relative}.detail-progress{padding:14px 0 18px;border-bottom:1px solid var(--c-222222)}
+.title-page .jellyfin-availability{font:12px/1.5 var(--stak-font-body);gap:8px;min-height:36px;color:var(--fg-400)}
+.title-page .jellyfin-availability[data-state="unavailable"]{color:var(--fg-400)}
+.jellyfin-availability .jellyfin-open{min-width:40px;min-height:40px;width:40px;height:40px}
+.detail-watched-label{display:flex;align-items:center;color:var(--fg-200);font-size:12px}
+.detail-progress-heading,.detail-progress-info{font:400 11px/1.6 var(--stak-font-label);color:var(--fg-400);font-variant-numeric:tabular-nums}
+.detail-progress-heading{margin-bottom:9px}
+.detail-progress-info{margin-top:6px}.detail-progress-info p+p{font:12px/1.6 var(--stak-font-body);max-width:480px;margin-top:6px}
+.title-page .compact-watch-action{min-height:44px;font-size:10px;padding:9px 14px}.title-page [data-testid="mark-season-watched-button"]{border-color:transparent;color:var(--fg-400)}
+.detail-synopsis{padding:6px 0 22px;border:0}.detail-synopsis p{font:15px/1.75 var(--stak-font-body);color:var(--fg-300);margin-top:9px}.detail-synopsis button{min-height:44px;font-size:12px}.synopsis-preview{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.title-page{padding-bottom:100px}.title-action-dock{max-width:420px;border-radius:24px}.title-action-dock .n-btn-primary{font-size:11px;min-height:44px}
+.title-page .stak-credits{margin:28px 0}.title-page .n-h2{font-size:14px;letter-spacing:.1em}
+.title-page .episode-card{width:210px;flex:none}.title-page .episode-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;min-height:36px;overflow:hidden;line-height:18px}.episode-copy{padding:10px 1px}
+.title-page .compact-episodes .episode-thumb{aspect-ratio:3/2}
+.episode-watched-overlay{position:absolute;right:7px;bottom:7px;display:flex;align-items:center;gap:4px;padding:4px 7px;border-radius:20px;background:#101010dc;color:#fff;font:10px/1.3 var(--stak-font-label)}
+.episode-progress-line{position:absolute;bottom:0;left:0;height:3px;background:var(--n-accent)}
+.cast-person{width:90px}.cast-person p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:30px;line-height:15px}.cast-person p+p{margin-top:3px;color:var(--fg-400)}.cast-person img{height:120px}.crew-grid .n-card{border-radius:16px}.crew-other-roles{font-size:11px;line-height:1.6;color:var(--fg-400);margin-top:4px}.credits-expand{min-height:44px;margin-top:8px}
+/* A fixed identity header and independently scrolling results keep controls reachable. */
+.dmm-source-sheet.stak-dialog{display:flex;flex-direction:column;gap:0;max-height:92dvh;overflow:hidden;padding:0!important;border-radius:24px}
+.dmm-source-sheet .source-title-header{position:relative;min-height:118px;flex:none;gap:12px;align-items:center;padding:16px 58px 13px 16px;border-bottom:1px solid var(--c-222222)}
+.dmm-source-sheet .source-title-poster{width:42px;height:63px;border-radius:8px}.dmm-source-sheet .source-title-name{font-size:17px;padding-right:0}.dmm-source-sheet .source-title-meta{font-size:10px;line-height:1.5;margin-top:3px}
+.dmm-source-sheet .source-title-header .min-h-11{min-height:22px}.dmm-source-sheet .source-title-header .n-icon-btn{position:absolute;right:14px;top:62px;min-height:44px;min-width:44px;height:44px;width:44px}
+.dmm-source-sheet .source-body{overflow:auto;overscroll-behavior:contain;min-height:0;padding:14px 16px max(20px,env(safe-area-inset-bottom));scrollbar-width:thin}
+.dmm-source-sheet .source-selection-panel{padding:0 0 14px;background:transparent;border:0;gap:8px}.dmm-source-sheet .source-selection-panel .n-label{font-size:10px}.dmm-source-sheet .source-selection-panel .n-input{min-height:44px;height:44px}.dmm-source-sheet .source-selection-panel .n-chip{min-height:44px;padding:9px 14px;font-size:10px}
+.source-filters{display:grid;gap:12px;margin-bottom:14px}.dmm-source-sheet .resolution-chips{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:7px;padding:0 0 3px;scrollbar-width:none}.resolution-chips .n-chip{flex:none;min-height:44px;padding:8px 13px;font-size:10px;gap:5px}.source-chip-count{color:var(--fg-400);font-size:10px}
+.source-results-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;font:11px/1.5 var(--stak-font-label);color:var(--fg-400)}.dmm-source-sheet .source-results-heading .n-input{width:auto;max-width:155px;height:44px;min-height:44px;padding:8px 10px;font:11px var(--stak-font-body);border-color:transparent;background:transparent}
+.source-quality-options{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.source-size-label{display:grid;gap:8px;font-size:13px}.source-filter-note{color:var(--fg-400);font-size:12px;line-height:1.6}
+.dmm-source-sheet [data-testid^="stream-row-"].source-release{display:block;padding:15px;border-radius:20px;background:rgb(var(--c-111111-rgb)/.75)}
+.source-release--suggested{border-color:var(--fg-400)}.source-suggestion{display:flex;gap:6px;align-items:center;font:10px var(--stak-font-label);color:var(--fg-300);margin-bottom:9px}.source-release-name{font:600 14px/1.5 var(--stak-font-body);color:var(--fg-1);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.source-release-facts,.source-release-status{display:flex;flex-wrap:wrap;gap:5px 10px;margin-top:9px;color:var(--fg-400);font:10px/1.5 var(--stak-font-label)}.source-release-facts strong{color:var(--fg-200);font-weight:500}.source-release-status{margin-top:6px}.source-cache{display:inline-flex;align-items:center;gap:4px;color:var(--fg-200)}
+.source-match-note{font-size:11px;line-height:1.5;margin-top:9px;color:var(--fg-400)}.source-match-note[data-match="conflict"]{color:var(--n-accent)}
+.source-release-actions{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-top:1px solid var(--c-222222);margin-top:12px;padding-top:8px}.source-technical{flex:1;min-width:0}.source-technical summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:11px var(--stak-font-body);color:var(--fg-400)}.source-technical summary:after{content:' +';margin-left:6px}.source-technical[open] summary:after{content:' −'}.source-technical-body{font:11px/1.6 var(--stak-font-body);color:var(--fg-400);overflow-wrap:anywhere}.source-technical-body p{margin:0 0 10px}.source-original-name{color:var(--fg-200)}
+.source-add{flex:none;min-height:44px;padding:8px 12px;gap:6px;font:600 11px var(--stak-font-body);border-color:var(--c-333333);border-radius:24px;color:var(--fg-1)}.source-add-error{font-size:12px;color:var(--n-accent);margin-top:10px}
+@media(max-width:639px){.dmm-source-sheet.stak-dialog{border-radius:24px 24px 0 0;max-height:calc(94dvh - env(safe-area-inset-top,0px))}.dmm-source-sheet .source-body{padding-inline:14px}}
+@media(prefers-reduced-motion:reduce){.source-release{animation:none!important}}
+html[data-reduced-motion="true"] .source-release{animation:none!important}
+
+/* Three media items across on phones; horizontal rails retain keyboard navigation. */
+@media(max-width:639px){
+ .title-page .compact-episodes .episode-rail{gap:8px}
+ .title-page .episode-card{width:calc((100% - 16px)/3);flex:none}
+ .title-page .stak-media-rail>button,.title-page .artwork-gallery>button,.title-page .cast-person{width:calc((100% - 24px)/3);flex:none}
+ .title-page .artwork-gallery img{width:100%;height:auto}
+ .title-page .cast-person img{height:auto;aspect-ratio:3/4}
+ .title-page .crew-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .title-page .crew-grid .n-card{padding:10px 8px}
+ .title-page .crew-grid .n-card>p:first-child{font-size:12px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .episode-watched-overlay{right:4px;bottom:4px;font-size:8px;padding:3px 4px;gap:2px}
+}
+
+/* Compact controls keep their Android touch targets; artwork gains vertical room. */
+.title-action-dock.stak-action-dock{inset-inline:16px;left:16px;right:16px;width:max-content;margin-inline:auto;max-width:calc(100vw - 32px);padding:4px;border-radius:18px}
+.title-action-dock .n-btn-primary{min-height:44px;padding:10px 21px;border-radius:14px;font-size:10px;gap:7px}
+.title-page .compact-episodes .episode-thumb{aspect-ratio:4/3}
+.title-page .episode-name{font-size:12px;line-height:18px;min-height:36px}
+.title-hero [aria-label="Ratings"]{gap:12px;margin-top:11px}
+.title-hero .rating-badge{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;gap:5px;color:var(--fg-200);border-radius:0;min-height:22px;font-size:11px}
+.title-hero .rating-badge .pixel-rating-logo{opacity:.65}
+.title-hero .rating-value{font-size:11px;font-weight:400}
+.title-page .cast-person{width:72px;display:block}
+.title-page .cast-person img,.title-page .cast-person>div{width:72px;height:78px;aspect-ratio:auto;border-radius:10px;object-fit:cover}
+.title-page .cast-person p{font-size:11px;line-height:14px;min-height:0;margin-top:6px;-webkit-line-clamp:2}
+.title-page .cast-person p+p{font-size:10px;margin-top:3px;-webkit-line-clamp:1}
+.nothing-badge-filter,.nothing-source-badge{font:400 10px/1.2 var(--stak-font-label);text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--c-333333);border-radius:7px;background:transparent;color:var(--fg-300);display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.nothing-badge-filter{min-height:44px;padding:8px 14px;transition:background .15s,color .15s,border-color .15s}
+.nothing-badge-filter[data-active="true"]{background:var(--inv-bg);color:var(--inv-fg);border-color:var(--inv-bg)}
+.nothing-badge-filter[data-active="true"] .source-chip-count{color:inherit;opacity:.65}
+.nothing-source-badge{padding:5px 7px;font-size:9px}
+.source-quality-badges{display:flex;flex-wrap:wrap;gap:7px}
+.source-options{margin-left:auto;position:relative}.source-option-count{position:absolute;right:-2px;top:-2px;font-size:9px}
+.source-release-facts{gap:6px;align-items:center}.source-size{margin-inline:3px}
+.source-release-actions .source-add{width:44px;min-width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;background:transparent;align-items:center;justify-content:center}
+.watched-date-dialog{max-width:360px;display:grid;gap:14px}.watched-date-field{display:grid;gap:8px;font:12px var(--stak-font-label)}
+.watched-date-field input{width:100%;min-width:0;color-scheme:dark}.watched-date-note{color:var(--fg-400);font-size:11px;line-height:1.5}
+html[data-theme="light"] .watched-date-field input{color-scheme:light}
+@media(prefers-reduced-motion:reduce){.nothing-badge-filter{transition:none}}
+html[data-reduced-motion="true"] .nothing-badge-filter{transition:none}

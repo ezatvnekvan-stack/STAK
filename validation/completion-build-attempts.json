@@ -1,0 +1,32 @@
+[
+  {
+    "check": "dependency-install",
+    "exit_code": 1,
+    "log": "validation/completion-dependency-install.log"
+  },
+  {
+    "check": "lint",
+    "exit_code": 127,
+    "log": "validation/completion-lint.log"
+  },
+  {
+    "check": "react-tests",
+    "exit_code": 127,
+    "log": "validation/completion-react-tests.log"
+  },
+  {
+    "check": "react-production",
+    "exit_code": 127,
+    "log": "validation/completion-react-production.log"
+  },
+  {
+    "check": "capacitor-sync",
+    "exit_code": 1,
+    "log": "validation/completion-capacitor-sync.log"
+  },
+  {
+    "check": "android-debug",
+    "exit_code": 1,
+    "log": "validation/completion-android-debug.log"
+  }
+]

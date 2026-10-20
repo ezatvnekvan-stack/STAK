@@ -1,0 +1,37 @@
+{
+  "lint": {
+    "chunk_id": "71c310",
+    "wall_time_seconds": 0.293726276,
+    "exit_code": 127,
+    "original_token_count": 20,
+    "output": "\n> frontend@4.0.0 lint\n> eslint src --ext .js,.jsx\n\nsh: 1: eslint: not found\n"
+  },
+  "react-build": {
+    "chunk_id": "702187",
+    "wall_time_seconds": 0.311378749,
+    "exit_code": 127,
+    "original_token_count": 26,
+    "output": "\n> frontend@4.0.0 build:android\n> REACT_APP_CAPACITOR_OFFLINE=true craco build\n\nsh: 1: craco: not found\n"
+  },
+  "react-tests": {
+    "chunk_id": "082b6b",
+    "wall_time_seconds": 0.14170863,
+    "exit_code": 127,
+    "original_token_count": 24,
+    "output": "\n> frontend@4.0.0 test:ci\n> craco test --watchAll=false --runInBand\n\nsh: 1: craco: not found\n"
+  },
+  "capacitor-sync": {
+    "chunk_id": "48f699",
+    "wall_time_seconds": 0.375250434,
+    "exit_code": 1,
+    "original_token_count": 68,
+    "output": "npm error code ENOTCACHED\nnpm error request to https://registry.npmjs.org/cap failed: cache mode is 'only-if-cached' but no cached response is available.\nnpm error A complete log of this run can be found in: /workspace/npm-cache/_logs/2026-10-14T19_59_51_116Z-debug-0.log\n"
+  },
+  "android-build": {
+    "chunk_id": "51f212",
+    "wall_time_seconds": 0,
+    "exit_code": 1,
+    "original_token_count": 939,
+    "output": "Traceback (most recent call last):\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py\", line 1344, in do_open\n    h.request(req.get_method(), req.selector, req.data, headers,\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py\", line 1386, in request\n    self._send_request(method, url, body, headers, encode_chunked)\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py\", line 1432, in _send_request\n    self.endheaders(body, encode_chunked=encode_chunked)\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py\", line 1381, in endheaders\n    self._send_output(message_body, encode_chunked=encode_chunked)\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py\", line 1141, in _send_output\n    self.send(msg)\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py\", line 1085, in send\n    self.connect()\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py\", line 1520, in connect\n    super().connect()\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py\", line 1051, in connect\n    self.sock = self._create_connection(\n                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py\", line 865, in create_connection\n    raise exceptions[0]\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py\", line 845, in create_connection\n    sock = socket(af, socktype, proto)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py\", line 233, in __init__\n    _socket.socket.__init__(self, family, type, proto, fileno)\nPermissionError: [Errno 1] Operation not permitted\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/workspace/DMM-Studio-Capacitor-phase3-jellyfin/frontend/android/../../scripts/gradle_bootstrap.py\", line 11, in <module>\n    expected = urllib.request.urlopen(url + '.sha256', timeout=30).read().decode().strip().split()[0]\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py\", line 215, in urlopen\n    return opener.open(url, data, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py\", line 515, in open\n    response = self._open(req, data)\n               ^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py\", line 532, in _open\n    result = self._call_chain(self.handle_open, protocol, protocol +\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py\", line 492, in _call_chain\n    result = func(*args)\n             ^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py\", line 1392, in https_open\n    return self.do_open(http.client.HTTPSConnection, req,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/request.py\", line 1347, in do_open\n    raise URLError(err)\nurllib.error.URLError: <urlopen error [Errno 1] Operation not permitted>\n"
+  }
+}

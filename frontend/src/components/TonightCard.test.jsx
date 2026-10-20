@@ -1,0 +1,25 @@
+import React from 'react';
+import { act, mount, until } from '../testUtils';
+import { MemoryRouter } from 'react-router-dom';
+import TonightCard from './TonightCard';
+import { api } from '../lib/api';
+jest.mock('../lib/api', () => ({ api: { get: jest.fn() } }));
+const mockWatchlist = [{ imdb_id: 'tt0133093', type: 'movie', name: 'Existing watchlist title' }];
+const mockTracking = new Map();
+jest.mock('../context/AppContext', () => ({ useApp: () => ({ watchIds:new Set(),toggleWatch:jest.fn(),watchlist: mockWatchlist, tracking: mockTracking }) }));
+jest.mock('../lib/tint', () => ({ useTint: () => [90, 90, 90] }));
+let view;
+afterEach(async () => { if (view) await view.close(); view = null; jest.clearAllMocks(); });
+test('an empty short-runtime suggestion keeps existing filters available for recovery', async () => {
+  api.get.mockImplementation(path => Promise.resolve({ data: path === '/discover' ? { items: [] } : { name: 'Existing watchlist title', runtime: '136 min' } }));
+  view = await mount(<MemoryRouter><TonightCard /></MemoryRouter>);
+  await until(() => view.container.querySelector('a'));
+  const short = () => [...view.container.querySelectorAll('button')].find(button => button.textContent === '≤ 90');
+  await act(async () => short().click());
+  await until(() => !view.container.querySelector('a'));
+  expect(short()).toBeDefined();
+  expect(view.container.querySelector('[role="status"]').textContent).toContain('No matching suggestion');
+  await act(async () => short().click());
+  await until(() => view.container.querySelector('a'));
+  expect(view.container.querySelector('a').getAttribute('href')).toBe('/title/movie/tt0133093');
+});
