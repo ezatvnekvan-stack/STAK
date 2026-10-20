@@ -63,7 +63,8 @@ class NativeSmokeTest {
         compose.onNodeWithText("First episode", substring = true).performTouchInput { click() }
         compose.onNodeWithText("1 / 2 episodes watched").assertIsDisplayed()
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
-        compose.onNodeWithContentDescription("Back").performClick()
+        compose.waitForIdle()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText(fixture.name).assertIsDisplayed()
     }
 
