@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
@@ -81,8 +82,8 @@ fun MotionTabs(labels: List<String>, selected: Int, modifier: Modifier = Modifie
     val reduced = LocalStakMotion.current.reduced
     BoxWithConstraints(modifier.fillMaxWidth().height(50.dp).background(MaterialTheme.colorScheme.surfaceContainer, CircleShape).selectableGroup()) {
         val width = maxWidth / labels.size
-        val x by animateDpAsState(width * selected, if (reduced) snap() else spring(dampingRatio = .95f, stiffness = 650f), label = "Selection glide")
-        Box(Modifier.offset(x = x).width(width).fillMaxHeight().padding(4.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape))
+        val x = animateDpAsState(width * selected, if (reduced) snap() else spring(dampingRatio = .95f, stiffness = 650f), label = "Selection glide")
+        Box(Modifier.offset { IntOffset(x.value.roundToPx(), 0) }.width(width).fillMaxHeight().padding(4.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape))
         Row(Modifier.fillMaxSize()) {
             labels.forEachIndexed { index, text ->
                 Box(Modifier.weight(1f).fillMaxHeight().selectable(selected == index, role = Role.Tab, onClick = { onSelect(index) }), contentAlignment = Alignment.Center) {

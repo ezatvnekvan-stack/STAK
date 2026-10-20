@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -141,8 +142,8 @@ private fun MotionNavigation(selected: Int, onSelect: (Int) -> Unit) {
     val labels = listOf("Home", "Discover", "Watchlist", "Tracking", "Library", "Settings")
     BoxWithConstraints(Modifier.fillMaxWidth().height(66.dp)) {
         val width = maxWidth / labels.size
-        val x by animateDpAsState(width * selected, if (LocalStakMotion.current.reduced) snap() else spring(dampingRatio = .95f, stiffness = 650f), label = "Navigation glide")
-        Box(Modifier.offset(x = x).width(width).fillMaxHeight().padding(4.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(24.dp)))
+        val x = animateDpAsState(width * selected, if (LocalStakMotion.current.reduced) snap() else spring(dampingRatio = .95f, stiffness = 650f), label = "Navigation glide")
+        Box(Modifier.offset { IntOffset(x.value.roundToPx(), 0) }.width(width).fillMaxHeight().padding(4.dp).background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(24.dp)))
         Row(Modifier.fillMaxSize()) {
             labels.forEachIndexed { index, label ->
                 NavigationBarItem(selected == index, { onSelect(index) }, icon = { Icon(icons[index], label, Modifier.size(20.dp)) },
