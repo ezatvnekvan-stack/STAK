@@ -67,7 +67,11 @@ class OriginalReferenceTest {
             vm.repository.credentials.set(it, "")
         }
         Coil.setImageLoader(ImageLoader.Builder(app).okHttpClient(client).build())
-        compose.runOnUiThread { vm.appearance("reduced", true) }
+        // Match browser prefers-reduced-motion without changing the app's saved switch.
+        instrument.uiAutomation
+            .executeShellCommand("settings put global animator_duration_scale 0")
+            .close()
+        compose.runOnUiThread { vm.appearance("reduced", false) }
         vm.repository.remember(
             Media(
                 "tt0903747",
@@ -125,6 +129,13 @@ class OriginalReferenceTest {
             }
         }
         listOf("tmdb_key", "torbox_token").forEach { vm.repository.credentials.set(it, "") }
+    }
+
+    @After
+    fun restoreSystemMotion() {
+        instrument.uiAutomation
+            .executeShellCommand("settings put global animator_duration_scale 1")
+            .close()
     }
 
     private fun movie(id: Int = 603) =

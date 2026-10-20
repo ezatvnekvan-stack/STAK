@@ -66,7 +66,11 @@ fun PageHeading(
                     Label(eyebrow)
                     Spacer(Modifier.height(8.dp))
                 }
-                Text(title, Modifier.padding(vertical = 3.dp), style = heading)
+                Text(
+                    title,
+                    Modifier.padding(vertical = 3.dp).height(heading.lineHeight.value.dp),
+                    style = heading,
+                )
                 if (subtitle.isNotBlank())
                     Text(
                         subtitle,
@@ -124,32 +128,110 @@ fun SharedPoster(media: Media, source: String, modifier: Modifier = Modifier) {
     Artwork(media, modifier.clip(RoundedCornerShape(9.dp)))
 }
 
+/** The cell paths and SVG view box are copied from the original RatingLogo. */
 @Composable
-fun RatingBadge(media: Media, compact: Boolean = false) {
-    if (media.rating.isBlank() || LocalOptions.current["rating_${media.ratingSource}"] == "false")
+fun RatingLogo(source: String, modifier: Modifier = Modifier) {
+    val word =
+        when (source.lowercase()) {
+            "tmdb" -> "TMDB"
+            "rt",
+            "rotten tomatoes" -> "RT"
+            "metacritic" -> "MC"
+            else -> "IMDB"
+        }
+    val letters =
+        mapOf(
+            'I' to listOf("111", "010", "010", "010", "111"),
+            'M' to listOf("10001", "11011", "10101", "10001", "10001"),
+            'D' to listOf("110", "101", "101", "101", "110"),
+            'B' to listOf("110", "101", "110", "101", "110"),
+            'T' to listOf("111", "010", "010", "010", "010"),
+            'R' to listOf("110", "101", "110", "101", "101"),
+            'C' to listOf("011", "100", "100", "100", "011"),
+        )
+    val foreground = LocalContentColor.current
+    Canvas(modifier.size(28.dp, 12.dp)) {
+        val width = 3 + word.sumOf { letters.getValue(it)[0].length + 1 }
+        val scale = minOf(size.width / width, size.height / 9f)
+        withTransform({
+            translate((size.width - width * scale) / 2, (size.height - 9 * scale) / 2)
+            scale(scale, scale, pivot = Offset.Zero)
+        }) {
+            drawRoundRect(
+                foreground,
+                Offset(.5f, .5f),
+                androidx.compose.ui.geometry.Size(width - 1f, 8f),
+                androidx.compose.ui.geometry.CornerRadius(1f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(.5f),
+            )
+            var left = 2
+            word.forEach { letter ->
+                val rows = letters.getValue(letter)
+                rows.forEachIndexed { y, row ->
+                    row.forEachIndexed { x, value ->
+                        if (value == '1')
+                            drawRect(
+                                foreground,
+                                Offset((left + x).toFloat(), (y + 2).toFloat()),
+                                androidx.compose.ui.geometry.Size(.8f, .8f),
+                            )
+                    }
+                }
+                left += rows[0].length + 1
+            }
+        }
+    }
+}
+
+@Composable
+fun RatingBadge(
+    media: Media,
+    compact: Boolean = false,
+    quiet: Boolean = false,
+    hero: Boolean = false,
+    bare: Boolean = false,
+) {
+    val number = media.rating.removeSuffix("%").toFloatOrNull() ?: return
+    val max = if (media.ratingSource.lowercase() in listOf("imdb", "tmdb")) 10f else 100f
+    if (
+        number <= 0 ||
+            number > max ||
+            !number.isFinite() ||
+            LocalOptions.current["rating_${media.ratingSource}"] == "false"
+    )
         return
-    Row(
-        Modifier.border(1.dp, Rule, RoundedCornerShape(7.dp))
-            .padding(
-                horizontal = if (compact) 6.dp else 7.dp,
-                vertical = if (compact) 3.dp else 4.dp,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        Text(
-            media.ratingSource,
-            Modifier.border(.5.dp, Muted, RoundedCornerShape(2.dp)).padding(horizontal = 2.dp),
-            fontFamily = MonoFont,
-            fontSize = if (compact) 7.sp else 8.sp,
-            lineHeight = 9.sp,
-        )
-        Text(
-            media.rating,
-            fontFamily = MonoFont,
-            fontSize = if (compact) 9.sp else 11.sp,
-            lineHeight = 12.sp,
-        )
+    val foreground = if (hero) Color.White else MaterialTheme.colorScheme.onSurface
+    val shape = RoundedCornerShape(8.dp)
+    val decorated =
+        if (quiet || bare) Modifier
+        else
+            Modifier.background(
+                    if (hero) Color.Black.copy(alpha = .65f)
+                    else if (MaterialTheme.colorScheme.background.red < .5f) Color(0xff101010)
+                    else Color(0xffeaeae7),
+                    shape,
+                )
+                .border(1.dp, if (hero) Color.White.copy(alpha = .25f) else Rule, shape)
+    CompositionLocalProvider(LocalContentColor provides foreground) {
+        Row(
+            decorated
+                .heightIn(min = if (quiet) 22.dp else 0.dp)
+                .padding(
+                    horizontal = if (quiet || bare) 0.dp else 8.dp,
+                    vertical = if (quiet) 0.dp else if (bare) 2.dp else 6.dp,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(if (quiet) 5.dp else 6.dp),
+        ) {
+            RatingLogo(media.ratingSource, Modifier.alpha(if (quiet) .65f else .8f))
+            Text(
+                media.rating,
+                fontFamily = MonoFont,
+                fontSize = 11.sp,
+                lineHeight = 11.sp,
+                letterSpacing = 0.sp,
+            )
+        }
     }
 }
 
@@ -241,7 +323,11 @@ fun PosterCard(
                 color = Muted,
                 maxLines = 1,
             )
-            RatingBadge(media, compact = true)
+            RatingBadge(
+                media,
+                compact = true,
+                bare = source.startsWith("discover") || source.startsWith("search"),
+            )
         }
     }
     if (menu)
@@ -349,49 +435,54 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Row(
-                    Modifier.fillMaxWidth().height(50.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    StakBrand(Modifier.size(34.dp))
-                    Text(
-                        "STAK",
-                        Modifier.padding(start = 10.dp).weight(1f),
-                        fontFamily = DotFont,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 25.sp,
-                        letterSpacing = (-.06).em,
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
-                        Modifier.height(34.dp)
-                            .border(1.dp, Rule, CircleShape)
-                            .clickable { navigate("settings?section=account") }
-                            .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        Modifier.fillMaxWidth().height(58.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(
-                            Modifier.size(6.dp)
-                                .background(
-                                    if (vm.repository.credentials.get("torbox_token").isNotBlank())
-                                        Color(0xff10b981)
-                                    else Muted,
-                                    CircleShape,
-                                )
-                        )
+                        StakBrand(Modifier.size(34.dp))
                         Text(
-                            if (vm.repository.credentials.get("torbox_token").isBlank()) "No key"
-                            else "TorBox",
-                            fontFamily = MonoFont,
-                            fontSize = 10.sp,
+                            "STAK",
+                            Modifier.padding(start = 10.dp).weight(1f),
+                            fontFamily = DotFont,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 25.sp,
+                            letterSpacing = (-.06).em,
                         )
+                        Row(
+                            Modifier.height(34.dp)
+                                .border(1.dp, Rule, CircleShape)
+                                .clickable { navigate("settings?section=account") }
+                                .padding(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                Modifier.size(6.dp)
+                                    .background(
+                                        if (
+                                            vm.repository.credentials
+                                                .get("torbox_token")
+                                                .isNotBlank()
+                                        )
+                                            Color(0xff10b981)
+                                        else Muted,
+                                        CircleShape,
+                                    )
+                            )
+                            Text(
+                                if (vm.repository.credentials.get("torbox_token").isBlank())
+                                    "No key"
+                                else "TorBox",
+                                fontFamily = MonoFont,
+                                fontSize = 10.sp,
+                            )
+                        }
                     }
-                }
-            }
-            item {
-                Box(Modifier.clickable(onClick = onDiscover)) {
-                    SearchEntry("", {}, true)
-                    Box(Modifier.matchParentSize().clickable(onClick = onDiscover))
+                    Box(Modifier.clickable(onClick = onDiscover)) {
+                        SearchEntry("", {}, true)
+                        Box(Modifier.matchParentSize().clickable(onClick = onDiscover))
+                    }
                 }
             }
             val heroes =
@@ -503,10 +594,14 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
             if (!pager.isScrollInProgress) pager.animateScrollToPage(pager.currentPage + 1)
         }
     }
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    Box(Modifier.fillMaxWidth()) {
         Box(
             Modifier.fillMaxWidth()
-                .height((maxWidth * .65f).coerceIn(240.dp, 310.dp))
+                .height(
+                    (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp * .65f)
+                        .coerceIn(240f, 310f)
+                        .dp
+                )
                 .clip(RoundedCornerShape(14.dp))
         ) {
             HorizontalPager(pager, Modifier.fillMaxSize()) { index ->
@@ -533,8 +628,17 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                             title.name,
                             fontFamily = BodyFont,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 30.sp,
-                            lineHeight = 33.sp,
+                            fontSize =
+                                (LocalConfiguration.current.screenWidthDp * .07f)
+                                    .coerceIn(26f, 40f)
+                                    .sp,
+                            lineHeight =
+                                ((LocalConfiguration.current.screenWidthDp * .07f).coerceIn(
+                                        26f,
+                                        40f,
+                                    ) * 1.1f)
+                                    .sp,
+                            letterSpacing = (-.025).em,
                             color = Color.White,
                             maxLines = 2,
                         )
@@ -549,7 +653,7 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(title.year, fontSize = 12.sp, color = Color.White)
-                            RatingBadge(title)
+                            RatingBadge(title, hero = true)
                         }
                     }
                 }
@@ -1402,7 +1506,7 @@ fun DetailScreen(
                             fontSize = 10.sp,
                             color = Muted,
                         )
-                        RatingBadge(media)
+                        RatingBadge(media, quiet = true)
                         if (media.genres.isNotEmpty())
                             Text(media.genres.joinToString(" · "), fontSize = 10.sp, color = Muted)
                     }
@@ -1485,31 +1589,18 @@ fun DetailScreen(
                             ) {
                                 vm.operation {
                                     if (next != null) {
-                                        vm.repository.dao.putEpisode(
-                                            WatchedEpisode(media.key, next.season, next.number)
-                                        )
+                                        vm.changeEpisodesWatched(media, listOf(next), true)
                                         if (!watchlisted) vm.toggle(media, "watchlist")
-                                    } else
-                                        episodes
-                                            .filter { it.mediaKey == media.key }
-                                            .forEach {
-                                                vm.repository.dao.removeEpisode(
-                                                    it.mediaKey,
-                                                    it.season,
-                                                    it.episode,
-                                                )
-                                            }
+                                    } else vm.changeEpisodesWatched(media, titleEpisodes, false)
                                 }
                             }
                             MotionButton("Mark S%02d watched".format(season)) {
                                 vm.operation {
-                                    titleEpisodes
-                                        .filter { it.season == season }
-                                        .forEach {
-                                            vm.repository.dao.putEpisode(
-                                                WatchedEpisode(media.key, it.season, it.number)
-                                            )
-                                        }
+                                    vm.changeEpisodesWatched(
+                                        media,
+                                        titleEpisodes.filter { it.season == season },
+                                        true,
+                                    )
                                 }
                             }
                         }
@@ -1775,14 +1866,7 @@ fun EpisodeDetails(
                 if (marked) "Mark unwatched" else "Mark watched",
                 Modifier.fillMaxWidth(),
             ) {
-                vm.operation {
-                    if (marked)
-                        vm.repository.dao.removeEpisode(media.key, episode.season, episode.number)
-                    else
-                        vm.repository.dao.putEpisode(
-                            WatchedEpisode(media.key, episode.season, episode.number)
-                        )
-                }
+                vm.operation { vm.changeEpisodesWatched(media, listOf(episode), !marked) }
             }
             MotionButton(
                 "Find sources",

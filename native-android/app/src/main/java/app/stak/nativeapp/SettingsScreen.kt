@@ -14,7 +14,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.*
 
 data class SettingsDestination(
@@ -147,12 +146,20 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
             }
         } else {
             Row(
-                Modifier.fillMaxWidth().height(47.dp).clickable { navigate("settings") },
+                Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 4.dp).clickable {
+                    navigate("settings")
+                },
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Icon(StakIcons.ArrowLeft, "All settings", Modifier.size(18.dp))
-                Text("All settings", fontSize = 13.sp, color = Muted)
+                Text(
+                    "All settings",
+                    fontSize = 13.sp,
+                    lineHeight = 18.2.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Muted,
+                )
             }
             Spacer(Modifier.height(16.dp))
             when (section) {
@@ -240,205 +247,6 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
                     }
                 }
         }
-    }
-}
-
-@Composable
-fun AppearanceSettings(vm: StakViewModel) {
-    val o = LocalOptions.current
-    val dark by vm.dark.collectAsStateWithLifecycle()
-    val reduced by vm.reduced.collectAsStateWithLifecycle()
-    val haptics by vm.haptics.collectAsStateWithLifecycle()
-    val accent = Accent
-    val colorChoices =
-        listOf(
-            "Nothing Red" to "#D71921",
-            "Green" to "#10B981",
-            "Blue" to "#3B82F6",
-            "Pure White" to "#FFFFFF",
-            "Graphite" to "#707070",
-            "Orange" to "#F97316",
-            "Purple" to "#A78BFA",
-        )
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(
-            Modifier.fillMaxWidth()
-                .border(1.dp, Rule, RoundedCornerShape(14.dp))
-                .background(
-                    Brush.linearGradient(listOf(accent.copy(alpha = .09f), Color.Transparent)),
-                    RoundedCornerShape(14.dp),
-                )
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Label("Live preview")
-                StakIconButton(if (dark) StakIcons.Moon else StakIcons.Sun, "Toggle theme") {
-                    vm.option("theme", if (dark) "light" else "dark")
-                }
-            }
-            Text(
-                "Make it yours.",
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 30.sp),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                repeat(3) {
-                    Box(
-                        Modifier.size(34.dp, 48.dp)
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = .12f),
-                                        Color.Transparent,
-                                    )
-                                ),
-                                RoundedCornerShape(6.dp),
-                            )
-                            .border(1.dp, if (it == 0) accent else Rule, RoundedCornerShape(6.dp))
-                    )
-                }
-            }
-            Text(
-                "Your accent · your atmosphere",
-                fontFamily = MonoFont,
-                fontSize = 10.sp,
-                color = accent,
-            )
-        }
-        Label("Theme")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("dark", "light", "system").forEach { theme ->
-                val selected = (o["theme"] ?: if (dark) "dark" else "light") == theme
-                Box(
-                    Modifier.weight(1f)
-                        .height(44.dp)
-                        .border(1.dp, if (selected) accent else Rule, RoundedCornerShape(12.dp))
-                        .background(
-                            if (selected) accent.copy(alpha = .1f) else Color.Transparent,
-                            RoundedCornerShape(12.dp),
-                        )
-                        .clickable { vm.option("theme", theme) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        theme.uppercase(),
-                        fontFamily = MonoFont,
-                        fontSize = 10.sp,
-                        color = if (selected) accent else Muted,
-                    )
-                }
-            }
-        }
-        Label(
-            "Accent · ${colorChoices.firstOrNull { it.second.equals(o["accent"] ?: "#D71921", true) }?.first ?: "Custom"}"
-        )
-        colorChoices.chunked(4).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(26.dp)) {
-                row.forEach { (name, hex) ->
-                    val selected = hex.equals(o["accent"] ?: "#D71921", true)
-                    Box(
-                        Modifier.size(48.dp)
-                            .border(
-                                if (selected) 2.dp else 1.dp,
-                                if (selected) accent else Rule,
-                                CircleShape,
-                            )
-                            .clickable(role = androidx.compose.ui.semantics.Role.RadioButton) {
-                                vm.option("accent", hex)
-                            }
-                            .padding(11.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Box(
-                            Modifier.fillMaxSize()
-                                .background(
-                                    Color(android.graphics.Color.parseColor(hex)),
-                                    CircleShape,
-                                )
-                        )
-                        if (selected)
-                            Icon(
-                                StakIcons.Check,
-                                name,
-                                Modifier.size(13.dp),
-                                tint = if (hex == "#FFFFFF") Color.Black else Color.White,
-                            )
-                    }
-                }
-            }
-        }
-        var custom by remember { mutableStateOf(o["accent"] ?: "#D71921") }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Label("Custom colour", Modifier.weight(1f))
-            OriginalField(
-                custom,
-                {
-                    custom = it
-                    if (Regex("#[0-9a-fA-F]{6}").matches(it)) vm.option("accent", it)
-                },
-                "#D71921",
-                Modifier.width(124.dp),
-            )
-        }
-        OriginalToggle("Reduce animations", reduced) { vm.appearance("reduced", it) }
-        OriginalToggle("Compact layout", o["compact"] == "true") {
-            vm.option("compact", it.toString())
-        }
-        OriginalToggle("AMOLED black", o["amoled"] == "true") { vm.option("amoled", it.toString()) }
-        Label("Atmosphere")
-        listOf(
-                Triple("dotIntensity", "Dot Matrix intensity", 10f),
-                Triple("glowIntensity", "Ambient Glow intensity", 30f),
-            )
-            .forEach { (key, label, max) ->
-                val value =
-                    (o[key] ?: if (key == "dotIntensity") "5" else "16").toFloatOrNull() ?: 0f
-                Column {
-                    Row {
-                        Text(label, Modifier.weight(1f), fontSize = 14.sp)
-                        Text(
-                            "${value.toInt()}%",
-                            fontFamily = MonoFont,
-                            fontSize = 10.sp,
-                            color = Muted,
-                        )
-                    }
-                    Slider(
-                        value,
-                        { vm.option(key, it.toInt().toString()) },
-                        valueRange = 0f..max,
-                        colors =
-                            SliderDefaults.colors(thumbColor = accent, activeTrackColor = accent),
-                    )
-                }
-            }
-        OriginalToggle("Ambient animation", o["ambientAnimation"] == "true") {
-            vm.option("ambientAnimation", it.toString())
-        }
-        OriginalToggle("Cinematic adaptive colours", o["cinematicColors"] != "false") {
-            vm.option("cinematicColors", it.toString())
-        }
-        MotionButton("Reset appearance") {
-            vm.option("theme", "dark")
-            vm.option("accent", "#D71921")
-            vm.appearance("reduced", false)
-            mapOf(
-                    "dotIntensity" to "5",
-                    "glowIntensity" to "16",
-                    "compact" to "false",
-                    "amoled" to "false",
-                    "ambientAnimation" to "false",
-                    "cinematicColors" to "true",
-                )
-                .forEach { (k, v) -> vm.option(k, v) }
-        }
-        Label("Visible ratings")
-        listOf("IMDb", "TMDB", "Rotten Tomatoes", "Metacritic").forEach { rating ->
-            OriginalToggle(rating, o["rating_$rating"] != "false") {
-                vm.option("rating_$rating", it.toString())
-            }
-        }
-        OriginalToggle("Haptics", haptics) { vm.appearance("haptics", it) }
     }
 }
 

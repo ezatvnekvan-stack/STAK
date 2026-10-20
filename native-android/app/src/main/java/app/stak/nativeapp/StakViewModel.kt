@@ -110,6 +110,47 @@ constructor(application: Application, val repository: Repository = Repository(ap
             previous
         }
 
+    suspend fun changeEpisodesWatched(
+        media: Media,
+        episodes: List<Episode>,
+        watched: Boolean,
+        watchedAt: Long = System.currentTimeMillis(),
+    ) =
+        mutationLock.withLock {
+            repository.db.withTransaction {
+                episodes.forEach { episode ->
+                    if (watched)
+                        repository.dao.putEpisode(
+                            WatchedEpisode(media.key, episode.season, episode.number, watchedAt)
+                        )
+                    else repository.dao.removeEpisode(media.key, episode.season, episode.number)
+                }
+                val marks = repository.dao.allEpisodes().filter { it.mediaKey == media.key }
+                val total =
+                    media.episodes.count { it.season > 0 }.takeIf { it > 0 } ?: media.totalEpisodes
+                val complete = total > 0 && marks.size >= total
+                val json =
+                    media
+                        .json()
+                        .put("played", complete)
+                        .put(
+                            "progress",
+                            if (total > 0) (marks.size.toFloat() / total * 100).coerceAtMost(100f)
+                            else 0f,
+                        )
+                if (marks.isNotEmpty())
+                    repository.dao.put(
+                        SavedMedia(
+                            media.key,
+                            "tracking",
+                            json.toString(),
+                            marks.maxOf { it.watchedAt },
+                        )
+                    )
+                else repository.dao.remove(media.key, "tracking")
+            }
+        }
+
     suspend fun restoreWatched(media: Media, previous: SavedMedia?) =
         mutationLock.withLock {
             repository.setJellyfinWatched(

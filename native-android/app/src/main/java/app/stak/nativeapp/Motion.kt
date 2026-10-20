@@ -142,37 +142,40 @@ fun MotionTabs(
     labels: List<String>,
     selected: Int,
     modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp = 52.dp,
     onSelect: (Int) -> Unit,
 ) {
     val reduced = LocalStakMotion.current.reduced
     BoxWithConstraints(
         modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(height)
             .background(
-                MaterialTheme.colorScheme.surfaceContainer,
+                MaterialTheme.colorScheme.onSurface.copy(alpha = .045f),
                 androidx.compose.foundation.shape.RoundedCornerShape(13.dp),
             )
             .selectableGroup()
     ) {
-        val width = maxWidth / labels.size
+        val width = (maxWidth - 8.dp - 4.dp * (labels.size - 1)) / labels.size
         val x =
             animateDpAsState(
-                width * selected,
+                4.dp + (width + 4.dp) * selected,
                 if (reduced) snap() else spring(dampingRatio = 1.108f, stiffness = 600f),
                 label = "Selection glide",
             )
         Box(
-            Modifier.offset { IntOffset(x.value.roundToPx(), 0) }
+            Modifier.offset { IntOffset(x.value.roundToPx(), 4.dp.roundToPx()) }
                 .width(width)
-                .fillMaxHeight()
-                .padding(4.dp)
+                .height(height - 8.dp)
                 .background(
                     MaterialTheme.colorScheme.onSurface,
                     androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
                 )
         )
-        Row(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxSize().padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             labels.forEachIndexed { index, text ->
                 Box(
                     Modifier.weight(1f)
@@ -186,7 +189,12 @@ fun MotionTabs(
                 ) {
                     Text(
                         text.uppercase(java.util.Locale.ROOT),
-                        style = MaterialTheme.typography.labelLarge,
+                        style =
+                            MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 11.sp,
+                                lineHeight = 15.4.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                            ),
                         color =
                             if (index == selected) MaterialTheme.colorScheme.background
                             else MaterialTheme.colorScheme.onSurfaceVariant,

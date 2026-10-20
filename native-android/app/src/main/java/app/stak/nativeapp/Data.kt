@@ -47,6 +47,8 @@ data class Media(
     val gallery: List<String> = emptyList(),
     val certificate: String = "",
     val ratingSource: String = "IMDb",
+    val totalEpisodes: Int = 0,
+    val releaseDate: String = "",
 ) {
     val key
         get() = "$type:$id"
@@ -70,6 +72,8 @@ data class Media(
             crew = crew.ifEmpty { previous.crew },
             gallery = gallery.ifEmpty { previous.gallery },
             certificate = certificate.ifBlank { previous.certificate },
+            totalEpisodes = totalEpisodes.takeIf { it > 0 } ?: previous.totalEpisodes,
+            releaseDate = releaseDate.ifBlank { previous.releaseDate },
         )
     }
 
@@ -90,7 +94,9 @@ data class Media(
             .put("playbackTicks", playbackTicks)
             .put("tmdbId", tmdbId)
             .put("imdbId", imdbId)
+            .put("released", releaseDate)
             .put("ratingSource", ratingSource)
+            .put("total_episodes", totalEpisodes.takeIf { it > 0 } ?: episodes.size)
 
     companion object {
         fun fromJson(j: JSONObject) =
@@ -111,6 +117,8 @@ data class Media(
                 tmdbId = j.optInt("tmdbId"),
                 imdbId = j.optString("imdbId"),
                 ratingSource = j.optString("ratingSource", "IMDb"),
+                totalEpisodes = j.optInt("total_episodes"),
+                releaseDate = j.optString("released", j.optString("release_date")),
             )
     }
 }

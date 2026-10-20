@@ -27,12 +27,14 @@ val LocalNavigate = staticCompositionLocalOf<(String) -> Unit> { {} }
 val Accent: Color
     @Composable
     get() =
-        runCatching {
-                Color(
-                    android.graphics.Color.parseColor(LocalOptions.current["accent"] ?: "#D71921")
-                )
-            }
-            .getOrDefault(Color(0xffd71921))
+        colorFromHex(
+            resolvedAccentHex(
+                LocalOptions.current["accent"] ?: "red",
+                MaterialTheme.colorScheme.background.red > .5f,
+            )
+        )
+val AccentInk: Color
+    @Composable get() = accentInk(Accent, MaterialTheme.colorScheme.background.red > .5f)
 val AccentForeground: Color
     @Composable get() = if (Accent.luminance() >= .1791288f) Color.Black else Color.White
 val Muted: Color
@@ -185,6 +187,7 @@ fun OriginalField(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     secret: Boolean = false,
+    reveal: Boolean = false,
     singleLine: Boolean = true,
     horizontalInset: Dp = 14.dp,
 ) {
@@ -240,7 +243,7 @@ fun OriginalField(
                 }
             },
         )
-        if (secret)
+        if (secret && reveal)
             IconButton({ visible = !visible }, Modifier.size(32.dp)) {
                 Icon(
                     if (visible) StakIcons.EyeOff else StakIcons.Eye,
@@ -299,6 +302,7 @@ fun Choice(
     options: List<Pair<String, String>>,
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    plain: Boolean = false,
 ) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
@@ -306,8 +310,11 @@ fun Choice(
             Modifier.fillMaxWidth()
                 .heightIn(min = 44.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, Rule, RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = .74f))
+                .border(1.dp, if (plain) Color.Transparent else Rule, RoundedCornerShape(12.dp))
+                .background(
+                    if (plain) Color.Transparent
+                    else MaterialTheme.colorScheme.surface.copy(alpha = .74f)
+                )
                 .clickable(role = Role.Button) { open = true }
                 .padding(horizontal = 12.dp, vertical = 10.dp)
                 .semantics { contentDescription = label },
@@ -340,6 +347,7 @@ fun OriginalEmpty(
     description: String,
     action: String = "",
     icon: ImageVector = StakIcons.Film,
+    compact: Boolean = false,
     onClick: () -> Unit = {},
 ) {
     val rule = Rule
@@ -362,7 +370,10 @@ fun OriginalEmpty(
                 MaterialTheme.colorScheme.surface.copy(alpha = .74f),
                 RoundedCornerShape(16.dp),
             )
-            .padding(horizontal = 25.dp, vertical = 49.dp),
+            .padding(
+                horizontal = if (compact) 17.dp else 25.dp,
+                vertical = if (compact) 25.dp else 49.dp,
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

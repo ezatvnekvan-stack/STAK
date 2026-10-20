@@ -99,5 +99,30 @@ class NativeSmokeTest {
         compose.onNodeWithTag("title-scroll").performScrollToIndex(0)
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText(title.name).assertIsDisplayed()
+        compose.onNodeWithTag("nav-tracking").performClick()
+        compose.waitUntil(10000) {
+            compose.onAllNodesWithText(title.name).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(title.name).assertExists()
+        runBlocking(Dispatchers.IO) {
+            val journal =
+                vm.repository.dao.all().first {
+                    it.mediaKey == title.key && it.collection == "tracking"
+                }
+            Assert.assertEquals(50.0, org.json.JSONObject(journal.json).getDouble("progress"), .01)
+            Assert.assertFalse(org.json.JSONObject(journal.json).getBoolean("played"))
+            vm.changeEpisodesWatched(title, title.episodes, false)
+            Assert.assertTrue(vm.repository.dao.allEpisodes().isEmpty())
+            Assert.assertFalse(
+                vm.repository.dao.all().any {
+                    it.mediaKey == title.key && it.collection == "tracking"
+                }
+            )
+            Assert.assertTrue(
+                vm.repository.dao.all().any {
+                    it.mediaKey == title.key && it.collection == "watchlist"
+                }
+            )
+        }
     }
 }

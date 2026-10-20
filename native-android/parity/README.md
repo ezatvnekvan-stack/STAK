@@ -20,6 +20,12 @@ python3 native-android/parity/compare.py --native native-evidence --output nativ
 
 This produces original/native/difference images and a coverage report. A similarity metric does not certify pixel-perfect parity. Each screen and interactive state needs visual review and behavior checks.
 
+## Reviewed checkpoints
+
+At `d87b001`, [CI run 39505164911](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39505164911) passed build, unit tests, lint and emulator checks. All 80 expected captures had matching dimensions. All 80 still required visual corrections; no screen was certified. Review found inherited Material letter spacing, missing Space Mono Bold, header/hero measurements, the theme-preview layout, and tracking/calendar differences.
+
+The next implementation ports the original rating-logo cells, original Rive asset/state machine, measured appearance controls, calendar geometry, runtime rules and episode journal transactions. These changes require a new emulator comparison. Custom colour dialog geometry and all animation timing still need comparison. Rive is native; the unchanged asset SHA-256 is `9b9c68b6319e5a186f99bb94ba5b3001f8a272cc3a4fd6a688e67b8bdf7310b4`.
+
 ## Blocking gaps
 
 No screen has yet passed the complete parity gate. In addition to screenshot corrections, the following original behaviors remain incomplete or unverified:

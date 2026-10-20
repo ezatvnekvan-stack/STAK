@@ -76,7 +76,7 @@ val BodyFont =
             }
             .toTypedArray()
     )
-val MonoFont = FontFamily(Font(R.font.space_mono))
+val MonoFont = FontFamily(Font(R.font.space_mono), Font(R.font.space_mono_bold, FontWeight.Bold))
 val LocalShared = staticCompositionLocalOf<SharedTransitionScope?> { null }
 val LocalDestination = staticCompositionLocalOf<AnimatedVisibilityScope?> { null }
 
@@ -189,7 +189,12 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
         typography =
             Typography(
                 displaySmall =
-                    TextStyle(fontFamily = DotFont, fontSize = 36.sp, lineHeight = 42.sp),
+                    TextStyle(
+                        fontFamily = DotFont,
+                        fontSize = 36.sp,
+                        lineHeight = 42.sp,
+                        letterSpacing = .72.sp,
+                    ),
                 headlineLarge =
                     TextStyle(
                         fontFamily = DotFont,
@@ -209,22 +214,38 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
                 titleLarge =
                     TextStyle(
                         fontFamily = BodyFont,
+                        letterSpacing = 0.sp,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                     ),
                 titleMedium =
                     TextStyle(
                         fontFamily = BodyFont,
+                        letterSpacing = 0.sp,
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp,
                     ),
-                bodyLarge = TextStyle(fontFamily = BodyFont, fontSize = 16.sp, lineHeight = 24.sp),
-                bodyMedium = TextStyle(fontFamily = BodyFont, fontSize = 14.sp, lineHeight = 21.sp),
-                bodySmall = TextStyle(fontFamily = BodyFont, fontSize = 12.sp),
+                bodyLarge =
+                    TextStyle(
+                        fontFamily = BodyFont,
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp,
+                        letterSpacing = 0.sp,
+                    ),
+                bodyMedium =
+                    TextStyle(
+                        fontFamily = BodyFont,
+                        fontSize = 14.sp,
+                        lineHeight = 21.sp,
+                        letterSpacing = 0.sp,
+                    ),
+                bodySmall =
+                    TextStyle(fontFamily = BodyFont, fontSize = 12.sp, letterSpacing = 0.sp),
                 labelLarge =
                     TextStyle(fontFamily = MonoFont, fontSize = 10.sp, letterSpacing = .4.sp),
-                labelMedium = TextStyle(fontFamily = MonoFont, fontSize = 10.sp),
-                labelSmall = TextStyle(fontFamily = MonoFont, fontSize = 9.sp),
+                labelMedium =
+                    TextStyle(fontFamily = MonoFont, fontSize = 10.sp, letterSpacing = 0.sp),
+                labelSmall = TextStyle(fontFamily = MonoFont, fontSize = 9.sp, letterSpacing = 0.sp),
             ),
     ) {
         CompositionLocalProvider(LocalStakMotion provides policy, LocalOptions provides options) {
