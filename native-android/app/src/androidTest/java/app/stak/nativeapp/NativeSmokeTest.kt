@@ -78,10 +78,17 @@ class NativeSmokeTest {
         val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
         val folder = java.io.File(compose.activity.getExternalFilesDir(null), "evidence").apply { mkdirs() }
         java.io.File(folder, "$name.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, "$name.png")
+                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/STAK-native-evidence")
+            }
+            val resolver = compose.activity.contentResolver
+            val uri = requireNotNull(resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values))
+            requireNotNull(resolver.openOutputStream(uri)).use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        }
         bitmap.recycle()
-        require(name.matches(Regex("[a-z-]+")))
-        val command = "mkdir -p /sdcard/Download/stak-native-evidence && cp ${folder.absolutePath}/$name.png /sdcard/Download/stak-native-evidence/$name.png"
-        android.os.ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)).use { it.readBytes() }
     }
 
     private fun pressSystemBack() {
