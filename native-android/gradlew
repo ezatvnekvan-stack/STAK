@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -eu
+if command -v gradle >/dev/null 2>&1; then exec gradle "$@"; fi
+BASE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec python3 "$BASE/../../scripts/gradle_bootstrap.py" "$@"

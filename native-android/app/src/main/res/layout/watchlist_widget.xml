@@ -1,0 +1,4 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="20dp" android:background="@drawable/widget_background">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="STAK · WATCHLIST" android:textSize="14sp" android:textColor="#EEEEEE" android:fontFamily="monospace" android:letterSpacing="0.08" />
+    <TextView android:id="@+id/widget_titles" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textSize="14sp" android:textColor="#BBBBBB" android:maxLines="6" android:ellipsize="end" />
+</LinearLayout>
