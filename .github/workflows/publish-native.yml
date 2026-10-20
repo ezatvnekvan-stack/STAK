@@ -1,0 +1,76 @@
+name: Publish verified native alpha
+on:
+  push:
+    branches: [publish-native-alpha]
+    paths: ['.github/workflows/publish-native.yml', 'distribution/native-alpha/**']
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify successful source run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/runs/39473230190 > /tmp/native-run.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/native-run.json'))
+          assert r['conclusion']=='success'
+          assert r['head_sha']=='514de94bfa07df861a1c0268180890f7cd56ea89'
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: STAK-native-validation
+          run-id: 39473230190
+          github-token: ${{ github.token }}
+          path: native-validated
+      - name: Verify exact release bytes and native identity
+        run: |
+          mkdir native-release
+          cp distribution/native-alpha/* native-release/
+          cp native-validated/native-android/app/build/outputs/apk/debug/app-debug.apk native-release/STAK-Native-0.1.0-alpha.apk
+          cd native-release
+          sha256sum --check SHA256SUMS.txt
+          STAK_PUBLISH_SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          "$STAK_PUBLISH_SDK/build-tools/35.0.0/apksigner" verify --verbose STAK-Native-0.1.0-alpha.apk
+          "$STAK_PUBLISH_SDK/build-tools/35.0.0/aapt" dump badging STAK-Native-0.1.0-alpha.apk > /tmp/native-identity.txt
+          python3 - <<'PY'
+          import zipfile
+          text=open('/tmp/native-identity.txt').read()
+          assert "name='app.stak.nativeapp' versionCode='1' versionName='0.1.0-native-alpha'" in text
+          with zipfile.ZipFile('STAK-Native-0.1.0-alpha.apk') as z:
+              assert not any(n.startswith('assets/public/') or n.endswith(('.js','.html')) or 'capacitor' in n.lower() for n in z.namelist())
+          PY
+      - name: Upload and publish authorized native prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view native-v0.1.0-alpha.1 --json isDraft,targetCommitish > /tmp/native-draft.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/native-draft.json'))
+          assert r['isDraft'], 'Refusing to overwrite an already-published release.'
+          assert r['targetCommitish']=='514de94bfa07df861a1c0268180890f7cd56ea89'
+          PY
+          gh release upload native-v0.1.0-alpha.1 native-release/* --clobber
+          gh release edit native-v0.1.0-alpha.1 --draft=false --prerelease --latest=false
+      - name: Verify published downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir downloaded-native-release
+          gh release download native-v0.1.0-alpha.1 --dir downloaded-native-release
+          cd downloaded-native-release
+          sha256sum --check SHA256SUMS.txt
