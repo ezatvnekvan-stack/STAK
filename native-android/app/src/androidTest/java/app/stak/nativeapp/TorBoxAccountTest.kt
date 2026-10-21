@@ -49,11 +49,18 @@ class TorBoxAccountTest {
             vm.appearance("reduced", true)
             compose.activity.setContent { StakApp(vm, "home") }
         }
-        compose.waitUntil(10000) {
-            compose
-                .onAllNodesWithContentDescription("TorBox connection needs attention")
-                .fetchSemanticsNodes()
-                .isNotEmpty()
+        try {
+            compose.waitUntil(10000) {
+                compose
+                    .onAllNodesWithContentDescription("TorBox connection needs attention")
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }
+        } catch (failure: Exception) {
+            throw AssertionError(
+                "Rejected-key UI timeout; state=${vm.torboxAccount.state.value}; keyRetained=${vm.repository.credentials.get("torbox_token") == "test-only-rejected-saved-key"}; scopeMatches=${vm.accountScope.value == vm.repository.accountScope}; tree=${compose.onRoot().printToString()}",
+                failure,
+            )
         }
         compose.onNodeWithText("Connection error").assertExists()
         compose.onNodeWithContentDescription("TorBox connection verified").assertDoesNotExist()

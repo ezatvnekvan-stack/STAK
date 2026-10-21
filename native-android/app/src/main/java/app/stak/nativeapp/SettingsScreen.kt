@@ -79,9 +79,10 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
         )
     Column(
         Modifier.fillMaxSize()
+            .padding(bottom = 100.dp)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
-            .padding(bottom = 112.dp)
+            .padding(bottom = 20.dp)
     ) {
         PageHeading(destinations.firstOrNull { it.id == section }?.title ?: "Settings")
         Spacer(Modifier.height(20.dp))

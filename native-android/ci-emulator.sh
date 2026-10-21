@@ -18,5 +18,5 @@ mkdir -p "$stak_root/native-evidence/first-pass"
 cp -R app/build/reports/androidTests "$stak_root/native-evidence/first-pass/reports"
 cp -R app/build/outputs/androidTest-results "$stak_root/native-evidence/first-pass/results"
 adb shell wm size 360x928
-./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest,app.stak.nativeapp.BetaUiTest || stak_test_status=$?
+./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest,app.stak.nativeapp.BetaUiTest,app.stak.nativeapp.SourceFlowTest || stak_test_status=$?
 exit "$stak_test_status"
