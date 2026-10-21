@@ -436,12 +436,12 @@ fun HomeScreen(
     initialQuery: String = "",
 ) {
     val account by vm.torboxAccount.state.collectAsStateWithLifecycle()
-    val accountKey = vm.repository.credentials.get("torbox_token")
-    LaunchedEffect(accountKey) { vm.torboxAccount.refresh() }
-    val accountVerified = accountKey.isNotBlank() && account.data != null && account.error.isBlank()
+    // The ViewModel owns verification for the active account. Reading the credential here and
+    // refreshing from the screen duplicated requests and raced with account-scope changes.
+    val accountVerified = account.configured && account.data != null && account.error.isBlank()
     val accountLabel =
         when {
-            accountKey.isBlank() -> "No key"
+            !account.configured -> "No key"
             account.loading -> "Connecting…"
             accountVerified -> "TorBox"
             account.error.isNotBlank() -> "Connection error"
@@ -449,7 +449,7 @@ fun HomeScreen(
         }
     val accountDescription =
         when {
-            accountKey.isBlank() -> "Configure TorBox"
+            !account.configured -> "Configure TorBox"
             account.loading -> "Checking TorBox connection"
             accountVerified -> "TorBox connection verified"
             account.error.isNotBlank() -> "TorBox connection needs attention"
@@ -661,7 +661,17 @@ fun HomeScreen(
 @Composable
 private fun SearchPosterRow(row: List<Media>, query: String, onOpen: (Media, String) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-        row.forEach { PosterCard(it, "search-home", Modifier.weight(1f), onOpen, term = query) }
+        row.forEach {
+            PosterCard(
+                it,
+                "search-home",
+                // Search results can share a title with hero/shelf content; keep the result
+                // itself uniquely addressable instead of relying on matching text.
+                Modifier.weight(1f).testTag("home-search-result-${it.key}"),
+                onOpen,
+                term = query,
+            )
+        }
         repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
     }
 }

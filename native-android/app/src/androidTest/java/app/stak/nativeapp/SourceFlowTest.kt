@@ -1,12 +1,10 @@
 package app.stak.nativeapp
 
-import android.graphics.Bitmap
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.*
 import okhttp3.*
@@ -33,13 +31,11 @@ class SourceFlowTest {
 
     private fun capture(theme: String) {
         compose.waitForIdle()
-        val output =
-            File(
-                "/sdcard/Pictures/STAK-native-evidence/beta-sources-$theme-${compose.activity.resources.configuration.screenWidthDp}.png"
-            )
-        output.parentFile!!.mkdirs()
         val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-        output.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        saveEvidence(
+            "beta-sources-$theme-${compose.activity.resources.configuration.screenWidthDp}.png",
+            bitmap,
+        )
         bitmap.recycle()
     }
 
@@ -142,10 +138,13 @@ class SourceFlowTest {
         }
         compose.onNodeWithContentDescription("Search").performTextInput("Pipeline fixture")
         compose.onNodeWithContentDescription("Search").performImeAction()
+        // The fixture catalog feeds the Home hero and shelves as well as search, so the title
+        // text appears more than once. Target the search result itself.
+        val searchResult = "home-search-result-${title.key}"
         compose.waitUntil(10000) {
-            compose.onAllNodesWithText("Pipeline fixture").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(searchResult).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Pipeline fixture").performClick()
+        compose.onNodeWithTag(searchResult).performClick()
         compose.onNodeWithText("FIND SOURCES").performClick()
         compose.waitUntil(15000) {
             compose.onAllNodesWithText("Cached on TorBox").fetchSemanticsNodes().isNotEmpty()

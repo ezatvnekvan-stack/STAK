@@ -2,6 +2,12 @@
 
 The current user direction allows UI and motion improvements with a beautiful Nothing-inspired style while retaining the original app's features. The React/Capacitor app remains the functional and visual reference. Exact screenshot equality is no longer a release gate. The native port remains unfinished; no pixel-perfect or full-feature claim is supported.
 
+## 0.3 Beta checkpoint (2026-10-21)
+
+`0.3.0-native-beta.1` adds account-scoped local data, encrypted portable backups, persisted Home customization, paginated Jellyfin watch-state sync and cached-TorBox source filters. On an API 35 x86_64 emulator configured to the CI viewport, `assembleDebug`, 38 unit tests, `lintDebug` and all 21 instrumented tests pass. The two previously failing emulator checks now pass: the Home search-result click uses a unique test tag, and the rejected TorBox key test waits for the account store's settled error state before asserting the badge. See [`DEVELOPMENT_STATUS.md`](../DEVELOPMENT_STATUS.md).
+
+These results use injected HTTP fixtures. They do not certify live TorBox/Jellyfin/TMDb/indexer behavior, physical-device performance or screenshot parity. The historical checkpoints below remain records of their own commits.
+
 ## Reference evidence
 
 `reference/` contains 88 original production React screenshots: 22 route/state captures, at 360×880 and 412×880 CSS pixels, in dark/light themes, with reduced motion and intercepted **test-only** provider data. `reference-manifest.json` identifies the source commit and hashes of the original styles/tokens. These browser references do not establish Capacitor-specific behavior or live account correctness. The original frontend is unchanged.
@@ -40,14 +46,15 @@ The following original behaviors remain incomplete or unverified. Screenshot dif
 
 - All Discover filters, provider-service tiles, directors, search suggestions and persistent browsing preferences.
 - Exact theme preview/Rive behavior; artwork palette sampling; ambient drift; every original transition and sheet geometry.
-- All Home shelves, personalization, genre rows, section/taskbar reordering and persisted navigation.
-- Cached source availability, source filters, matching, technical details and non-hash Stremio streams. Native Torznab/Stremio setup, encrypted account-scoped storage and concurrent hash-source aggregation passed the checkpoint below.
-- Watched dates, movie/episode undo, season confirmations, Jellyfin episode sync, full history/progress rules and calendar filters/movie releases.
-- Jellyfin collection hierarchy, item pages, storage/server tools, exact remote controls and account isolation.
+- Home behavior with a TMDb key, full personalization rules, and the no-TMDb fallback. Without TMDb, multiple discovery shelves can repeat the Cinemeta popular list and filter-based shelves can show a key-required error.
+- Non-hash Stremio streams, complete technical-detail coverage and every cached-source edge state. Account-scoped indexers, encrypted storage, concurrent hash-source aggregation and cached-TorBox/quality/title filters are implemented.
+- Watched dates, movie/episode undo, season confirmations, full history/progress rules and calendar filters/movie releases. Paginated Jellyfin watch-state sync is implemented and fixture-tested.
+- Jellyfin collection hierarchy, item pages, storage/server tools and exact remote controls. Account isolation and paginated watch-state sync are implemented.
 - TorBox selection, bulk actions, file action parity, saved magnet lists, share creation/view/import and storage/status/filter controls.
-- Original backup settings/Home/share coverage, encrypted export/import and migration across accounts.
+- Remaining backup settings/Home/share coverage and migration edge cases. Encrypted export/import, optional connection credentials and password validation are implemented.
 - Loading, empty, failure, populated, long-content, keyboard, sheet/dialog and Android Back states for every route.
 - Live provider/device behavior, supported Android versions, accessibility font scales and animation timing recordings.
+- Public signing continuity: 0.3 Beta is debug signed for local evaluation; the permanent signing setup is still owner work.
 
 Keep release notes explicit about unfinished features. A complete native replacement still requires feature coverage, interaction checks and device validation; screenshot equality is not required by the latest user direction.
 

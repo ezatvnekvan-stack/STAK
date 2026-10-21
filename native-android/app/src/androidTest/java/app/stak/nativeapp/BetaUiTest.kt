@@ -1,12 +1,10 @@
 package app.stak.nativeapp
 
-import android.graphics.Bitmap
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import java.io.File
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -63,13 +61,11 @@ class BetaUiTest {
 
     private fun capture(name: String) {
         compose.waitForIdle()
-        val target =
-            File(
-                "/sdcard/Pictures/STAK-native-evidence/beta-$name-${compose.activity.resources.configuration.screenWidthDp}.png"
-            )
-        target.parentFile!!.mkdirs()
         val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-        target.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        saveEvidence(
+            "beta-$name-${compose.activity.resources.configuration.screenWidthDp}.png",
+            bitmap,
+        )
         bitmap.recycle()
     }
 

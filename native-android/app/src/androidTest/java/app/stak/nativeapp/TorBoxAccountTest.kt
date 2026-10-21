@@ -50,18 +50,19 @@ class TorBoxAccountTest {
             compose.activity.setContent { StakApp(vm, "home") }
         }
         try {
+            // Wait for the account store to settle rather than polling UI semantics while the
+            // verification request is still running. The UI assertion below then verifies that
+            // the settled state is actually rendered.
             compose.waitUntil(10000) {
-                compose
-                    .onAllNodesWithContentDescription("TorBox connection needs attention")
-                    .fetchSemanticsNodes()
-                    .isNotEmpty()
+                vm.torboxAccount.state.value.error.isNotBlank()
             }
         } catch (failure: Exception) {
             throw AssertionError(
-                "Rejected-key UI timeout; state=${vm.torboxAccount.state.value}; keyRetained=${vm.repository.credentials.get("torbox_token") == "test-only-rejected-saved-key"}; scopeMatches=${vm.accountScope.value == vm.repository.accountScope}; tree=${compose.onRoot().printToString()}",
+                "Rejected-key verification timeout; state=${vm.torboxAccount.state.value}; keyRetained=${vm.repository.credentials.get("torbox_token") == "test-only-rejected-saved-key"}; scopeMatches=${vm.accountScope.value == vm.repository.accountScope}; tree=${compose.onRoot().printToString()}",
                 failure,
             )
         }
+        compose.onNodeWithContentDescription("TorBox connection needs attention").assertExists()
         compose.onNodeWithText("Connection error").assertExists()
         compose.onNodeWithContentDescription("TorBox connection verified").assertDoesNotExist()
         Assert.assertEquals(

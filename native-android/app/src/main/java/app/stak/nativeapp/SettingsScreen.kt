@@ -25,17 +25,15 @@ data class SettingsDestination(
 fun SettingsScreen(vm: StakViewModel, section: String = "") {
     val navigate = LocalNavigate.current
     val account by vm.torboxAccount.state.collectAsStateWithLifecycle()
-    val accountKey = vm.repository.credentials.get("torbox_token")
-    LaunchedEffect(accountKey) {
-        vm.indexers.reload()
-        vm.torboxAccount.refresh()
-    }
+    // Account changes arrive through the ViewModel's account-scope flow. Reloading indexers on
+    // entry is still useful, but verification must not be duplicated here.
+    LaunchedEffect(Unit) { vm.indexers.reload() }
     val destinations =
         listOf(
             SettingsDestination(
                 "account",
                 "TorBox account",
-                if (accountKey.isBlank()) "No key"
+                if (!account.configured) "No key"
                 else if (account.error.isNotBlank()) "Connection needs attention"
                 else if (account.data != null) "Account verified" else "Key saved · not verified",
                 StakIcons.KeyRound,

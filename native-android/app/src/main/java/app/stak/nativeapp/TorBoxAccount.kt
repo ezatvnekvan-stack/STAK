@@ -10,6 +10,8 @@ import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 
 data class TorBoxAccountState(
+    /** A key is stored, even if it has not been verified yet. Never carries the key itself. */
+    val configured: Boolean = false,
     val data: JSONObject? = null,
     val loading: Boolean = false,
     val error: String = "",
@@ -39,37 +41,54 @@ class TorBoxAccountStore(private val repository: Repository) {
                 state.value = TorBoxAccountState()
                 return@withLock
             }
-            if (!force && checkedKey == key && state.value.data != null) return@withLock
+            // The mutex serializes callers. Once this key has a definitive result, repeated
+            // refresh calls (for example after a recomposition) must not start another request.
+            // Explicit retries use force = true.
+            if (
+                !force &&
+                    checkedKey == key &&
+                    (state.value.data != null || state.value.error.isNotBlank())
+            )
+                return@withLock
             val owner = revision.incrementAndGet()
-            state.value = TorBoxAccountState(loading = true)
+            state.value = TorBoxAccountState(configured = true, loading = true)
             try {
                 val data = verify(key)
                 if (repository.credentials.get("torbox_token") == key && revision.get() == owner) {
                     checkedKey = key
-                    state.value = TorBoxAccountState(data = data)
+                    state.value = TorBoxAccountState(configured = true, data = data)
                 }
             } catch (cancelled: CancellationException) {
+                // A newer account decision superseded this verification. Never leave the badge
+                // stuck on "Connecting…" when the request was cancelled.
                 if (repository.credentials.get("torbox_token") == key && revision.get() == owner)
-                    state.value = TorBoxAccountState()
+                    state.value = TorBoxAccountState(configured = true)
                 throw cancelled
             } catch (failure: Exception) {
-                if (repository.credentials.get("torbox_token") == key && revision.get() == owner)
+                if (repository.credentials.get("torbox_token") == key && revision.get() == owner) {
+                    checkedKey = key
                     state.value =
                         TorBoxAccountState(
-                            error = failure.message ?: "Account could not be verified."
+                            configured = true,
+                            error = failure.message ?: "Account could not be verified.",
                         )
+                }
             }
         }
 
-    suspend fun connect(value: String) {
-        val key = value.trim()
-        // A rejected replacement must leave the working account and saved key intact.
-        val data = verify(key)
-        revision.incrementAndGet()
-        repository.credentials.set("torbox_token", key)
-        checkedKey = key
-        state.value = TorBoxAccountState(data = data)
-    }
+    suspend fun connect(value: String) =
+        lock.withLock {
+            val key = value.trim()
+            val startRevision = revision.get()
+            // A rejected replacement must leave the working account and saved key intact.
+            val data = verify(key)
+            // Signing out while this verification was in flight wins over the older connect.
+            if (revision.get() != startRevision) return@withLock
+            revision.incrementAndGet()
+            repository.credentials.set("torbox_token", key)
+            checkedKey = key
+            state.value = TorBoxAccountState(configured = true, data = data)
+        }
 
     fun signOut() {
         revision.incrementAndGet()
