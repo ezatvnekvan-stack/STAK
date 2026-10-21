@@ -105,8 +105,15 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = null) {
+    val scope by vm.accountScope.collectAsStateWithLifecycle()
+    key(scope) { StakAccountApp(vm, requestedDestination, scope) }
+}
+
+@Composable
+private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, scope: String) {
     val context = LocalContext.current
-    val saved by vm.saved.collectAsStateWithLifecycle()
+    val allSaved by vm.saved.collectAsStateWithLifecycle()
+    val saved = allSaved.filter { it.accountScope == scope }
     val savedDark by vm.dark.collectAsStateWithLifecycle()
     val options by vm.options.collectAsStateWithLifecycle()
     val tone by vm.artworkTone.collectAsStateWithLifecycle()

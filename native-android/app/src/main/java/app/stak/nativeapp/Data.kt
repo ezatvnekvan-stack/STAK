@@ -13,7 +13,9 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -153,51 +155,61 @@ fun JSONArray?.objects(): List<JSONObject> =
 fun JSONArray?.strings(): List<String> =
     if (this == null) emptyList() else (0 until length()).map { optString(it) }
 
-@Entity(tableName = "saved_media", primaryKeys = ["mediaKey", "collection"])
+@Entity(tableName = "saved_media", primaryKeys = ["accountScope", "mediaKey", "collection"])
 data class SavedMedia(
     val mediaKey: String,
     val collection: String,
     val json: String,
     val updatedAt: Long = System.currentTimeMillis(),
+    val accountScope: String = "local",
 ) {
     fun media() = Media.fromJson(JSONObject(json))
 }
 
-@Entity(tableName = "watched_episodes", primaryKeys = ["mediaKey", "season", "episode"])
+@Entity(
+    tableName = "watched_episodes",
+    primaryKeys = ["accountScope", "mediaKey", "season", "episode"],
+)
 data class WatchedEpisode(
     val mediaKey: String,
     val season: Int,
     val episode: Int,
     val watchedAt: Long = System.currentTimeMillis(),
+    val accountScope: String = "local",
 )
 
 @Dao
 interface StakDao {
-    @Query("SELECT * FROM saved_media ORDER BY updatedAt DESC")
-    fun observe(): Flow<List<SavedMedia>>
+    @Query("SELECT * FROM saved_media WHERE accountScope = :scope ORDER BY updatedAt DESC")
+    fun observe(scope: String): Flow<List<SavedMedia>>
 
-    @Query("SELECT * FROM watched_episodes") fun episodes(): Flow<List<WatchedEpisode>>
+    @Query("SELECT * FROM watched_episodes WHERE accountScope = :scope")
+    fun episodes(scope: String): Flow<List<WatchedEpisode>>
 
-    @Query("SELECT * FROM saved_media ORDER BY updatedAt DESC") suspend fun all(): List<SavedMedia>
+    @Query("SELECT * FROM saved_media WHERE accountScope = :scope ORDER BY updatedAt DESC")
+    suspend fun all(scope: String): List<SavedMedia>
 
-    @Query("SELECT * FROM watched_episodes") suspend fun allEpisodes(): List<WatchedEpisode>
+    @Query("SELECT * FROM watched_episodes WHERE accountScope = :scope")
+    suspend fun allEpisodes(scope: String): List<WatchedEpisode>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun put(item: SavedMedia)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun merge(items: List<SavedMedia>)
 
-    @Query("DELETE FROM saved_media WHERE mediaKey = :key AND collection = :collection")
-    suspend fun remove(key: String, collection: String)
+    @Query(
+        "DELETE FROM saved_media WHERE accountScope = :scope AND mediaKey = :key AND collection = :collection"
+    )
+    suspend fun remove(scope: String, key: String, collection: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun putEpisode(item: WatchedEpisode)
 
     @Query(
-        "DELETE FROM watched_episodes WHERE mediaKey = :key AND season = :season AND episode = :episode"
+        "DELETE FROM watched_episodes WHERE accountScope = :scope AND mediaKey = :key AND season = :season AND episode = :episode"
     )
-    suspend fun removeEpisode(key: String, season: Int, episode: Int)
+    suspend fun removeEpisode(scope: String, key: String, season: Int, episode: Int)
 }
 
-@Database(entities = [SavedMedia::class, WatchedEpisode::class], version = 1, exportSchema = true)
+@Database(entities = [SavedMedia::class, WatchedEpisode::class], version = 2, exportSchema = true)
 abstract class StakDatabase : RoomDatabase() {
     abstract fun dao(): StakDao
 }
@@ -226,8 +238,47 @@ class Credentials(context: Context) {
             .generateKey()
     }
 
+    private val scopedNames =
+        setOf("jellyfin_url", "jellyfin_token", "jellyfin_user", "jellyfin_username")
+
+    init {
+        // The old global Jellyfin session belongs only to the account selected at upgrade.
+        synchronized(Credentials::class.java) {
+            if (!prefs.getBoolean("jellyfin_scoped_v1", false)) {
+                val scope = accountScope(get("torbox_token"))
+                val edit = prefs.edit()
+                scopedNames.forEach { name ->
+                    prefs.getString(name, null)?.let { edit.putString("${name}_$scope", it) }
+                    edit.remove(name)
+                }
+                check(edit.putBoolean("jellyfin_scoped_v1", true).commit()) {
+                    "Could not preserve Jellyfin connection."
+                }
+            }
+        }
+    }
+
+    val scope: String
+        get() = accountScope(get("torbox_token"))
+
+    fun scopes(): Flow<String> =
+        kotlinx.coroutines.flow
+            .callbackFlow {
+                val listener =
+                    android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, name ->
+                        if (name == "torbox_token") trySend(scope)
+                    }
+                prefs.registerOnSharedPreferenceChangeListener(listener)
+                trySend(scope)
+                awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+            }
+            .distinctUntilChanged()
+
+    private fun storageName(name: String): String =
+        if (name in scopedNames) "${name}_$scope" else name
+
     fun get(name: String): String {
-        val value = prefs.getString(name, null) ?: return ""
+        val value = prefs.getString(storageName(name), null) ?: return ""
         return runCatching {
                 val bytes = Base64.decode(value, Base64.NO_WRAP)
                 val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -243,21 +294,23 @@ class Credentials(context: Context) {
 
     fun set(name: String, value: String) {
         if (value.isBlank()) {
-            prefs.edit().remove(name).apply()
+            check(prefs.edit().remove(storageName(name)).commit()) { "Could not save credentials." }
             return
         }
         val cipher =
             Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
-        prefs
-            .edit()
-            .putString(
-                name,
-                Base64.encodeToString(
-                    cipher.iv + cipher.doFinal(value.toByteArray(Charsets.UTF_8)),
-                    Base64.NO_WRAP,
-                ),
-            )
-            .apply()
+        val saved =
+            prefs
+                .edit()
+                .putString(
+                    storageName(name),
+                    Base64.encodeToString(
+                        cipher.iv + cipher.doFinal(value.toByteArray(Charsets.UTF_8)),
+                        Base64.NO_WRAP,
+                    ),
+                )
+                .commit()
+        check(saved) { "Could not save credentials." }
     }
 }
 
@@ -267,7 +320,9 @@ object BackupCodec {
         val root = JSONObject(text)
         require(
             root.optString("format") in listOf("dmm-backup", "stak-native-backup") &&
-                root.optInt("version") == 1
+                (root.optInt("version") == 1 ||
+                    (root.optString("format") == "stak-native-backup" &&
+                        root.optInt("version") == 2))
         ) {
             "Unsupported backup format."
         }
@@ -350,9 +405,16 @@ class Repository(
     val today: java.time.LocalDate
         get() = java.time.LocalDate.now(clock)
 
-    val db = Room.databaseBuilder(context, StakDatabase::class.java, "stak-native.db").build()
-    val dao = db.dao()
     val credentials = Credentials(context)
+    val db = openStakDatabase(context, credentials.scope)
+    val accountScope: String
+        get() = credentials.scope
+
+    fun daoFor(scope: String) = ScopedStakDao(db.dao(), scope)
+
+    val dao: ScopedStakDao
+        get() = daoFor(accountScope)
+
     val metadataDirectory = java.io.File(context.cacheDir, "public-metadata").apply { mkdirs() }
     val preferences = context.getSharedPreferences("stak_appearance", 0)
     private val metadataCache = java.util.concurrent.ConcurrentHashMap<String, Media>()
@@ -361,6 +423,10 @@ class Repository(
         metadataCache.compute(media.key) { _, previous -> media.enrichedBy(previous) }!!
 
     fun cached(key: String) = metadataCache[key]
+
+    fun forgetPrivateMetadata() {
+        metadataCache.entries.removeIf { it.value.jellyfinId.isNotBlank() }
+    }
 
     suspend fun request(
         url: String,

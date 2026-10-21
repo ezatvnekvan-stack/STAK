@@ -611,67 +611,13 @@ fun HomeSettings(vm: StakViewModel) {
     }
 }
 
-@Composable
-fun BackupSettings(vm: StakViewModel) {
-    val context = LocalContext.current
-    val export =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.CreateDocument("application/json")
-        ) { uri ->
-            if (uri != null)
-                vm.operation {
-                    val text =
-                        BackupCodec.encode(vm.repository.dao.all(), vm.repository.dao.allEpisodes())
-                    withContext(Dispatchers.IO) {
-                        requireNotNull(context.contentResolver.openOutputStream(uri))
-                            .bufferedWriter()
-                            .use { it.write(text) }
-                    }
-                    vm.messages.emit("Backup exported.")
-                }
-        }
-    val import =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null)
-                vm.operation {
-                    val text =
-                        withContext(Dispatchers.IO) {
-                            requireNotNull(context.contentResolver.openInputStream(uri)).use { input
-                                ->
-                                val bytes = input.readBytesWithLimit(2 * 1024 * 1024)
-                                String(bytes, Charsets.UTF_8)
-                            }
-                        }
-                    vm.importBackup(text)
-                }
-        }
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Label("Backup")
-        Text(
-            "Export your watchlist and tracking data, or merge an existing STAK backup.",
-            fontSize = 14.sp,
-            color = Muted,
-        )
-        MotionButton("Export backup", Modifier.fillMaxWidth()) { export.launch("STAK-backup.json") }
-        MotionButton("Import backup", Modifier.fillMaxWidth()) {
-            import.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
-        }
-        HorizontalDivider(color = Rule)
-        Text("STAK", style = MaterialTheme.typography.headlineLarge)
-        Text(BuildConfig.VERSION_NAME, fontFamily = MonoFont, fontSize = 11.sp, color = Muted)
-        MotionButton("Source & releases", Modifier.fillMaxWidth()) {
-            openExternal(context, "https://github.com/ezatvnekvan-stack/STAK")
-        }
-    }
-}
-
 fun java.io.InputStream.readBytesWithLimit(limit: Int): ByteArray {
     val output = java.io.ByteArrayOutputStream()
     val buffer = ByteArray(8192)
     while (true) {
         val count = read(buffer)
         if (count < 0) break
-        require(output.size() + count <= limit) { "Backup exceeds 2 MB." }
+        require(output.size() + count <= limit) { "Backup file is too large." }
         output.write(buffer, 0, count)
     }
     return output.toByteArray()

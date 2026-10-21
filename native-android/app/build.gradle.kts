@@ -4,6 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
+val distributionStore = providers.environmentVariable("STAK_SIGNING_STORE_FILE")
+val distributionStorePassword = providers.environmentVariable("STAK_SIGNING_STORE_PASSWORD")
+val distributionAlias = providers.environmentVariable("STAK_SIGNING_KEY_ALIAS")
+val distributionKeyPassword = providers.environmentVariable("STAK_SIGNING_KEY_PASSWORD")
+val distributionReady = listOf(distributionStore, distributionStorePassword, distributionAlias, distributionKeyPassword)
+    .all { it.orNull?.isNotBlank() == true }
 android {
     namespace = "app.stak.nativeapp"
     compileSdk = 35
@@ -11,18 +17,36 @@ android {
         applicationId = "app.stak.nativeapp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0-native-alpha.1"
+        versionCode = 3
+        versionName = "0.3.0-native-beta.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
+    signingConfigs {
+        if (distributionReady) create("distribution") {
+            storeFile = file(distributionStore.get())
+            storePassword = distributionStorePassword.get()
+            keyAlias = distributionAlias.get()
+            keyPassword = distributionKeyPassword.get()
+        }
+    }
     buildTypes {
-        release { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = false
+            if (distributionReady) signingConfig = signingConfigs.getByName("distribution")
+        }
     }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     testOptions { unitTests.isReturnDefaultValues = true }
+}
+// Never produce an unsigned or silently debug-signed distribution build.
+tasks.matching { it.name in listOf("packageRelease", "assembleRelease", "bundleRelease") }.configureEach {
+    doFirst {
+        check(distributionReady) { "Permanent release signing is required. See native-android/SIGNING.md." }
+        check(file(distributionStore.get()).isFile) { "Release keystore file is missing." }
+    }
 }
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 dependencies {

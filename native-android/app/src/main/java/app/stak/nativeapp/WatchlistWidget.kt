@@ -13,21 +13,16 @@ class WatchlistWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            val database =
-                androidx.room.Room.databaseBuilder(
-                        context,
-                        StakDatabase::class.java,
-                        "stak-native.db",
-                    )
-                    .build()
+            val scope = Credentials(context).scope
+            val database = openStakDatabase(context, scope)
             try {
                 val titles =
-                    database
-                        .dao()
+                    ScopedStakDao(database.dao(), scope)
                         .all()
                         .filter { it.collection == "watchlist" }
                         .take(3)
                         .map { it.media().name }
+                if (Credentials(context).scope != scope) return@launch
                 ids.forEach { id ->
                     val views = RemoteViews(context.packageName, R.layout.watchlist_widget)
                     views.setTextViewText(

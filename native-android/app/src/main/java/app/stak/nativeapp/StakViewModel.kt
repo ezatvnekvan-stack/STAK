@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package app.stak.nativeapp
 
 import android.app.Application
@@ -16,13 +18,21 @@ class StakViewModel
 @JvmOverloads
 constructor(application: Application, val repository: Repository = Repository(application)) :
     AndroidViewModel(application) {
+    val accountScope =
+        repository.credentials
+            .scopes()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, repository.accountScope)
     val saved =
-        repository.dao
-            .observe()
+        accountScope
+            .flatMapLatest { scope ->
+                repository.daoFor(scope).observe().onStart { emit(emptyList()) }
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val watchedEpisodes =
-        repository.dao
-            .episodes()
+        accountScope
+            .flatMapLatest { scope ->
+                repository.daoFor(scope).episodes().onStart { emit(emptyList()) }
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val preferences = application.getSharedPreferences("stak_appearance", 0)
     val reduced = MutableStateFlow(preferences.getBoolean("reduced", false))
@@ -46,6 +56,17 @@ constructor(application: Application, val repository: Repository = Repository(ap
     val messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     private val mutationLock = Mutex()
     val catalogs = java.util.concurrent.ConcurrentHashMap<String, List<Media>>()
+
+    init {
+        viewModelScope.launch {
+            accountScope.drop(1).collect {
+                repository.forgetPrivateMetadata()
+                indexers.reload()
+                artworkTone.value = GRAPHITE_TONE
+                WatchlistWidget.refresh(getApplication())
+            }
+        }
+    }
 
     suspend fun catalog(type: String, query: String = "", refresh: Boolean = false): List<Media> {
         val key = "$type:$query"
@@ -81,35 +102,33 @@ constructor(application: Application, val repository: Repository = Repository(ap
 
     fun toggle(media: Media, collection: String) = operation {
         mutationLock.withLock {
+            val dao = repository.dao
             val previous =
-                repository.dao.all().firstOrNull {
-                    it.mediaKey == media.key && it.collection == collection
-                }
+                dao.all().firstOrNull { it.mediaKey == media.key && it.collection == collection }
             if (previous == null)
-                repository.dao.put(SavedMedia(media.key, collection, media.json().toString()))
-            else repository.dao.remove(media.key, collection)
+                dao.put(SavedMedia(media.key, collection, media.json().toString()))
+            else dao.remove(media.key, collection)
             WatchlistWidget.refresh(getApplication())
         }
     }
 
     suspend fun changeWatched(media: Media, watched: Boolean): SavedMedia? =
         mutationLock.withLock {
+            val dao = repository.dao
             val previous =
-                repository.dao.all().firstOrNull {
-                    it.mediaKey == media.key && it.collection == "tracking"
-                }
+                dao.all().firstOrNull { it.mediaKey == media.key && it.collection == "tracking" }
             // Confirm server mutation first. A failed sync never appears as a successful local
             // change.
             repository.setJellyfinWatched(media, watched)
             if (watched)
-                repository.dao.put(
+                dao.put(
                     SavedMedia(
                         media.key,
                         "tracking",
                         media.json().put("played", true).put("progress", 100).toString(),
                     )
                 )
-            else repository.dao.remove(media.key, "tracking")
+            else dao.remove(media.key, "tracking")
             previous
         }
 
@@ -120,15 +139,16 @@ constructor(application: Application, val repository: Repository = Repository(ap
         watchedAt: Long = System.currentTimeMillis(),
     ) =
         mutationLock.withLock {
+            val dao = repository.dao
             repository.db.withTransaction {
                 episodes.forEach { episode ->
                     if (watched)
-                        repository.dao.putEpisode(
+                        dao.putEpisode(
                             WatchedEpisode(media.key, episode.season, episode.number, watchedAt)
                         )
-                    else repository.dao.removeEpisode(media.key, episode.season, episode.number)
+                    else dao.removeEpisode(media.key, episode.season, episode.number)
                 }
-                val marks = repository.dao.allEpisodes().filter { it.mediaKey == media.key }
+                val marks = dao.allEpisodes().filter { it.mediaKey == media.key }
                 val total =
                     media.episodes.count { it.season > 0 }.takeIf { it > 0 } ?: media.totalEpisodes
                 val complete = total > 0 && marks.size >= total
@@ -142,7 +162,7 @@ constructor(application: Application, val repository: Repository = Repository(ap
                             else 0f,
                         )
                 if (marks.isNotEmpty())
-                    repository.dao.put(
+                    dao.put(
                         SavedMedia(
                             media.key,
                             "tracking",
@@ -150,68 +170,82 @@ constructor(application: Application, val repository: Repository = Repository(ap
                             marks.maxOf { it.watchedAt },
                         )
                     )
-                else repository.dao.remove(media.key, "tracking")
+                else dao.remove(media.key, "tracking")
             }
         }
 
     suspend fun restoreWatched(media: Media, previous: SavedMedia?) =
         mutationLock.withLock {
+            val dao = repository.dao
+            require(previous == null || previous.accountScope == dao.scope) {
+                "Switch back to the original account to undo this action."
+            }
             repository.setJellyfinWatched(
                 media,
                 previous?.let { JSONObject(it.json).optBoolean("played") } ?: false,
             )
-            if (previous != null) repository.dao.put(previous)
-            else repository.dao.remove(media.key, "tracking")
+            if (previous != null) dao.put(previous) else dao.remove(media.key, "tracking")
         }
 
-    suspend fun importBackup(text: String) {
-        val entries = BackupCodec.decode(text)
-        val root = JSONObject(text)
-        val episodeRows =
-            if (root.optString("format") == "stak-native-backup")
-                root.optJSONArray("episodes").objects().mapNotNull {
-                    val key = it.optString("mediaKey")
-                    val season = it.optInt("season")
-                    val episode = it.optInt("episode")
-                    if (key.length <= 160 && season > 0 && episode > 0)
-                        WatchedEpisode(
-                            key,
-                            season,
-                            episode,
-                            it.optLong("watchedAt", System.currentTimeMillis()),
-                        )
-                    else null
+    suspend fun importBackup(text: String) =
+        restoreBackup(parseBackupArchive(text), repository.accountScope)
+
+    suspend fun restoreBackup(archive: BackupArchive, expectedScope: String) =
+        mutationLock.withLock {
+            check(repository.accountScope == expectedScope) {
+                "Account changed. Review the backup again."
+            }
+            val dao = repository.daoFor(expectedScope)
+            // Validate combined limits before committing any restored data.
+            val existingIndexers = indexers.read()
+            require(
+                (existingIndexers + archive.indexers).distinctBy { it.kind to it.url }.size <= 5000
+            ) {
+                "Indexer limit reached."
+            }
+            val existingLists = repository.hashLists()
+            val listIds = existingLists.map { it.optString("id") }.toSet()
+            val lists =
+                existingLists +
+                    archive.lists
+                        .distinctBy { it.optString("id") }
+                        .filter { it.optString("id") !in listIds }
+            require(lists.size <= 1000) { "Hash list limit reached." }
+            repository.db.withTransaction {
+                dao.merge(archive.entries)
+                val existing =
+                    dao.allEpisodes().map { Triple(it.mediaKey, it.season, it.episode) }.toSet()
+                archive.episodes
+                    .filter { Triple(it.mediaKey, it.season, it.episode) !in existing }
+                    .forEach { dao.putEpisode(it) }
+            }
+            check(repository.accountScope == expectedScope) {
+                "Account changed. Titles were preserved in the original account; review remaining settings again."
+            }
+            val editor = preferences.edit()
+            archive.settings
+                .filterKeys { !preferences.contains(it) }
+                .forEach { (name, value) ->
+                    if (value is Boolean) editor.putBoolean(name, value)
+                    else editor.putString(name, value as String)
                 }
-            else
-                root.optJSONArray("tracking").objects().flatMap { title ->
-                    val media = Media.fromJson(title)
-                    if (entries.none { it.mediaKey == media.key }) emptyList()
-                    else
-                        title
-                            .optJSONArray("episodes")
-                            .objects()
-                            .filter {
-                                it.optBoolean("played") &&
-                                    it.optInt("season") > 0 &&
-                                    it.optInt("episode") > 0
-                            }
-                            .map {
-                                WatchedEpisode(media.key, it.optInt("season"), it.optInt("episode"))
-                            }
-                }
-        require(episodeRows.size <= 20000) { "Too many episode entries." }
-        repository.db.withTransaction {
-            repository.dao.merge(entries)
-            val existing =
-                repository.dao
-                    .allEpisodes()
-                    .map { Triple(it.mediaKey, it.season, it.episode) }
-                    .toSet()
-            episodeRows
-                .filter { Triple(it.mediaKey, it.season, it.episode) !in existing }
-                .forEach { repository.dao.putEpisode(it) }
+            editor
+                .putString(repository.hashListKey(), org.json.JSONArray(lists).toString())
+                .commit()
+                .also { check(it) { "Titles restored, but preferences could not be saved." } }
+            indexers.mergeMissing(archive.indexers)
+            archive.connections.forEach { (name, value) ->
+                if (repository.credentials.get(name).isBlank())
+                    repository.credentials.set(name, value)
+            }
+            options.value =
+                preferences.all.filterValues { it is String }.mapValues { it.value as String }
+            reduced.value = preferences.getBoolean("reduced", false)
+            haptics.value = preferences.getBoolean("haptics", true)
+            dark.value = preferences.getBoolean("dark", true)
+            WatchlistWidget.refresh(getApplication())
+            messages.emit(
+                "Backup merged into this account; existing records and settings preserved."
+            )
         }
-        WatchlistWidget.refresh(getApplication())
-        messages.emit("Imported ${entries.size} titles; existing entries preserved.")
-    }
 }

@@ -1,7 +1,6 @@
 package app.stak.nativeapp
 
 import java.io.StringReader
-import java.security.MessageDigest
 import java.util.UUID
 import javax.xml.parsers.SAXParserFactory
 import kotlinx.coroutines.*
@@ -61,13 +60,7 @@ fun validateIndexer(item: Indexer): Indexer {
  */
 class IndexerStore(private val repository: Repository) {
     private fun storageKey(): String {
-        val token = repository.credentials.get("torbox_token")
-        val scope =
-            if (token.isBlank()) "local"
-            else
-                MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") {
-                    "%02x".format(it)
-                }
+        val scope = repository.accountScope
         return "indexers_$scope"
     }
 
@@ -97,6 +90,24 @@ class IndexerStore(private val repository: Repository) {
     private fun write(list: List<Indexer>) {
         repository.credentials.set(storageKey(), JSONArray(list.map { it.json() }).toString())
         items.value = list
+    }
+
+    fun mergeMissing(imported: List<Indexer>) {
+        val existing = read()
+        val endpoints = existing.map { it.kind to it.url }.toSet()
+        val ids = existing.map { it.id }.toMutableSet()
+        val additions =
+            imported
+                .distinctBy { it.kind to it.url }
+                .filter { (it.kind to it.url) !in endpoints }
+                .map {
+                    val id =
+                        if (ids.add(it.id)) it.id
+                        else java.util.UUID.randomUUID().toString().also(ids::add)
+                    it.copy(id = id)
+                }
+        require(existing.size + additions.size <= 5000) { "Indexer limit reached." }
+        write(existing + additions)
     }
 
     fun add(item: Indexer) {

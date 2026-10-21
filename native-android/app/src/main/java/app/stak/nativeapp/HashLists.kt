@@ -19,14 +19,8 @@ import androidx.compose.ui.window.DialogProperties
 import java.time.Instant
 import org.json.*
 
-private fun Repository.hashListKey(): String {
-    val token = credentials.get("torbox_token")
-    val scope =
-        if (token.isBlank()) "local"
-        else
-            java.security.MessageDigest.getInstance("SHA-256")
-                .digest(token.toByteArray())
-                .joinToString("") { "%02x".format(it) }
+fun Repository.hashListKey(): String {
+    val scope = accountScope
     return "hash_lists_$scope"
 }
 
