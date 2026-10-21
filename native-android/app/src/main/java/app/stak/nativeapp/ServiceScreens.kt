@@ -11,6 +11,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.*
+import androidx.lifecycle.compose.currentStateAsState
 import coil.compose.AsyncImage
 import kotlinx.coroutines.*
 import org.json.*
@@ -22,6 +23,15 @@ fun RemoteScreen(vm: StakViewModel) {
     var refresh by remember { mutableIntStateOf(0) }
     var error by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    val lifecycle by
+        androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    LaunchedEffect(lifecycle) {
+        if (!lifecycle.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return@LaunchedEffect
+        while (true) {
+            delay(15000)
+            if (!busy) refresh++
+        }
+    }
     LaunchedEffect(refresh) {
         if (
             vm.repository.credentials.get("jellyfin_url").isBlank() ||
@@ -75,6 +85,12 @@ fun RemoteScreen(vm: StakViewModel) {
                         },
                     { selected = it },
                 )
+                if (selected.isNotBlank() && active == null && error.isBlank())
+                    Text(
+                        "The selected device is no longer connected. Refresh or choose another device.",
+                        fontSize = 12.sp,
+                        color = Muted,
+                    )
                 Text(
                     active?.optJSONObject("NowPlayingItem")?.optString("Name") ?: "Nothing playing",
                     fontSize = 14.sp,

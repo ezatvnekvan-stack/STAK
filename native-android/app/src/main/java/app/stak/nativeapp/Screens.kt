@@ -1,5 +1,6 @@
 @file:OptIn(
     androidx.compose.material3.ExperimentalMaterial3Api::class,
+    androidx.compose.animation.ExperimentalSharedTransitionApi::class,
     androidx.compose.foundation.ExperimentalFoundationApi::class,
     androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
 )
@@ -116,7 +117,11 @@ fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = fal
         }
     Box(modifier.background(Color(0xff111111))) {
         AsyncImage(
-            ImageRequest.Builder(context).data(url).headers(headers).crossfade(false).build(),
+            ImageRequest.Builder(context)
+                .data(url)
+                .headers(headers)
+                .crossfade(if (LocalStakMotion.current.reduced) 0 else 180)
+                .build(),
             null,
             Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
@@ -126,7 +131,19 @@ fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = fal
 
 @Composable
 fun SharedPoster(media: Media, source: String, modifier: Modifier = Modifier) {
-    Artwork(media, modifier.clip(RoundedCornerShape(9.dp)))
+    val shared = LocalShared.current
+    val destination = LocalDestination.current
+    val moving =
+        if (shared != null && destination != null && !LocalStakMotion.current.reduced) {
+            with(shared) {
+                modifier.sharedElement(
+                    rememberSharedContentState("poster:${media.key}:$source"),
+                    animatedVisibilityScope = destination,
+                    boundsTransform = { _, _ -> tween(360, easing = StakEase) },
+                )
+            }
+        } else modifier
+    Artwork(media, moving.clip(RoundedCornerShape(9.dp)))
 }
 
 /** The cell paths and SVG view box are copied from the original RatingLogo. */
@@ -249,6 +266,15 @@ fun PosterCard(
     val isSearch = source.startsWith("search")
     val highlight = AccentInk
     val interactions = remember { MutableInteractionSource() }
+    val pressed by interactions.collectIsPressedAsState()
+    val motion = LocalStakMotion.current
+    val view = LocalView.current
+    val pressScale by
+        animateFloatAsState(
+            if (pressed && !motion.reduced) .97f else 1f,
+            if (motion.reduced) snap() else spring(dampingRatio = .82f, stiffness = 900f),
+            label = "Poster press",
+        )
     var menu by remember { mutableStateOf(false) }
     val vm: StakViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val saved by vm.saved.collectAsStateWithLifecycle()
@@ -260,15 +286,24 @@ fun PosterCard(
                 org.json.JSONObject(it.json).optBoolean("played")
         }
     Column(
-        modifier.combinedClickable(
-            interactionSource = interactions,
-            indication = null,
-            role = Role.Button,
-            onClickLabel = "Open ${media.name}",
-            onLongClickLabel = "Actions for ${media.name}",
-            onClick = { onOpen(media, source) },
-            onLongClick = { menu = true },
-        )
+        modifier
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .combinedClickable(
+                interactionSource = interactions,
+                indication = null,
+                role = Role.Button,
+                onClickLabel = "Open ${media.name}",
+                onLongClickLabel = "Actions for ${media.name}",
+                onClick = { onOpen(media, source) },
+                onLongClick = {
+                    if (motion.haptics)
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                    menu = true
+                },
+            )
     ) {
         Box(
             Modifier.fillMaxWidth()
@@ -823,6 +858,18 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 media.indices.forEach { i ->
+                    val indicatorWidth by
+                        animateDpAsState(
+                            if (activeIndex == i) 20.dp else 4.dp,
+                            motionSpec(reduced, 240),
+                            label = "Hero indicator",
+                        )
+                    val indicatorAlpha by
+                        animateFloatAsState(
+                            if (activeIndex == i) 1f else .5f,
+                            motionSpec(reduced, 180),
+                            label = "Hero indicator ink",
+                        )
                     Box(
                         Modifier.size(36.dp, 44.dp).clickable {
                             scope.launch {
@@ -836,11 +883,8 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(
-                            Modifier.size(if (activeIndex == i) 20.dp else 4.dp, 4.dp)
-                                .background(
-                                    Color.White.copy(alpha = if (activeIndex == i) 1f else .5f),
-                                    CircleShape,
-                                )
+                            Modifier.size(indicatorWidth, 4.dp)
+                                .background(Color.White.copy(alpha = indicatorAlpha), CircleShape)
                         )
                     }
                 }
@@ -1643,30 +1687,41 @@ fun DetailScreen(
                             ),
                         onClick = onBack,
                     )
-                    Column(
+                    Row(
                         Modifier.align(Alignment.BottomStart)
                             .padding(horizontal = 16.dp)
                             .padding(bottom = 28.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp),
+                        verticalAlignment = Alignment.Bottom,
                     ) {
-                        Text(
-                            media.name,
-                            fontFamily = DotFont,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 32.sp,
-                            lineHeight = 38.sp,
-                        )
-                        Text(
-                            listOf(media.year, media.runtime)
-                                .filter { it.isNotBlank() }
-                                .joinToString(" · "),
-                            fontFamily = MonoFont,
-                            fontSize = 10.sp,
-                            color = Muted,
-                        )
-                        RatingBadge(media, quiet = true)
-                        if (media.genres.isNotEmpty())
-                            Text(media.genres.joinToString(" · "), fontSize = 10.sp, color = Muted)
+                        Column(
+                            Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                media.name,
+                                fontFamily = DotFont,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 32.sp,
+                                lineHeight = 38.sp,
+                            )
+                            Text(
+                                listOf(media.year, media.runtime)
+                                    .filter { it.isNotBlank() }
+                                    .joinToString(" · "),
+                                fontFamily = MonoFont,
+                                fontSize = 10.sp,
+                                color = Muted,
+                            )
+                            RatingBadge(media, quiet = true)
+                            if (media.genres.isNotEmpty())
+                                Text(
+                                    media.genres.joinToString(" · "),
+                                    fontSize = 10.sp,
+                                    color = Muted,
+                                )
+                        }
+                        SharedPoster(media, source, Modifier.width(88.dp).aspectRatio(2f / 3f))
                     }
                 }
             }

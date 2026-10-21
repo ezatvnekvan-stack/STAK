@@ -60,7 +60,10 @@ fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnSco
                         ),
                     color = MaterialTheme.colorScheme.surface,
                 ) {
-                    Column(Modifier.navigationBarsPadding().padding(top = 20.dp), content = content)
+                    Column(Modifier.navigationBarsPadding()) {
+                        StakSheetHandle()
+                        content()
+                    }
                 }
             }
         }
@@ -69,8 +72,27 @@ fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnSco
             onDismissRequest,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { StakSheetHandle() },
             content = content,
         )
+}
+
+@Composable
+private fun StakSheetHandle() {
+    val ink = Muted.copy(alpha = .55f)
+    Box(Modifier.fillMaxWidth().height(32.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(34.dp, 8.dp)) {
+            repeat(6) { x ->
+                repeat(2) { y ->
+                    drawCircle(
+                        ink,
+                        1.dp.toPx(),
+                        Offset((2 + x * 6).dp.toPx(), (1 + y * 5).dp.toPx()),
+                    )
+                }
+            }
+        }
+    }
 }
 
 enum class ButtonTone {
@@ -178,7 +200,9 @@ fun MotionTabs(
     height: androidx.compose.ui.unit.Dp = 52.dp,
     onSelect: (Int) -> Unit,
 ) {
-    val reduced = LocalStakMotion.current.reduced
+    val policy = LocalStakMotion.current
+    val reduced = policy.reduced
+    val view = LocalView.current
     BoxWithConstraints(
         modifier
             .fillMaxWidth()
@@ -210,13 +234,28 @@ fun MotionTabs(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             labels.forEachIndexed { index, text ->
+                val ink by
+                    androidx.compose.animation.animateColorAsState(
+                        if (index == selected) MaterialTheme.colorScheme.background
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        motionSpec(reduced, 180),
+                        label = "Segment ink",
+                    )
                 Box(
                     Modifier.weight(1f)
                         .fillMaxHeight()
                         .selectable(
                             selected == index,
                             role = Role.Tab,
-                            onClick = { onSelect(index) },
+                            onClick = {
+                                if (index != selected) {
+                                    if (policy.haptics)
+                                        view.performHapticFeedback(
+                                            HapticFeedbackConstants.CLOCK_TICK
+                                        )
+                                    onSelect(index)
+                                }
+                            },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -228,9 +267,7 @@ fun MotionTabs(
                                 lineHeight = 15.4.sp,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                             ),
-                        color =
-                            if (index == selected) MaterialTheme.colorScheme.background
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = ink,
                     )
                 }
             }

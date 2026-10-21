@@ -1,6 +1,7 @@
 package app.stak.nativeapp
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.*
@@ -151,12 +152,38 @@ fun StakIconButton(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
+    val interactions = remember {
+        androidx.compose.foundation.interaction.MutableInteractionSource()
+    }
+    val pressed by interactions.collectIsPressedAsState()
+    val policy = LocalStakMotion.current
+    val view = androidx.compose.ui.platform.LocalView.current
+    val scale by
+        androidx.compose.animation.core.animateFloatAsState(
+            if (pressed && enabled && !policy.reduced) .92f else 1f,
+            if (policy.reduced) androidx.compose.animation.core.snap()
+            else androidx.compose.animation.core.spring(dampingRatio = .8f, stiffness = 1100f),
+            label = "Icon press",
+        )
     Box(
         modifier
             .size(44.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(CircleShape)
             .border(1.dp, Rule, CircleShape)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                interactionSource = interactions,
+                indication = null,
+            ) {
+                if (policy.haptics)
+                    view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                onClick()
+            },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -257,7 +284,7 @@ fun OriginalField(
             },
         )
         if (secret && reveal)
-            IconButton({ visible = !visible }, Modifier.size(32.dp), enabled = enabled) {
+            IconButton({ visible = !visible }, Modifier.size(44.dp), enabled = enabled) {
                 Icon(
                     if (visible) StakIcons.EyeOff else StakIcons.Eye,
                     visibilityLabel ?: if (visible) "Hide key" else "Show key",

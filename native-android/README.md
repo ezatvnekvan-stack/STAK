@@ -1,4 +1,4 @@
-# STAK Native Android 0.1.0 alpha
+# STAK Native Android 0.2.0 alpha
 
 This is a separate Kotlin / Jetpack Compose Android application. It contains no Capacitor runtime, WebView, JavaScript bundle, or companion web server. The existing React/Capacitor app is unchanged.
 
@@ -13,6 +13,8 @@ This branch replaces the simplified alpha layouts with the original dock, Settin
 See [`parity/README.md`](parity/README.md) for original reference screenshots, comparison instructions, evidence limits and the remaining feature inventory. Hosted API 35 tests retain matching-viewport captures and functional smoke reports. Fixture tests cannot verify private live services.
 
 The original frontend and stable app remain unchanged. Existing alpha release notes describe the published alpha, not the unfinished branch.
+
+See [MOTION.md](MOTION.md) for the interaction timing, reduced-motion behavior and evidence limits.
 
 ## Build
 
