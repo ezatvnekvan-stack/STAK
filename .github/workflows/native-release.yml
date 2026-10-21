@@ -23,8 +23,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
-      - name: Prepare APK inspection tools
-        run: sdkmanager 'build-tools;35.0.0' > /dev/null
+        with:
+          packages: 'build-tools;35.0.0'
       - name: Verify and publish the successful Android artifact
         env:
           GH_TOKEN: ${{ github.token }}
