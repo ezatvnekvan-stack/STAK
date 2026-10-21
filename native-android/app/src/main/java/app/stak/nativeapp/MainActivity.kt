@@ -18,8 +18,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -27,7 +29,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -265,7 +269,7 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
             val entry by nav.currentBackStackEntryAsState()
             val route = entry?.destination?.route ?: "home"
             val bare = route.startsWith("title/")
-            val duration = if (policy.reduced) 0 else 220
+            val duration = if (policy.reduced) 0 else 280
             LaunchedEffect(vm) { vm.messages.collect { snackbar.showSnackbar(it) } }
             LaunchedEffect(requestedDestination) {
                 if (!requestedDestination.isNullOrBlank())
@@ -307,16 +311,18 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
                                     nav,
                                     "home",
                                     enterTransition = {
-                                        fadeIn(
-                                            tween(duration, easing = StakEase),
-                                            initialAlpha = .35f,
-                                        ) +
+                                        fadeIn(tween(duration, easing = StakEase)) +
                                             slideInVertically(tween(duration, easing = StakEase)) {
-                                                8
+                                                height ->
+                                                if (policy.reduced) 0 else (height * .012f).toInt()
                                             }
                                     },
-                                    exitTransition = { fadeOut(tween(duration)) },
-                                    popEnterTransition = { fadeIn(tween(duration)) },
+                                    exitTransition = {
+                                        fadeOut(tween(if (policy.reduced) 0 else 110))
+                                    },
+                                    popEnterTransition = {
+                                        fadeIn(tween(duration, easing = StakEase))
+                                    },
                                     popExitTransition = {
                                         fadeOut(tween(duration, easing = StakEase))
                                     },
@@ -475,6 +481,8 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
 
 @Composable
 private fun MotionNavigation(selected: Int, onSelect: (Int) -> Unit) {
+    val policy = LocalStakMotion.current
+    val view = LocalView.current
     val icons =
         listOf(
             StakIcons.House,
@@ -503,11 +511,45 @@ private fun MotionNavigation(selected: Int, onSelect: (Int) -> Unit) {
         )
         Row(Modifier.fillMaxSize()) {
             labels.forEachIndexed { index, label ->
+                val interaction = remember { MutableInteractionSource() }
+                val pressed by interaction.collectIsPressedAsState()
+                val scale by
+                    animateFloatAsState(
+                        if (pressed && !policy.reduced) .88f else 1f,
+                        if (policy.reduced) snap()
+                        else spring(dampingRatio = .75f, stiffness = 1100f),
+                        label = "Navigation press",
+                    )
+                val iconColor by
+                    animateColorAsState(
+                        if (index == selected) MaterialTheme.colorScheme.background
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        motionSpec(policy.reduced, 180),
+                        label = "Navigation ink",
+                    )
+                val labelColor by
+                    animateColorAsState(
+                        if (index == selected) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        motionSpec(policy.reduced, 180),
+                        label = "Navigation label",
+                    )
                 Column(
                     Modifier.weight(1f)
                         .fillMaxHeight()
-                        .clickable(role = androidx.compose.ui.semantics.Role.Tab) {
-                            onSelect(index)
+                        .selectable(
+                            selected = selected == index,
+                            role = androidx.compose.ui.semantics.Role.Tab,
+                            interactionSource = interaction,
+                            indication = null,
+                        ) {
+                            if (selected != index) {
+                                if (policy.haptics)
+                                    view.performHapticFeedback(
+                                        android.view.HapticFeedbackConstants.CLOCK_TICK
+                                    )
+                                onSelect(index)
+                            }
                         }
                         .testTag("nav-${label.lowercase(java.util.Locale.ROOT)}")
                         .padding(top = 8.dp),
@@ -518,10 +560,11 @@ private fun MotionNavigation(selected: Int, onSelect: (Int) -> Unit) {
                         Icon(
                             icons[index],
                             label,
-                            Modifier.size(19.dp),
-                            tint =
-                                if (index == selected) MaterialTheme.colorScheme.background
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            Modifier.size(19.dp).graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            },
+                            tint = iconColor,
                         )
                     }
                     Text(
@@ -531,9 +574,7 @@ private fun MotionNavigation(selected: Int, onSelect: (Int) -> Unit) {
                         lineHeight = 11.25.sp,
                         letterSpacing = (-.36).sp,
                         maxLines = 1,
-                        color =
-                            if (index == selected) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = labelColor,
                     )
                 }
             }

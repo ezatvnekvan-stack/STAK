@@ -1,6 +1,5 @@
 package app.stak.nativeapp
 
-import java.time.LocalDate
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -68,7 +67,7 @@ suspend fun Repository.browse(
     val kind = if (type == "movie") "movie" else "tv"
     val params = mutableMapOf("page" to page.toString(), "include_adult" to "false")
     var path = "/discover/$kind"
-    val today = LocalDate.now()
+    val today = this.today
     val dateField = if (type == "movie") "primary_release_date" else "first_air_date"
     when {
         query.isNotBlank() -> {
@@ -266,30 +265,16 @@ suspend fun Repository.tmdbDetails(media: Media, loadEpisodes: Boolean = true): 
         )
     }
 
-data class SourceStream(val name: String, val title: String, val hash: String, val fileIndex: Int?)
-
-suspend fun Repository.sources(media: Media, episode: Episode? = null): List<SourceStream> {
-    require(preferences.getString("torrentio", "true") == "true") {
-        "Enable Torrentio in Search sources."
-    }
-    val id = media.imdbId.ifBlank { media.id.takeIf { it.startsWith("tt") }.orEmpty() }
-    require(Regex("tt[0-9]+").matches(id)) { "No IMDb identity is available for source search." }
-    val suffix = if (episode == null) id else "$id:${episode.season}:${episode.number}"
-    return request("https://torrentio.strem.fun/stream/${media.type}/$suffix.json")
-        .optJSONArray("streams")
-        .objects()
-        .mapNotNull {
-            val hash = it.optString("infoHash")
-            if (!Regex("[a-fA-F0-9]{40}").matches(hash)) null
-            else
-                SourceStream(
-                    it.optString("name"),
-                    it.optString("title"),
-                    hash,
-                    it.optInt("fileIdx", -1).takeIf { n -> n >= 0 },
-                )
-        }
-}
+data class SourceStream(
+    val name: String,
+    val title: String,
+    val hash: String,
+    val fileIndex: Int?,
+    val source: String = name,
+    val size: Long = 0,
+    val seeders: Int? = null,
+    val magnet: String = "",
+)
 
 suspend fun Repository.addMagnet(magnet: String) {
     require(magnet.startsWith("magnet:?xt=urn:btih:") && magnet.length <= 8192) {

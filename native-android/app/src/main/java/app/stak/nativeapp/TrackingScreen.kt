@@ -108,7 +108,7 @@ private fun ActivityScreen(
     val cutoff =
         if (period == "all") 0L
         else
-            LocalDate.now()
+            vm.repository.today
                 .minusDays(if (period == "week") 6 else 29)
                 .atStartOfDay(ZoneId.systemDefault())
                 .toInstant()
@@ -387,7 +387,7 @@ private fun ActivityScreen(
                     lineHeight = 18.sp,
                     color = Muted,
                 )
-                val today = LocalDate.now()
+                val today = vm.repository.today
                 val start = today.minusDays(77 + (today.dayOfWeek.value - 1).toLong())
                 val counts =
                     history
@@ -457,7 +457,8 @@ fun CalendarScreen(
     onOpen: (Media, String) -> Unit,
 ) {
     val o = LocalOptions.current
-    var selected by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    val currentDate = vm.repository.today
+    var selected by rememberSaveable { mutableStateOf(currentDate.toString()) }
     var events by remember { mutableStateOf(emptyList<Pair<Media, Episode>>()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
@@ -512,7 +513,7 @@ fun CalendarScreen(
     }
     val date = LocalDate.parse(selected)
     val month = YearMonth.from(date)
-    val today = LocalDate.now()
+    val today = vm.repository.today
     val weekStart =
         o["calendarWeekStart"]?.toIntOrNull()?.takeIf { it in 0..1 }
             ?: (WeekFields.of(java.util.Locale.getDefault()).firstDayOfWeek.value % 7)

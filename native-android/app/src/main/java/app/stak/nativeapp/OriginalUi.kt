@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -195,13 +196,20 @@ fun OriginalField(
     visibilityLabel: String? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
+    val border by
+        androidx.compose.animation.animateColorAsState(
+            if (focused && enabled) AccentInk.copy(alpha = .65f) else Rule,
+            motionSpec(LocalStakMotion.current.reduced, 180),
+            label = "Field focus",
+        )
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = 44.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = .74f))
-            .border(1.dp, Rule, RoundedCornerShape(12.dp))
+            .border(1.dp, border, RoundedCornerShape(12.dp))
             .padding(horizontal = horizontalInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -210,9 +218,10 @@ fun OriginalField(
         BasicTextField(
             value,
             onChange,
-            Modifier.weight(1f).padding(vertical = 10.dp).semantics {
-                contentDescription = placeholder
-            },
+            Modifier.weight(1f)
+                .padding(vertical = 10.dp)
+                .onFocusChanged { focused = it.isFocused }
+                .semantics { contentDescription = placeholder },
             singleLine = singleLine,
             enabled = enabled,
             textStyle =
@@ -265,37 +274,57 @@ fun OriginalToggle(label: String, enabled: Boolean, onChange: (Boolean) -> Unit)
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        StakSwitch(label, enabled, onChange = onChange)
+    }
+}
+
+@Composable
+fun StakSwitch(
+    label: String,
+    checked: Boolean,
+    modifier: Modifier = Modifier,
+    onChange: (Boolean) -> Unit,
+) {
+    val policy = LocalStakMotion.current
+    val view = androidx.compose.ui.platform.LocalView.current
+    val track by
+        androidx.compose.animation.animateColorAsState(
+            if (checked) Accent
+            else if (MaterialTheme.colorScheme.background.red < .5f) Color(0xff222222)
+            else Color(0xffd9d9d5),
+            motionSpec(policy.reduced, 180),
+            label = "Switch track",
+        )
+    val thumb by
+        androidx.compose.animation.animateColorAsState(
+            if (checked) AccentForeground else MaterialTheme.colorScheme.onSurface,
+            motionSpec(policy.reduced, 160),
+            label = "Switch thumb",
+        )
+    val x by
+        androidx.compose.animation.core.animateDpAsState(
+            if (checked) 11.dp else (-11).dp,
+            if (policy.reduced) androidx.compose.animation.core.snap()
+            else androidx.compose.animation.core.spring(dampingRatio = .85f, stiffness = 900f),
+            label = "Switch position",
+        )
+    Box(
+        modifier
+            .size(48.dp, 44.dp)
+            .semantics { contentDescription = label }
+            .toggleable(checked, role = Role.Switch) {
+                if (policy.haptics)
+                    view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                onChange(it)
+            },
+        contentAlignment = Alignment.Center,
+    ) {
         Box(
-            Modifier.size(48.dp, 44.dp)
-                .semantics { contentDescription = label }
-                .toggleable(enabled, role = Role.Switch, onValueChange = onChange),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                Modifier.size(48.dp, 24.dp)
-                    .background(
-                        if (enabled) Accent
-                        else if (MaterialTheme.colorScheme.background.red < .5f) Color(0xff222222)
-                        else Color(0xffd9d9d5),
-                        CircleShape,
-                    )
-                    .border(1.dp, Rule, CircleShape)
-            )
-            val x by
-                androidx.compose.animation.core.animateDpAsState(
-                    if (enabled) 11.dp else (-11).dp,
-                    motionSpec(LocalStakMotion.current.reduced, 120),
-                    label = "Switch position",
-                )
-            Box(
-                Modifier.offset(x = x)
-                    .size(18.dp)
-                    .background(
-                        if (enabled) AccentForeground else MaterialTheme.colorScheme.onSurface,
-                        CircleShape,
-                    )
-            )
-        }
+            Modifier.size(48.dp, 24.dp)
+                .background(track, CircleShape)
+                .border(1.dp, Rule, CircleShape)
+        )
+        Box(Modifier.offset(x = x).size(18.dp).background(thumb, CircleShape))
     }
 }
 

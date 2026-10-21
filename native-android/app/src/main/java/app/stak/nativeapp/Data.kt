@@ -202,7 +202,7 @@ abstract class StakDatabase : RoomDatabase() {
     abstract fun dao(): StakDao
 }
 
-/** Keystore-backed encryption. Credentials never enter database, backups, URLs or logs. */
+/** Keystore-backed storage for provider credentials and account-scoped indexer configuration. */
 class Credentials(context: Context) {
     private val prefs = context.getSharedPreferences("stak_secure", Context.MODE_PRIVATE)
 
@@ -345,7 +345,11 @@ class Repository(
             .followRedirects(false)
             .followSslRedirects(false)
             .build(),
+    val clock: java.time.Clock = java.time.Clock.systemDefaultZone(),
 ) {
+    val today: java.time.LocalDate
+        get() = java.time.LocalDate.now(clock)
+
     val db = Room.databaseBuilder(context, StakDatabase::class.java, "stak-native.db").build()
     val dao = db.dao()
     val credentials = Credentials(context)
@@ -423,6 +427,31 @@ class Repository(
                 else if (text.trimStart().startsWith("["))
                     JSONObject().put("items", JSONArray(text))
                 else JSONObject(text)
+            }
+        }
+
+    /** Direct configured indexer requests never inherit TorBox or Jellyfin authorization. */
+    suspend fun indexerText(url: String): String =
+        withContext(Dispatchers.IO) {
+            val parsed = indexerUrl(url)
+            val request =
+                Request.Builder()
+                    .url(parsed)
+                    .header("Accept", "application/json, application/xml, text/xml")
+                    .header("User-Agent", "STAK Native/0.1")
+                    .build()
+            client.newCall(request).execute().use { response ->
+                check(response.isSuccessful) {
+                    when (response.code) {
+                        401,
+                        403 -> "Indexer rejected the credentials."
+                        in 300..399 -> "Indexer redirected the request. Enter its final endpoint."
+                        else -> "Indexer returned HTTP ${response.code}."
+                    }
+                }
+                val source = response.body?.source() ?: error("Empty indexer response.")
+                require(!source.request(8L * 1024 * 1024 + 1)) { "Indexer response exceeds 8 MB." }
+                source.readUtf8()
             }
         }
 

@@ -29,7 +29,10 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
     val navigate = LocalNavigate.current
     val account by vm.torboxAccount.state.collectAsStateWithLifecycle()
     val accountKey = vm.repository.credentials.get("torbox_token")
-    LaunchedEffect(accountKey) { vm.torboxAccount.refresh() }
+    LaunchedEffect(accountKey) {
+        vm.indexers.reload()
+        vm.torboxAccount.refresh()
+    }
     val destinations =
         listOf(
             SettingsDestination(
@@ -183,6 +186,7 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
 @Composable
 fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
     val c = vm.repository.credentials
+    val indexers by vm.indexers.items.collectAsStateWithLifecycle()
     val account by vm.torboxAccount.state.collectAsStateWithLifecycle()
     var states by remember { mutableStateOf(mapOf<String, String>()) }
     var checking by remember { mutableStateOf(false) }
@@ -227,7 +231,7 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
             listOf(
                     Triple("TorBox", "account", c.get("torbox_token").isNotBlank()),
                     Triple("Jellyfin", "jellyfin", c.get("jellyfin_url").isNotBlank()),
-                    Triple("Indexers", "sources", false),
+                    Triple("Indexers", "sources", indexers.any { it.enabled }),
                 )
                 .forEach { (label, id, configured) ->
                     HorizontalDivider(color = Rule)
@@ -577,22 +581,6 @@ fun JellyfinSettings(vm: StakViewModel) {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun SourcesSettings(vm: StakViewModel) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Label("Indexers")
-        OriginalToggle("Torrentio", LocalOptions.current["torrentio"] != "false") {
-            vm.option("torrentio", it.toString())
-        }
-        Text(
-            "built-in · torrentio.strem.fun",
-            fontFamily = MonoFont,
-            fontSize = 10.sp,
-            color = Muted,
-        )
     }
 }
 

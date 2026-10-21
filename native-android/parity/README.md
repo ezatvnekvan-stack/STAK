@@ -28,7 +28,7 @@ The implementation ports the original rating-logo cells, original Rive asset/sta
 
 Home now supports inline unified search, IMDb identity, original result ranking, clearing and pagination, with populated and empty-query references added at both viewports/themes. Suggestions, aliases and all search failure/filter states still require parity work.
 
-The normal-motion browser captures in `reference/motion/` contain the original 94×52 theme illustration after settling. Reproduce them with `STAK_REFERENCE_MODE=motion` and the same capture command. They do not verify continuous frame timing. The Android motion test retains dark/light/static crops and requires the bundled illustration to render beyond the static icon.
+The normal-motion browser captures in `reference/motion/` contain the original 94×52 theme illustration after settling, using an explicit integer pixel clip without resizing. The original CSS placement may be fractional. Reproduce them with `STAK_REFERENCE_MODE=motion` and the same capture command. They do not verify continuous frame timing. The Android motion test retains dark/light/static crops and requires the bundled illustration to render beyond the static icon.
 
 At `f38175a`, [CI run 39509185904](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39509185904) passed build/unit/lint and four Android tests, including the 40 captures at 412×880. The motion test failed when TextureView bitmap readback returned null with a hosted GPU warning. The 360-pixel pass did not execute. These results are not a successful emulator validation. The next test uses system screenshots and preserves the second viewport pass even if another functional test fails, while retaining the failing exit status.
 
@@ -41,7 +41,7 @@ The following original behaviors remain incomplete or unverified. Screenshot dif
 - All Discover filters, provider-service tiles, directors, search suggestions and persistent browsing preferences.
 - Exact theme preview/Rive behavior; artwork palette sampling; ambient drift; every original transition and sheet geometry.
 - All Home shelves, personalization, genre rows, section/taskbar reordering and persisted navigation.
-- Full source aggregation, Torznab/indexer management, cached availability, source filters, matching and technical details.
+- Cached source availability, source filters, matching, technical details and non-hash Stremio streams. Native Torznab/Stremio setup, encrypted account-scoped storage and concurrent hash-source aggregation are implemented; new emulator coverage is pending.
 - Watched dates, movie/episode undo, season confirmations, Jellyfin episode sync, full history/progress rules and calendar filters/movie releases.
 - Jellyfin collection hierarchy, item pages, storage/server tools, exact remote controls and account isolation.
 - TorBox selection, bulk actions, file action parity, saved magnet lists, share creation/view/import and storage/status/filter controls.
@@ -52,3 +52,5 @@ The following original behaviors remain incomplete or unverified. Screenshot dif
 Keep release notes explicit about unfinished features. A complete native replacement still requires feature coverage, interaction checks and device validation; screenshot equality is not required by the latest user direction.
 
 At `5025b8e`, [CI run 39512211032](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39512211032) passed build, 16 unit tests, lint and six first-pass Android checks, plus the second viewport capture. All 88 native captures had matching viewport dimensions; all 88 contained pixel differences. Retained dark/light motion crops were visually inspected: both render the original grayscale Rive illustration, and reduced motion renders the static icon. Continuous animation timing has not been visually verified. This checkpoint predates the latest account controls.
+
+The current design pass adds tactile navigation with animated ink, a spring-driven selection and press response, shorter outgoing fades and restrained incoming movement. Shared switches animate track/thumb colours and position, and fields animate their focus border. Reduced-motion settings snap these transitions. Native source settings retain the original add/test/enable/delete controls with a more spacious Nothing-inspired panel. Local build, 22 unit tests, lint and test-APK compilation pass for these changes; hosted checks and screenshot review are still pending.

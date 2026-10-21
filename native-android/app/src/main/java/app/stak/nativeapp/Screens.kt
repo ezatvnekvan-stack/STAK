@@ -2041,11 +2041,16 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
     var results by remember { mutableStateOf(emptyList<SourceStream>()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
+    var warnings by remember { mutableStateOf(emptyList<String>()) }
     var retry by remember { mutableIntStateOf(0) }
     LaunchedEffect(retry) {
         loading = true
+        results = emptyList()
+        warnings = emptyList()
         try {
-            results = vm.repository.sources(media, episode)
+            val found = vm.repository.searchSources(media, episode)
+            results = found.streams
+            warnings = found.errors
             error = ""
         } catch (e: CancellationException) {
             throw e
@@ -2086,6 +2091,25 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
             }
             if (loading) item { DotStatus(label = "Searching sources") }
             if (error.isNotBlank()) item { EmptyState(error) { retry++ } }
+            if (warnings.isNotEmpty())
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Soft,
+                        border = BorderStroke(1.dp, Rule),
+                    ) {
+                        Column(
+                            Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Label("Source status")
+                            warnings.forEach {
+                                Text(it, fontSize = 12.sp, lineHeight = 18.sp, color = Muted)
+                            }
+                            MotionButton("Retry sources") { retry++ }
+                        }
+                    }
+                }
             if (!loading && results.isEmpty() && error.isBlank())
                 item { EmptyState("No sources found.") }
             items(results) { source ->
@@ -2098,7 +2122,14 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                         Modifier.padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Label(source.name)
+                        Label(source.source)
+                        if (source.name != source.source)
+                            Text(
+                                source.name,
+                                fontFamily = MonoFont,
+                                fontSize = 10.sp,
+                                color = Muted,
+                            )
                         Text(
                             source.title,
                             fontSize = 13.sp,
@@ -2106,9 +2137,19 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                             maxLines = 5,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        if (source.size > 0 || source.seeders != null)
+                            Label(
+                                listOfNotNull(
+                                        source.size.takeIf { it > 0 }?.let { accountBytes(it) },
+                                        source.seeders?.let { "$it seeders" },
+                                    )
+                                    .joinToString(" · ")
+                            )
                         MotionButton("Add to TorBox") {
                             vm.operation {
-                                vm.repository.addMagnet("magnet:?xt=urn:btih:${source.hash}")
+                                vm.repository.addMagnet(
+                                    source.magnet.ifBlank { "magnet:?xt=urn:btih:${source.hash}" }
+                                )
                                 vm.messages.emit("Added to TorBox.")
                             }
                         }

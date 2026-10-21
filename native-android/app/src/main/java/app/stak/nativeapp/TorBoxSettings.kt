@@ -115,6 +115,7 @@ fun TorBoxSettings(vm: StakViewModel) {
                             "Sign out",
                             Modifier.testTag("torbox-logout-button"),
                             icon = StakIcons.LogOut,
+                            enabled = !busy,
                             tone = ButtonTone.Destructive,
                         ) {
                             vm.torboxAccount.signOut()

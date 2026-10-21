@@ -56,7 +56,18 @@ class OriginalReferenceTest {
                 }
                 .build()
         val app = compose.activity.application
-        vm = StakViewModel(app, Repository(app, client))
+        vm =
+            StakViewModel(
+                app,
+                Repository(
+                    app,
+                    client,
+                    java.time.Clock.fixed(
+                        java.time.Instant.parse("2026-10-20T12:00:00Z"),
+                        java.time.ZoneOffset.UTC,
+                    ),
+                ),
+            )
         runBlocking(Dispatchers.IO) {
             vm.repository.db.clearAllTables()
             vm.repository.metadataDirectory.listFiles()?.forEach { it.delete() }

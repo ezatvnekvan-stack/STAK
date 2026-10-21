@@ -1,9 +1,11 @@
 package app.stak.nativeapp
 
 import androidx.activity.compose.setContent
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.*
 import okhttp3.*
@@ -75,12 +77,19 @@ class TorBoxAccountTest {
         compose.onNodeWithText("1 KB").assertExists()
         val field = compose.onNodeWithContentDescription("TorBox API key")
         field.assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Password))
+        field.performTextReplacement("test-only-rejected-key")
+        fun renderedKey(): String {
+            val layouts = mutableListOf<TextLayoutResult>()
+            field.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            return layouts.single().layoutInput.text.text
+        }
+        Assert.assertTrue(renderedKey().all { it == '\u2022' })
         compose
             .onNodeWithContentDescription("Toggle key visibility")
             .performScrollTo()
             .performClick()
-        field.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Password))
-        field.performTextReplacement("test-only-rejected-key")
+        // Password keyboard semantics stay private even when the user reveals the glyphs.
+        Assert.assertEquals("test-only-rejected-key", renderedKey())
         compose.onNodeWithTag("torbox-save-key-button").performScrollTo().performClick()
         compose.waitUntil(10000) {
             compose

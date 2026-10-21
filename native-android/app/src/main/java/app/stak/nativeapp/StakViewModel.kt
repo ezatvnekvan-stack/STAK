@@ -40,6 +40,7 @@ constructor(application: Application, val repository: Repository = Repository(ap
     }
 
     val torboxAccount = TorBoxAccountStore(repository)
+    val indexers = IndexerStore(repository)
 
     val artworkTone = MutableStateFlow(GRAPHITE_TONE)
     val messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
