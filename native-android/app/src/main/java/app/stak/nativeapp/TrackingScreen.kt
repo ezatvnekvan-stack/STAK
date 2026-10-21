@@ -298,11 +298,12 @@ private fun ActivityScreen(
         visible
             .take(limit)
             .groupBy {
-                Instant.ofEpochMilli(it.updatedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+                if (it.updatedAt == 0L) null
+                else Instant.ofEpochMilli(it.updatedAt).atZone(ZoneId.systemDefault()).toLocalDate()
             }
             .forEach { (date, rows) ->
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Label(date.format(DateTimeFormatter.ofPattern("EEE, MMM d")))
+                    Label(date?.format(DateTimeFormatter.ofPattern("EEE, MMM d")) ?: "Date unknown")
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         rows.forEach { row ->
                             val title = vm.media(row.mediaKey) ?: row.media()
@@ -442,7 +443,7 @@ private fun ActivityScreen(
             title = { Text("About activity") },
             text = {
                 Text(
-                    "Manual history stored on this device.\n\nAll time includes saved history and up to 300 latest Jellyfin items; it is not a complete server audit.\n\nRuntime estimates use known title lengths. They are not measured viewing duration. Repeated viewings may not be represented."
+                    "Manual history stored on this device.\n\nAll time includes saved history and explicitly synced Jellyfin watch state; it is not a playback-event audit. Missing server watch dates are shown as unknown.\n\nRuntime estimates use known title lengths. They are not measured viewing duration. Repeated viewings may not be represented."
                 )
             },
             confirmButton = { TextButton({ details = false }) { Text("Close") } },

@@ -183,7 +183,7 @@ suspend fun Repository.tmdbDetails(media: Media, loadEpisodes: Boolean = true): 
                 imagePath(j.optString("profile_path"), "w185"),
             )
         val creators =
-            root.optJSONArray("created_by").objects().map {
+            (if (kind == "tv") root.optJSONArray("created_by").objects() else emptyList()).map {
                 credit(it, "job").copy(role = "Creator")
             }
         val cert =

@@ -1,7 +1,5 @@
 package app.stak.nativeapp
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
@@ -10,7 +8,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
@@ -416,8 +413,12 @@ fun JellyfinSettings(vm: StakViewModel) {
             listOf(
                     listOf("Server" to c.get("jellyfin_url"), "User" to c.get("jellyfin_username")),
                     listOf(
-                        "Last sync" to (LocalOptions.current["last_sync"] ?: "—"),
-                        "Synced" to (LocalOptions.current["sync_stats"] ?: "—"),
+                        "Last sync" to
+                            (LocalOptions.current["last_sync_${vm.repository.accountScope}"]
+                                ?: "—"),
+                        "Synced" to
+                            (LocalOptions.current["sync_stats_${vm.repository.accountScope}"]
+                                ?: "—"),
                     ),
                 )
                 .forEach { row ->
@@ -438,24 +439,13 @@ fun JellyfinSettings(vm: StakViewModel) {
                     vm.operation {
                         busy = true
                         try {
-                            val items = vm.repository.library()
-                            items
-                                .filter { it.progress > 0 }
-                                .forEach { item ->
-                                    vm.repository.dao.put(
-                                        SavedMedia(
-                                            item.key,
-                                            "tracking",
-                                            item
-                                                .json()
-                                                .put("played", item.progress >= 100)
-                                                .toString(),
-                                        )
-                                    )
-                                }
-                            vm.option("last_sync", java.time.LocalDate.now().toString())
-                            vm.option("sync_stats", "${items.size} titles")
-                            vm.messages.emit("Jellyfin connection refreshed")
+                            val stats = vm.syncJellyfin()
+                            vm.option(
+                                "last_sync_${vm.repository.accountScope}",
+                                vm.repository.today.toString(),
+                            )
+                            vm.option("sync_stats_${vm.repository.accountScope}", stats)
+                            vm.messages.emit("Jellyfin sync complete: $stats")
                         } finally {
                             busy = false
                         }
@@ -579,33 +569,6 @@ fun JellyfinSettings(vm: StakViewModel) {
                         key = ""
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun HomeSettings(vm: StakViewModel) {
-    val ids =
-        listOf(
-            "continue" to "Continue watching",
-            "upcoming" to "New releases",
-            "watchlist" to "Your watchlist",
-            "trending_movie" to "Trending movies",
-            "trending_series" to "Trending series",
-            "top_movie" to "Top rated movies",
-            "new_movie" to "Released in ${java.time.Year.now()} · movies",
-            "top_series" to "Top rated series",
-            "new_series" to "Released in ${java.time.Year.now()} · series",
-        )
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Label("Home sections")
-        ids.forEachIndexed { index, (id, label) ->
-            OriginalToggle(
-                label,
-                LocalOptions.current["home_$id"]?.toBooleanStrictOrNull() ?: (index < 7),
-            ) {
-                vm.option("home_$id", it.toString())
             }
         }
     }

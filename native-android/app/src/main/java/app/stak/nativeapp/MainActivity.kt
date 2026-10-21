@@ -18,9 +18,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.*
@@ -358,6 +360,25 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                                             DiscoverScreen(vm, ::open)
                                         }
                                     }
+                                    composable(
+                                        "browse/{shelf}",
+                                        arguments =
+                                            listOf(
+                                                navArgument("shelf") { type = NavType.StringType }
+                                            ),
+                                    ) { destination ->
+                                        CompositionLocalProvider(LocalDestination provides this) {
+                                            val shelf =
+                                                homeShelves(options, vm.repository.today.year)
+                                                    .firstOrNull {
+                                                        it.id ==
+                                                            destination.arguments?.getString(
+                                                                "shelf"
+                                                            )
+                                                    }
+                                            DiscoverScreen(vm, ::open, shelf)
+                                        }
+                                    }
                                     composable("watchlist") {
                                         CompositionLocalProvider(LocalDestination provides this) {
                                             WatchlistScreen(vm, saved, ::open)
@@ -446,18 +467,14 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                         }
                     }
                     if (!bare) {
-                        val tabs =
-                            listOf(
-                                "home",
-                                "discover",
-                                "watchlist",
-                                "tracking",
-                                "library",
-                                "settings",
-                            )
+                        val tabs = navigationOrder(options)
                         val selected =
-                            if (route == "torbox") 4
-                            else tabs.indexOfFirst { route.startsWith(it) }.coerceAtLeast(0)
+                            tabs.indexOfFirst {
+                                if (route == "torbox")
+                                    it == if ("torbox" in tabs) "torbox" else "library"
+                                else if (route.startsWith("browse/")) it == "discover"
+                                else route.startsWith(it)
+                            }
                         Surface(
                             Modifier.align(Alignment.BottomCenter)
                                 .navigationBarsPadding()
@@ -471,7 +488,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                                     colors.onSurface.copy(alpha = .12f),
                                 ),
                         ) {
-                            MotionNavigation(selected) { index ->
+                            MotionNavigation(tabs, selected) { index ->
                                 nav.navigate(tabs[index]) {
                                     popUpTo(nav.graph.startDestinationId) { saveState = true }
                                     launchSingleTop = true
@@ -487,102 +504,112 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
 }
 
 @Composable
-private fun MotionNavigation(selected: Int, onSelect: (Int) -> Unit) {
+private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val policy = LocalStakMotion.current
     val view = LocalView.current
     val icons =
-        listOf(
-            StakIcons.House,
-            StakIcons.Compass,
-            StakIcons.Bookmark,
-            StakIcons.ChartNoAxesCombined,
-            StakIcons.HardDrive,
-            StakIcons.Settings2,
-        )
-    val labels = listOf("Home", "Discover", "Watchlist", "Tracking", "Library", "Settings")
+        tabs.map {
+            when (it) {
+                "home" -> StakIcons.House
+                "discover" -> StakIcons.Compass
+                "watchlist" -> StakIcons.Bookmark
+                "tracking" -> StakIcons.ChartNoAxesCombined
+                "library" -> StakIcons.HardDrive
+                "torbox" -> StakIcons.Database
+                else -> StakIcons.Settings2
+            }
+        }
+    val labels = tabs.map(::navigationLabel)
     BoxWithConstraints(
         Modifier.fillMaxWidth().height(64.25.dp).padding(horizontal = 5.dp, vertical = 1.dp)
     ) {
-        val width = maxWidth / labels.size
-        val x =
-            animateDpAsState(
-                width * selected + (width - 36.dp) / 2,
-                if (LocalStakMotion.current.reduced) snap()
-                else spring(dampingRatio = 1.108f, stiffness = 600f),
-                label = "Navigation selection",
-            )
+        val width = maxOf(maxWidth / labels.size, 52.dp)
         Box(
-            Modifier.offset { IntOffset(x.value.roundToPx(), 6.dp.roundToPx()) }
-                .size(36.dp, 30.dp)
-                .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp))
-        )
-        Row(Modifier.fillMaxSize()) {
-            labels.forEachIndexed { index, label ->
-                val interaction = remember { MutableInteractionSource() }
-                val pressed by interaction.collectIsPressedAsState()
-                val scale by
-                    animateFloatAsState(
-                        if (pressed && !policy.reduced) .88f else 1f,
-                        if (policy.reduced) snap()
-                        else spring(dampingRatio = .75f, stiffness = 1100f),
-                        label = "Navigation press",
-                    )
-                val iconColor by
-                    animateColorAsState(
-                        if (index == selected) MaterialTheme.colorScheme.background
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        motionSpec(policy.reduced, 180),
-                        label = "Navigation ink",
-                    )
-                val labelColor by
-                    animateColorAsState(
-                        if (index == selected) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        motionSpec(policy.reduced, 180),
-                        label = "Navigation label",
-                    )
-                Column(
-                    Modifier.weight(1f)
-                        .fillMaxHeight()
-                        .selectable(
-                            selected = selected == index,
-                            role = androidx.compose.ui.semantics.Role.Tab,
-                            interactionSource = interaction,
-                            indication = null,
-                        ) {
-                            if (selected != index) {
-                                if (policy.haptics)
-                                    view.performHapticFeedback(
-                                        android.view.HapticFeedbackConstants.CLOCK_TICK
-                                    )
-                                onSelect(index)
+            Modifier.horizontalScroll(rememberScrollState())
+                .width(width * labels.size)
+                .fillMaxHeight()
+        ) {
+            val x =
+                animateDpAsState(
+                    width * selected + (width - 36.dp) / 2,
+                    if (LocalStakMotion.current.reduced) snap()
+                    else spring(dampingRatio = 1.108f, stiffness = 600f),
+                    label = "Navigation selection",
+                )
+            if (selected >= 0)
+                Box(
+                    Modifier.offset { IntOffset(x.value.roundToPx(), 6.dp.roundToPx()) }
+                        .size(36.dp, 30.dp)
+                        .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp))
+                )
+            Row(Modifier.fillMaxSize()) {
+                labels.forEachIndexed { index, label ->
+                    val interaction = remember { MutableInteractionSource() }
+                    val pressed by interaction.collectIsPressedAsState()
+                    val scale by
+                        animateFloatAsState(
+                            if (pressed && !policy.reduced) .88f else 1f,
+                            if (policy.reduced) snap()
+                            else spring(dampingRatio = .75f, stiffness = 1100f),
+                            label = "Navigation press",
+                        )
+                    val iconColor by
+                        animateColorAsState(
+                            if (index == selected) MaterialTheme.colorScheme.background
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            motionSpec(policy.reduced, 180),
+                            label = "Navigation ink",
+                        )
+                    val labelColor by
+                        animateColorAsState(
+                            if (index == selected) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            motionSpec(policy.reduced, 180),
+                            label = "Navigation label",
+                        )
+                    Column(
+                        Modifier.weight(1f)
+                            .fillMaxHeight()
+                            .selectable(
+                                selected = selected == index,
+                                role = androidx.compose.ui.semantics.Role.Tab,
+                                interactionSource = interaction,
+                                indication = null,
+                            ) {
+                                if (selected != index) {
+                                    if (policy.haptics)
+                                        view.performHapticFeedback(
+                                            android.view.HapticFeedbackConstants.CLOCK_TICK
+                                        )
+                                    onSelect(index)
+                                }
                             }
+                            .testTag("nav-${label.lowercase(java.util.Locale.ROOT)}")
+                            .padding(top = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        Box(Modifier.size(36.dp, 28.dp), contentAlignment = Alignment.Center) {
+                            Icon(
+                                icons[index],
+                                label,
+                                Modifier.size(19.dp).graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                },
+                                tint = iconColor,
+                            )
                         }
-                        .testTag("nav-${label.lowercase(java.util.Locale.ROOT)}")
-                        .padding(top = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    Box(Modifier.size(36.dp, 28.dp), contentAlignment = Alignment.Center) {
-                        Icon(
-                            icons[index],
-                            label,
-                            Modifier.size(19.dp).graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                            },
-                            tint = iconColor,
+                        Text(
+                            label.uppercase(java.util.Locale.ROOT),
+                            fontFamily = MonoFont,
+                            fontSize = 9.sp,
+                            lineHeight = 11.25.sp,
+                            letterSpacing = (-.36).sp,
+                            maxLines = 1,
+                            color = labelColor,
                         )
                     }
-                    Text(
-                        label.uppercase(java.util.Locale.ROOT),
-                        fontFamily = MonoFont,
-                        fontSize = 9.sp,
-                        lineHeight = 11.25.sp,
-                        letterSpacing = (-.36).sp,
-                        maxLines = 1,
-                        color = labelColor,
-                    )
                 }
             }
         }

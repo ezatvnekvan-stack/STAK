@@ -149,6 +149,10 @@ fun SharedPoster(media: Media, source: String, modifier: Modifier = Modifier) {
 /** The cell paths and SVG view box are copied from the original RatingLogo. */
 @Composable
 fun RatingLogo(source: String, modifier: Modifier = Modifier) {
+    if (source.lowercase() !in listOf("imdb", "tmdb", "rt", "rotten tomatoes", "metacritic")) {
+        Text(source.take(10).uppercase(), modifier, fontFamily = MonoFont, fontSize = 8.sp)
+        return
+    }
     val word =
         when (source.lowercase()) {
             "tmdb" -> "TMDB"
@@ -211,7 +215,8 @@ fun RatingBadge(
     valueSize: TextUnit = 11.sp,
 ) {
     val number = media.rating.removeSuffix("%").toFloatOrNull() ?: return
-    val max = if (media.ratingSource.lowercase() in listOf("imdb", "tmdb")) 10f else 100f
+    val max =
+        if (media.ratingSource.lowercase() in listOf("imdb", "tmdb", "jellyfin")) 10f else 100f
     if (
         number <= 0 ||
             number > max ||
@@ -509,51 +514,33 @@ fun HomeScreen(
     }
     val options = LocalOptions.current
     val navigate = LocalNavigate.current
-    val rowSpecs =
-        listOf(
-            Triple("trending_movie", "Trending movies", "movie"),
-            Triple("trending_series", "Trending series", "series"),
-            Triple("top_movie", "Top rated movies", "movie"),
-            Triple("new_movie", "Released in ${Year.now()} · movies", "movie"),
-            Triple("top_series", "Top rated series", "series"),
-            Triple("new_series", "Released in ${Year.now()} · series", "series"),
-        )
-    LaunchedEffect(refresh, query, options.filterKeys { it.startsWith("home_") }) {
+    LaunchedEffect(refresh, query) {
         if (query.isNotBlank()) return@LaunchedEffect
         loading = true
+        error = ""
         try {
-            val result = linkedMapOf<String, List<Media>>()
-            coroutineScope {
-                rowSpecs
-                    .filterIndexed { index, spec ->
-                        options["home_${spec.first}"]?.toBooleanStrictOrNull() ?: (index < 4)
-                    }
-                    .map { (id, _, type) ->
+            val result = supervisorScope {
+                listOf("movie", "series")
+                    .map { type ->
                         async {
-                            val category =
-                                when {
-                                    id.startsWith("top_") -> "top"
-                                    id.startsWith("new_") -> "new"
-                                    else -> "popular"
-                                }
-                            val media =
-                                if (vm.repository.credentials.get("tmdb_key").isBlank())
-                                    vm.catalog(type, refresh = refresh > 0)
-                                else vm.repository.browse(type, category)
-                            id to media
+                            try {
+                                type to vm.catalog(type, refresh = refresh > 0)
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (_: Exception) {
+                                type to emptyList<Media>()
+                            }
                         }
                     }
                     .awaitAll()
-                    .forEach { (id, data) -> result[id] = data }
+                    .toMap()
             }
-            if (vm.repository.credentials.get("jellyfin_url").isNotBlank())
-                runCatching { vm.repository.library(true) }.onSuccess { result["continue"] = it }
-            rows = result
-            error = ""
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            error = e.message.orEmpty()
+            rows =
+                mapOf(
+                    "trending_movie" to result["movie"].orEmpty(),
+                    "trending_series" to result["series"].orEmpty(),
+                )
+            if (rows.values.all { it.isEmpty() }) error = "Could not load featured titles."
         } finally {
             loading = false
         }
@@ -659,42 +646,13 @@ fun HomeScreen(
                 if (heroes.isNotEmpty()) item { HomeHero(vm, heroes, onOpen) }
                 if (loading && rows.isEmpty()) item { PosterSkeletons() }
                 if (error.isNotBlank()) item { EmptyState(error) { refresh++ } }
-                if (options["home_continue"] != "false") {
-                    if (rows["continue"].orEmpty().isNotEmpty())
-                        item {
-                            MediaRail(
-                                "Continue watching",
-                                rows["continue"].orEmpty(),
-                                "home-continue",
-                                onOpen,
-                            )
+                homeShelves(options, vm.repository.today.year)
+                    .filter { it.enabled(options) }
+                    .forEach { shelf ->
+                        item(key = "shelf-${shelf.id}") {
+                            HomeFeedShelf(vm, shelf, saved, refresh, onOpen)
                         }
-                    else if (vm.repository.credentials.get("jellyfin_url").isBlank())
-                        item {
-                            FlowRow(
-                                Modifier.padding(vertical = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(
-                                    "Connect Jellyfin to resume watching.",
-                                    Modifier.align(Alignment.CenterVertically),
-                                    fontSize = 12.sp,
-                                    lineHeight = 18.sp,
-                                    color = Muted,
-                                )
-                                MotionButton("Connect Jellyfin") {
-                                    navigate("settings?section=jellyfin")
-                                }
-                            }
-                        }
-                }
-                val watchlist = saved.filter { it.collection == "watchlist" }.map { it.media() }
-                if (watchlist.isNotEmpty() && options["home_watchlist"] != "false")
-                    item { MediaRail("Your watchlist", watchlist, "home-watchlist", onOpen) }
-                rowSpecs.forEach { (id, label, _) ->
-                    if (rows[id].orEmpty().isNotEmpty())
-                        item { MediaRail(label, rows[id].orEmpty(), "home-$id", onOpen) }
-                }
+                    }
             }
         }
     }
@@ -913,7 +871,13 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
 }
 
 @Composable
-fun MediaRail(title: String, media: List<Media>, source: String, onOpen: (Media, String) -> Unit) {
+fun MediaRail(
+    title: String,
+    media: List<Media>,
+    source: String,
+    onOpen: (Media, String) -> Unit,
+    seeAll: String? = "discover",
+) {
     val navigate = LocalNavigate.current
     Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -929,13 +893,14 @@ fun MediaRail(title: String, media: List<Media>, source: String, onOpen: (Media,
                 lineHeight = 21.75.sp,
                 letterSpacing = .7.sp,
             )
-            Text(
-                "SEE ALL ›",
-                Modifier.clickable { navigate("discover") }.padding(vertical = 12.dp),
-                fontFamily = MonoFont,
-                fontSize = 10.sp,
-                color = Muted,
-            )
+            if (seeAll != null)
+                Text(
+                    "SEE ALL ›",
+                    Modifier.clickable { navigate(seeAll) }.padding(vertical = 12.dp),
+                    fontFamily = MonoFont,
+                    fontSize = 10.sp,
+                    color = Muted,
+                )
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val width = (maxWidth - 20.dp) / 3
@@ -986,17 +951,33 @@ fun StakRefresh(refreshing: Boolean, onRefresh: () -> Unit, content: @Composable
 }
 
 @Composable
-fun DiscoverScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit) {
+fun DiscoverScreen(
+    vm: StakViewModel,
+    onOpen: (Media, String) -> Unit,
+    initialShelf: HomeShelf? = null,
+) {
     var query by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableIntStateOf(0) }
-    var category by rememberSaveable { mutableIntStateOf(0) }
+    var type by rememberSaveable { mutableIntStateOf(if (initialShelf?.type == "series") 1 else 0) }
+    var category by rememberSaveable {
+        mutableIntStateOf(
+            listOf("popular", "trending", "top", "new", "upcoming", "hidden")
+                .indexOf(
+                    initialShelf?.category?.let { if (it == "year") "new" else it } ?: "popular"
+                )
+                .coerceAtLeast(0)
+        )
+    }
     var results by remember { mutableStateOf(emptyList<Media>()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var page by remember { mutableIntStateOf(1) }
     var hasMore by remember { mutableStateOf(false) }
     var filterSheet by remember { mutableStateOf(false) }
-    var filters by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var filters by remember {
+        mutableStateOf(
+            initialShelf?.let { homeShelfFilters(it, vm.repository.today.year) } ?: emptyMap()
+        )
+    }
     var providers by remember { mutableStateOf(emptyList<org.json.JSONObject>()) }
     var providerError by remember { mutableStateOf("") }
     var serviceSheet by remember { mutableStateOf(false) }

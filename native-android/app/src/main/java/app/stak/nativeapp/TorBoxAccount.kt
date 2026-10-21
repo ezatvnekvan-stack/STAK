@@ -20,6 +20,7 @@ class TorBoxAccountStore(private val repository: Repository) {
     val state = MutableStateFlow(TorBoxAccountState())
     private var checkedKey: String? = null
     private val lock = Mutex()
+    private val revision = java.util.concurrent.atomic.AtomicLong()
 
     private suspend fun verify(value: String): JSONObject {
         require(value.isNotBlank()) { "Enter a TorBox API key." }
@@ -39,19 +40,20 @@ class TorBoxAccountStore(private val repository: Repository) {
                 return@withLock
             }
             if (!force && checkedKey == key && state.value.data != null) return@withLock
+            val owner = revision.incrementAndGet()
             state.value = TorBoxAccountState(loading = true)
             try {
                 val data = verify(key)
-                if (repository.credentials.get("torbox_token") == key) {
+                if (repository.credentials.get("torbox_token") == key && revision.get() == owner) {
                     checkedKey = key
                     state.value = TorBoxAccountState(data = data)
                 }
             } catch (cancelled: CancellationException) {
-                if (repository.credentials.get("torbox_token") == key)
+                if (repository.credentials.get("torbox_token") == key && revision.get() == owner)
                     state.value = TorBoxAccountState()
                 throw cancelled
             } catch (failure: Exception) {
-                if (repository.credentials.get("torbox_token") == key)
+                if (repository.credentials.get("torbox_token") == key && revision.get() == owner)
                     state.value =
                         TorBoxAccountState(
                             error = failure.message ?: "Account could not be verified."
@@ -63,12 +65,14 @@ class TorBoxAccountStore(private val repository: Repository) {
         val key = value.trim()
         // A rejected replacement must leave the working account and saved key intact.
         val data = verify(key)
+        revision.incrementAndGet()
         repository.credentials.set("torbox_token", key)
         checkedKey = key
         state.value = TorBoxAccountState(data = data)
     }
 
     fun signOut() {
+        revision.incrementAndGet()
         repository.credentials.set("torbox_token", "")
         checkedKey = null
         state.value = TorBoxAccountState()

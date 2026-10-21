@@ -593,50 +593,29 @@ class Repository(
         request(jellyfinUrl(path), credentials.get("jellyfin_token"), true, body, delete)
 
     suspend fun library(resume: Boolean = false): List<Media> {
-        require(
-            credentials.get("jellyfin_url").isNotBlank() &&
-                credentials.get("jellyfin_token").isNotBlank()
-        ) {
-            "Connect Jellyfin in Settings."
-        }
-        val user = credentials.get("jellyfin_user").trim()
-        require(Regex("^[A-Za-z0-9-]+$").matches(user)) { "Set your Jellyfin user ID in Settings." }
-        val path =
-            if (resume)
-                "/Users/$user/Items/Resume?Limit=30&Fields=Overview,ProviderIds&MediaTypes=Video"
-            else
-                "/Users/$user/Items?Recursive=true&IncludeItemTypes=Movie,Series&Fields=Overview,ProviderIds&SortBy=SortName&Limit=300"
-        return jellyfin(path).optJSONArray("Items").objects().map { item ->
-            val id = item.optString("Id")
-            val episode = item.optString("Type") == "Episode"
-            val posterId = if (episode) item.optString("SeriesId", id) else id
-            val media =
-                Media(
-                    item.optJSONObject("ProviderIds")?.optString("Imdb")?.takeIf {
-                        it.startsWith("tt")
-                    } ?: "jf:$id",
-                    if (item.optString("Type") == "Movie") "movie" else "series",
-                    if (episode)
-                        "${item.optString("SeriesName")} · S${item.optInt("ParentIndexNumber")}E${item.optInt("IndexNumber")}"
-                    else item.optString("Name"),
-                    poster = jellyfinUrl("/Items/$posterId/Images/Primary?maxWidth=500&quality=90"),
-                    year = item.optString("ProductionYear"),
-                    description = item.optString("Overview"),
-                    rating = item.optString("CommunityRating"),
-                    jellyfinId = id,
-                    progress =
-                        if (item.optJSONObject("UserData")?.optBoolean("Played") == true) 100f
-                        else
-                            item
-                                .optJSONObject("UserData")
-                                ?.optDouble("PlayedPercentage", 0.0)
-                                ?.toFloat()
-                                ?.coerceIn(0f, 100f) ?: 0f,
-                    playbackTicks =
-                        item.optJSONObject("UserData")?.optLong("PlaybackPositionTicks") ?: 0L,
+        val session = jellyfinConnection()
+        val items =
+            if (resume) {
+                request(
+                        "${session.url}/Users/${session.user}/Items/Resume?Limit=30&Fields=Overview,ProviderIds,Genres&MediaTypes=Video",
+                        session.token,
+                        true,
+                    )
+                    .optJSONArray("Items")
+                    .objects()
+            } else
+                jellyfinItems(
+                    session,
+                    "/Users/${session.user}/Items",
+                    mapOf(
+                        "Recursive" to "true",
+                        "IncludeItemTypes" to "Movie,Series",
+                        "Fields" to "Overview,ProviderIds,Genres",
+                        "SortBy" to "SortName",
+                    ),
                 )
-            remember(media)
-        }
+        requireSameConnection(session)
+        return items.map { remember(jellyfinMedia(it, session)) }
     }
 
     suspend fun setJellyfinWatched(media: Media, watched: Boolean) {

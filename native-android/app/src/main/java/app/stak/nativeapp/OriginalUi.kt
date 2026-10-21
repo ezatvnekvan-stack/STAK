@@ -311,6 +311,7 @@ fun StakSwitch(
     checked: Boolean,
     modifier: Modifier = Modifier,
     onChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
 ) {
     val policy = LocalStakMotion.current
     val view = androidx.compose.ui.platform.LocalView.current
@@ -339,7 +340,7 @@ fun StakSwitch(
         modifier
             .size(48.dp, 44.dp)
             .semantics { contentDescription = label }
-            .toggleable(checked, role = Role.Switch) {
+            .toggleable(checked, enabled = enabled, role = Role.Switch) {
                 if (policy.haptics)
                     view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
                 onChange(it)

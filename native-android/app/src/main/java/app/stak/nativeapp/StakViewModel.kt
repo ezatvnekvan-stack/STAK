@@ -59,11 +59,13 @@ constructor(application: Application, val repository: Repository = Repository(ap
 
     init {
         viewModelScope.launch {
-            accountScope.drop(1).collect {
+            accountScope.collectLatest {
                 repository.forgetPrivateMetadata()
                 indexers.reload()
                 artworkTone.value = GRAPHITE_TONE
                 WatchlistWidget.refresh(getApplication())
+                // Verification outlives a screen recomposition/account-navigation reset.
+                torboxAccount.refresh()
             }
         }
     }
@@ -140,6 +142,7 @@ constructor(application: Application, val repository: Repository = Repository(ap
     ) =
         mutationLock.withLock {
             val dao = repository.dao
+            repository.setJellyfinEpisodesWatched(media, episodes, watched)
             repository.db.withTransaction {
                 episodes.forEach { episode ->
                     if (watched)
@@ -186,6 +189,8 @@ constructor(application: Application, val repository: Repository = Repository(ap
             )
             if (previous != null) dao.put(previous) else dao.remove(media.key, "tracking")
         }
+
+    suspend fun syncJellyfin(): String = mutationLock.withLock { repository.syncJellyfin() }
 
     suspend fun importBackup(text: String) =
         restoreBackup(parseBackupArchive(text), repository.accountScope)

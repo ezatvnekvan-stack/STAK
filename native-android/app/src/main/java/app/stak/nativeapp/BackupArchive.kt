@@ -45,7 +45,8 @@ fun backupSettingAllowed(name: String): Boolean =
             "imdbOnLists",
             "home_order",
             "nav_order",
-        ) || name.matches(Regex("home_[a-z_]{1,60}|rating_[A-Za-z ]{1,30}|metadata_[a-z_]{1,30}"))
+        ) ||
+        name.matches(Regex("home_[a-z0-9_:]{1,80}|rating_[A-Za-z ]{1,30}|metadata_[a-z_]{1,30}"))
 
 fun parseBackupArchive(text: String): BackupArchive {
     val entries = BackupCodec.decode(text)
