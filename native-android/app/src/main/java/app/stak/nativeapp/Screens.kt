@@ -430,6 +430,26 @@ fun HomeScreen(
     onOpen: (Media, String) -> Unit,
     initialQuery: String = "",
 ) {
+    val account by vm.torboxAccount.state.collectAsStateWithLifecycle()
+    val accountKey = vm.repository.credentials.get("torbox_token")
+    LaunchedEffect(accountKey) { vm.torboxAccount.refresh() }
+    val accountVerified = accountKey.isNotBlank() && account.data != null && account.error.isBlank()
+    val accountLabel =
+        when {
+            accountKey.isBlank() -> "No key"
+            account.loading -> "Connecting…"
+            accountVerified -> "TorBox"
+            account.error.isNotBlank() -> "Connection error"
+            else -> "Key saved"
+        }
+    val accountDescription =
+        when {
+            accountKey.isBlank() -> "Configure TorBox"
+            account.loading -> "Checking TorBox connection"
+            accountVerified -> "TorBox connection verified"
+            account.error.isNotBlank() -> "TorBox connection needs attention"
+            else -> "TorBox key saved; connection not verified"
+        }
     var rows by remember { mutableStateOf<Map<String, List<Media>>>(emptyMap()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
@@ -563,6 +583,7 @@ fun HomeScreen(
                             Modifier.height(34.dp)
                                 .border(1.dp, Rule, CircleShape)
                                 .clickable { navigate("settings?section=account") }
+                                .semantics { contentDescription = accountDescription }
                                 .padding(horizontal = 12.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -570,23 +591,14 @@ fun HomeScreen(
                             Box(
                                 Modifier.size(6.dp)
                                     .background(
-                                        if (
-                                            vm.repository.credentials
-                                                .get("torbox_token")
-                                                .isNotBlank()
-                                        )
-                                            Color(0xff10b981)
+                                        if (accountVerified) Color(0xff10b981)
+                                        else if (account.error.isNotBlank())
+                                            MaterialTheme.colorScheme.error
                                         else Muted,
                                         CircleShape,
                                     )
                             )
-                            Text(
-                                if (vm.repository.credentials.get("torbox_token").isBlank())
-                                    "No key"
-                                else "TorBox",
-                                fontFamily = MonoFont,
-                                fontSize = 10.sp,
-                            )
+                            Text(accountLabel, fontFamily = MonoFont, fontSize = 10.sp)
                         }
                     }
                     HomeSearchInput(input, { input = it }) {

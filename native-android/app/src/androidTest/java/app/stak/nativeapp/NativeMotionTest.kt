@@ -140,7 +140,7 @@ class NativeMotionTest {
         }
         Assert.assertTrue(
             "Native motion recording must be retained",
-            shell("test -s $path && echo ready").contains("ready"),
+            (shell("stat -c %s $path").trim().toLongOrNull() ?: 0) > 0,
         )
     }
 }

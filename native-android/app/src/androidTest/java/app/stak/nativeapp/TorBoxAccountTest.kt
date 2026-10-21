@@ -26,6 +26,49 @@ class TorBoxAccountTest {
     }
 
     @Test
+    fun homeRejectsAnUnverifiedSavedKeyInsteadOfAdvertisingAConnection() {
+        val client =
+            OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    Response.Builder()
+                        .request(chain.request())
+                        .code(200)
+                        .message("TEST ONLY")
+                        .protocol(Protocol.HTTP_1_1)
+                        .body(
+                            "{\"success\":false,\"metas\":[],\"results\":[]}"
+                                .toResponseBody("application/json".toMediaType())
+                        )
+                        .build()
+                }
+                .build()
+        val app = compose.activity.application
+        vm = StakViewModel(app, Repository(app, client))
+        vm.repository.credentials.set("torbox_token", "test-only-rejected-saved-key")
+        compose.runOnUiThread {
+            vm.appearance("reduced", true)
+            compose.activity.setContent { StakApp(vm, "home") }
+        }
+        compose.waitUntil(10000) {
+            compose
+                .onAllNodesWithContentDescription("TorBox connection needs attention")
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+        compose.onNodeWithText("Connection error").assertExists()
+        compose.onNodeWithContentDescription("TorBox connection verified").assertDoesNotExist()
+        Assert.assertEquals(
+            "test-only-rejected-saved-key",
+            vm.repository.credentials.get("torbox_token"),
+        )
+        compose.onNodeWithContentDescription("TorBox connection needs attention").performClick()
+        compose.waitUntil(10000) {
+            compose.onAllNodesWithTag("account-key-error").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("account-key-error").assertExists()
+    }
+
+    @Test
     fun accountLoadsVerifiesReplacementAndSignsOutWithoutSavingRejectedKeys() {
         val first = "test-only-first-valid-key"
         val second = "test-only-second-valid-key"

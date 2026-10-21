@@ -34,6 +34,8 @@ Package: `app.stak.nativeapp`; minimum Android 8.0 (API 26). Display name: **STA
 
 The alpha APK is debug signed and distributed as a GitHub prerelease. It is for evaluation, not a Play Store production release. The original application's private signing key is unavailable, so this is not an in-place replacement. Future stable updates need a persistent owner-controlled signing key. Never uninstall the original app to bypass signing errors.
 
+The 0.2 native alpha also uses a different debug certificate from the first Native alpha, so Android cannot update that earlier alpha in place. Existing Native alpha users should retain an exported Native JSON backup before arranging a fresh Native installation. The original STAK package remains separate.
+
 ## Licenses
 
 Bundled fonts are copied from the existing app under the SIL Open Font License; see `licenses/`. AndroidX, Kotlin and OkHttp use Apache 2.0; Coil uses Apache 2.0. See the repository's third-party notices for existing STAK resources. This project is independent of Nothing and is not an official Nothing product.
