@@ -4,7 +4,7 @@ The current user direction allows UI and motion improvements with a beautiful No
 
 ## 0.3 Beta checkpoint (2026-10-21)
 
-`0.3.0-native-beta.1` adds account-scoped local data, encrypted portable backups, persisted Home customization, paginated Jellyfin watch-state sync and cached-TorBox source filters. On an API 35 x86_64 emulator configured to the CI viewport, `assembleDebug`, 38 unit tests, `lintDebug` and all 21 instrumented tests pass. The two previously failing emulator checks now pass: the Home search-result click uses a unique test tag, and the rejected TorBox key test waits for the account store's settled error state before asserting the badge. See [`DEVELOPMENT_STATUS.md`](../DEVELOPMENT_STATUS.md).
+`0.3.0-native-beta.1` adds account-scoped local data, encrypted portable backups, persisted Home customization, paginated Jellyfin watch-state sync and cached-TorBox source filters. Locally on an API 35 x86_64 emulator configured to the CI viewport, and in hosted [run 39575016639](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39575016639), `assembleDebug`, 38 unit tests, `lintDebug` and all 21 instrumented tests pass. The two previously failing emulator checks now pass: the Home search-result click uses a unique test tag, and the rejected TorBox key test waits for the account store's settled error state before asserting the badge. See [`DEVELOPMENT_STATUS.md`](../DEVELOPMENT_STATUS.md).
 
 These results use injected HTTP fixtures. They do not certify live TorBox/Jellyfin/TMDb/indexer behavior, physical-device performance or screenshot parity. The historical checkpoints below remain records of their own commits.
 

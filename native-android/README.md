@@ -22,6 +22,7 @@ Local run on 2026-10-21:
 - `testDebugUnitTest` passed: **38 tests**, 0 failures, 0 skipped.
 - `lintDebug` passed.
 - `connectedDebugAndroidTest` passed on an API 35 x86_64 emulator configured to the CI viewport (`wm density 160`, `wm size 412x928`): **21/21 tests**, 0 failures, 0 skipped.
+- The hosted [Native Android workflow run 39575016639](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39575016639) also passed build, unit tests, lint, emulator checks and capture comparison.
 - Both previously failing checks pass: `SourceFlowTest.searchTitleFiltersCacheAndAddsOneTorrentThenOpensTorBox` and `TorBoxAccountTest.homeRejectsAnUnverifiedSavedKeyInsteadOfAdvertisingAConnection`.
 
 The instrumented tests inject test-only HTTP fixtures into the native repository. They verify UI behavior, persistence, account isolation, source filtering and failure states, but they **do not verify live TorBox, Jellyfin, TMDb, indexer or network behavior**. No physical-device run has been recorded for 0.3 Beta. The debug APK is suitable for local evaluation.

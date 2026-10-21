@@ -43,15 +43,16 @@ Run locally on 2026-10-21 against the uncommitted 0.3 Beta changes:
 | `lintDebug` | Passed |
 | `assembleDebugAndroidTest` | Passed |
 | `connectedDebugAndroidTest` (API 35 emulator) | Passed — 21 tests, 0 failures, 0 skipped |
+| Hosted [Native Android workflow run 39575016639](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39575016639) | Passed — build, unit tests, lint, emulator suite and capture comparison |
 
-The two target tests both pass:
+The hosted run completed in 9m53s on commit `a0079f8`. The two target tests both pass:
 
 - `SourceFlowTest.searchTitleFiltersCacheAndAddsOneTorrentThenOpensTorBox`
 - `TorBoxAccountTest.homeRejectsAnUnverifiedSavedKeyInsteadOfAdvertisingAConnection`
 
 APK for local evaluation: `native-android/app/build/outputs/apk/debug/app-debug.apk` (debug signed).
 
-The hosted GitHub Actions run has not yet been repeated for this commit. Local emulator results use injected fixtures and do not verify live services.
+Both local and hosted emulator results use injected fixtures and do not verify live services. The hosted run used the CI emulator profile and viewport; the local run used an API 35 x86_64 AVD with the same density and size overrides.
 
 ## Duplicate Home titles: finding
 
