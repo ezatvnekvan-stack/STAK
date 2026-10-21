@@ -1,0 +1,36 @@
+name: Publish validated native preview
+on:
+  push:
+    branches: [native-original-parity]
+    paths: ['.github/workflows/native-release.yml', 'release/native-v0.2.0-alpha.1/**']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: publish-native-v0.2.0-alpha.1
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: contains(github.event.head_commit.message, '[publish-native-0.2.0]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'build-tools;35.0.0'
+      - name: Verify and publish the successful Android artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 release/native-v0.2.0-alpha.1/package.py --output "$RUNNER_TEMP/stak-native-release"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: STAK-native-publication
+          path: ${{ runner.temp }}/stak-native-release/output/

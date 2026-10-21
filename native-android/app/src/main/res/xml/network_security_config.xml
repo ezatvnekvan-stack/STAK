@@ -1,0 +1,5 @@
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true"><trust-anchors><certificates src="system" /></trust-anchors></base-config>
+    <!-- User-configured Jellyfin LAN servers commonly use HTTP. Requests are scoped to the saved server. -->
+    <domain-config cleartextTrafficPermitted="true"><domain includeSubdomains="true">localhost</domain><domain includeSubdomains="true">local</domain></domain-config>
+</network-security-config>
