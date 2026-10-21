@@ -1,6 +1,6 @@
-# Original STAK parity gate — not satisfied
+# Original STAK references and native validation
 
-The original React/Capacitor app is the specification. No redesign or animation improvements are authorized until visual **and** functional parity are verified. The published 0.1.0 native alpha is not a replica. This branch is work in progress and must not be published as one.
+The current user direction allows UI and motion improvements with a beautiful Nothing-inspired style while retaining the original app's features. The React/Capacitor app remains the functional and visual reference. Exact screenshot equality is no longer a release gate. The native port remains unfinished; no pixel-perfect or full-feature claim is supported.
 
 ## Reference evidence
 
@@ -24,7 +24,7 @@ This produces original/native/difference images and a coverage report. A similar
 
 At `d87b001`, [CI run 39505164911](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39505164911) passed build, unit tests, lint and emulator checks. All 80 expected captures had matching dimensions. All 80 still required visual corrections; no screen was certified. Review found inherited Material letter spacing, missing Space Mono Bold, header/hero measurements, the theme-preview layout, and tracking/calendar differences.
 
-The latest implementation ports the original rating-logo cells, original Rive asset/state machine, measured appearance controls, calendar geometry, runtime rules and episode journal transactions. These changes require a new emulator comparison. Custom colour dialog geometry and all animation timing still need comparison. Rive is native; the unchanged asset SHA-256 is `9b9c68b6319e5a186f99bb94ba5b3001f8a272cc3a4fd6a688e67b8bdf7310b4`.
+The implementation ports the original rating-logo cells, original Rive asset/state machine, measured appearance controls, calendar geometry, runtime rules and episode journal transactions. Hosted emulator comparison results are recorded below. Custom colour dialog geometry and all animation timing still need comparison. Rive is native; the unchanged asset SHA-256 is `9b9c68b6319e5a186f99bb94ba5b3001f8a272cc3a4fd6a688e67b8bdf7310b4`.
 
 Home now supports inline unified search, IMDb identity, original result ranking, clearing and pagination, with populated and empty-query references added at both viewports/themes. Suggestions, aliases and all search failure/filter states still require parity work.
 
@@ -34,9 +34,9 @@ At `f38175a`, [CI run 39509185904](https://github.com/ezatvnekvan-stack/STAK/act
 
 At `39d333a`, [CI run 39510808710](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39510808710) produced all 88 captures with matching dimensions; all 88 still have differences. The functional run failed the cleared-search semantics assertion and the Rive preview after changing theme. A retained dark motion crop showed the static icon rather than the illustration. The next implementation waits for the native artboard/surface, uses the Android Canvas renderer and a real Android settling timer, and preserves functional-run reports separately from the second screenshot pass. This correction still requires device verification.
 
-## Blocking gaps
+## Remaining feature and validation gaps
 
-No screen has yet passed the complete parity gate. In addition to screenshot corrections, the following original behaviors remain incomplete or unverified:
+The following original behaviors remain incomplete or unverified. Screenshot differences now inform design review rather than blocking every intentional UI improvement:
 
 - All Discover filters, provider-service tiles, directors, search suggestions and persistent browsing preferences.
 - Exact theme preview/Rive behavior; artwork palette sampling; ambient drift; every original transition and sheet geometry.
@@ -49,4 +49,6 @@ No screen has yet passed the complete parity gate. In addition to screenshot cor
 - Loading, empty, failure, populated, long-content, keyboard, sheet/dialog and Android Back states for every route.
 - Live provider/device behavior, supported Android versions, accessibility font scales and animation timing recordings.
 
-Main UI components have been rewritten toward the original; that is implementation progress, not a parity claim. Release remains blocked until these gaps and the per-screen differences are resolved and verified.
+Keep release notes explicit about unfinished features. A complete native replacement still requires feature coverage, interaction checks and device validation; screenshot equality is not required by the latest user direction.
+
+At `5025b8e`, [CI run 39512211032](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39512211032) passed build, 16 unit tests, lint and six first-pass Android checks, plus the second viewport capture. All 88 native captures had matching viewport dimensions; all 88 contained pixel differences. Retained dark/light motion crops were visually inspected: both render the original grayscale Rive illustration, and reduced motion renders the static icon. Continuous animation timing has not been visually verified. This checkpoint predates the latest account controls.

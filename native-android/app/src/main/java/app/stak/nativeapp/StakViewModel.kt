@@ -39,6 +39,8 @@ constructor(application: Application, val repository: Repository = Repository(ap
         if (name == "theme" && value != "system") appearance("dark", value == "dark")
     }
 
+    val torboxAccount = TorBoxAccountStore(repository)
+
     val artworkTone = MutableStateFlow(GRAPHITE_TONE)
     val messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     private val mutationLock = Mutex()

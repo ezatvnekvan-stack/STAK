@@ -23,6 +23,14 @@ fun RemoteScreen(vm: StakViewModel) {
     var error by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     LaunchedEffect(refresh) {
+        if (
+            vm.repository.credentials.get("jellyfin_url").isBlank() ||
+                vm.repository.credentials.get("jellyfin_token").isBlank()
+        ) {
+            sessions = emptyList()
+            error = "Connect Jellyfin in Settings first."
+            return@LaunchedEffect
+        }
         try {
             sessions = vm.repository.jellyfin("/Sessions").optJSONArray("items").objects()
             error = ""

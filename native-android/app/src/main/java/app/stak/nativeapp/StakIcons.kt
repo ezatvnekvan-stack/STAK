@@ -9,6 +9,70 @@ import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 
 object StakIcons {
+    val ExternalLink by lazy {
+        ImageVector.Builder("ExternalLink", 24.dp, 24.dp, 24f, 24f)
+            .apply {
+                addPath(
+                    PathParser().parsePathString("M15 3h6v6").toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+                addPath(
+                    PathParser().parsePathString("M10 14 21 3").toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+                addPath(
+                    PathParser()
+                        .parsePathString("M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6")
+                        .toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+            }
+            .build()
+    }
+    val LogOut by lazy {
+        ImageVector.Builder("LogOut", 24.dp, 24.dp, 24f, 24f)
+            .apply {
+                addPath(
+                    PathParser().parsePathString("m16 17 5-5-5-5").toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+                addPath(
+                    PathParser().parsePathString("M21 12H9").toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+                addPath(
+                    PathParser()
+                        .parsePathString("M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4")
+                        .toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+            }
+            .build()
+    }
     val House by lazy {
         ImageVector.Builder("House", 24.dp, 24.dp, 24f, 24f)
             .apply {

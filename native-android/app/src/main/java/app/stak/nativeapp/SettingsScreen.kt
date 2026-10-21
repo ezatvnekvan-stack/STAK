@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.*
 
 data class SettingsDestination(
@@ -26,13 +27,17 @@ data class SettingsDestination(
 @Composable
 fun SettingsScreen(vm: StakViewModel, section: String = "") {
     val navigate = LocalNavigate.current
+    val account by vm.torboxAccount.state.collectAsStateWithLifecycle()
+    val accountKey = vm.repository.credentials.get("torbox_token")
+    LaunchedEffect(accountKey) { vm.torboxAccount.refresh() }
     val destinations =
         listOf(
             SettingsDestination(
                 "account",
                 "TorBox account",
-                if (vm.repository.credentials.get("torbox_token").isBlank()) "No key saved"
-                else "Key saved",
+                if (accountKey.isBlank()) "No key"
+                else if (account.error.isNotBlank()) "Connection needs attention"
+                else if (account.data != null) "Account verified" else "Key saved · not verified",
                 StakIcons.KeyRound,
             ),
             SettingsDestination(
@@ -178,6 +183,7 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
 @Composable
 fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
     val c = vm.repository.credentials
+    val account by vm.torboxAccount.state.collectAsStateWithLifecycle()
     var states by remember { mutableStateOf(mapOf<String, String>()) }
     var checking by remember { mutableStateOf(false) }
     fun check() {
@@ -192,8 +198,12 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
                     if (!saved) continue
                     states = states + (id to "Checking…")
                     val result = runCatching {
-                        if (id == "account") vm.repository.torbox("/user/me")
-                        else vm.repository.jellyfin("/System/Info")
+                        if (id == "account") {
+                            vm.torboxAccount.refresh(force = true)
+                            check(vm.torboxAccount.state.value.error.isBlank()) {
+                                vm.torboxAccount.state.value.error
+                            }
+                        } else vm.repository.jellyfin("/System/Info")
                     }
                     states = states + (id to if (result.isSuccess) "Verified" else "Unavailable")
                 }
@@ -227,7 +237,13 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         val status =
-                            states[id] ?: if (configured) "Configured" else "Not configured"
+                            if (id == "account") {
+                                when {
+                                    account.loading -> "Checking…"
+                                    account.data != null && configured -> "Verified"
+                                    else -> "Not verified"
+                                }
+                            } else states[id] ?: if (configured) "Configured" else "Not configured"
                         Box(
                             Modifier.size(6.dp)
                                 .background(
@@ -246,69 +262,6 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
                         Icon(StakIcons.ChevronRight, null, Modifier.size(15.dp), tint = Muted)
                     }
                 }
-        }
-    }
-}
-
-@Composable
-fun TorBoxSettings(vm: StakViewModel) {
-    val credentials = vm.repository.credentials
-    var token by remember { mutableStateOf("") }
-    var saved by remember { mutableStateOf(credentials.get("torbox_token").isNotBlank()) }
-    var busy by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf("") }
-    var account by remember { mutableStateOf<org.json.JSONObject?>(null) }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Label("TorBox API key")
-        OriginalField(token, { token = it }, "API key", secret = true)
-        MotionButton(
-            if (busy) "Verifying…" else "Save & verify",
-            Modifier.fillMaxWidth(),
-            primary = true,
-            enabled = !busy && token.isNotBlank(),
-        ) {
-            vm.operation {
-                busy = true
-                error = ""
-                try {
-                    val result =
-                        vm.repository.request("https://api.torbox.app/v1/api/user/me", token.trim())
-                    check(result.optBoolean("success")) { "TorBox could not verify this key." }
-                    credentials.set("torbox_token", token.trim())
-                    token = ""
-                    saved = true
-                    account = result.optJSONObject("data")
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    error = e.message.orEmpty()
-                } finally {
-                    busy = false
-                }
-            }
-        }
-        if (error.isNotBlank())
-            Text(error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-        if (saved) {
-            Label("Active key · ••••••••")
-            account?.let { a ->
-                listOf(
-                        "Email" to a.optString("email"),
-                        "Plan" to a.optString("plan"),
-                        "Expires" to a.optString("premium_expires_at"),
-                        "Downloaded" to "${a.optLong("total_downloaded") / 1_000_000_000} GB",
-                    )
-                    .forEach { (label, value) -> Text("$label · $value", fontSize = 13.sp) }
-            }
-            MotionButton("Sign out") {
-                credentials.set("torbox_token", "")
-                saved = false
-                account = null
-            }
-        }
-        val context = LocalContext.current
-        MotionButton("Get your TorBox API key") {
-            openExternal(context, "https://torbox.app/settings")
         }
     }
 }

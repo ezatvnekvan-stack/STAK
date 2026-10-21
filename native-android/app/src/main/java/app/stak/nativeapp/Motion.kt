@@ -73,6 +73,12 @@ fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnSco
         )
 }
 
+enum class ButtonTone {
+    Default,
+    Accent,
+    Destructive,
+}
+
 @Composable
 fun MotionButton(
     text: String,
@@ -80,6 +86,7 @@ fun MotionButton(
     primary: Boolean = false,
     enabled: Boolean = true,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    tone: ButtonTone = ButtonTone.Default,
     onClick: () -> Unit,
 ) {
     val interactions = remember { MutableInteractionSource() }
@@ -99,7 +106,7 @@ fun MotionButton(
                 scaleX = scale
                 scaleY = scale
             }
-            .heightIn(min = 44.dp)
+            .heightIn(min = if (tone == ButtonTone.Accent) 46.dp else 44.dp)
             .clickable(
                 enabled = enabled,
                 interactionSource = interactions,
@@ -111,13 +118,34 @@ fun MotionButton(
             },
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         color =
-            if (primary) MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else .4f)
-            else androidx.compose.ui.graphics.Color.Transparent,
+            when (tone) {
+                ButtonTone.Accent -> Accent.copy(alpha = if (enabled) 1f else .4f)
+                ButtonTone.Destructive ->
+                    Color(0xffd71921).copy(alpha = if (enabled) .08f else .032f)
+                else ->
+                    if (primary)
+                        MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else .4f)
+                    else Color.Transparent
+            },
         contentColor =
-            if (primary) MaterialTheme.colorScheme.onPrimary
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else .4f),
+            (when (tone) {
+                    ButtonTone.Accent -> AccentForeground
+                    ButtonTone.Destructive -> Color(0xffff636b)
+                    else ->
+                        if (primary) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface
+                })
+                .copy(alpha = if (enabled) 1f else .4f),
         border =
-            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            androidx.compose.foundation.BorderStroke(
+                1.dp,
+                when (tone) {
+                    ButtonTone.Accent -> AccentInk.copy(alpha = if (enabled) 1f else .4f)
+                    ButtonTone.Destructive ->
+                        Color(0xffd71921).copy(alpha = if (enabled) .4f else .16f)
+                    else -> MaterialTheme.colorScheme.outlineVariant
+                },
+            ),
     ) {
         Row(
             Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -129,8 +157,13 @@ fun MotionButton(
                 text.uppercase(java.util.Locale.ROOT),
                 style =
                     MaterialTheme.typography.labelLarge.copy(
-                        lineHeight = 15.4.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                        fontSize = if (tone == ButtonTone.Destructive) 11.sp else 10.sp,
+                        lineHeight = if (tone == ButtonTone.Destructive) 15.4.sp else 14.sp,
+                        letterSpacing = if (tone == ButtonTone.Destructive) .66.sp else .4.sp,
+                        fontWeight =
+                            if (tone == ButtonTone.Accent)
+                                androidx.compose.ui.text.font.FontWeight.Bold
+                            else androidx.compose.ui.text.font.FontWeight.SemiBold,
                     ),
             )
         }

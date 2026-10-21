@@ -4,13 +4,13 @@ This is a separate Kotlin / Jetpack Compose Android application. It contains no 
 
 The native port retains STAK's monochrome surfaces, Doto headings, Hanken Grotesk text, Space Mono labels, poster grids, floating navigation, and Home / Discover / Watchlist / Tracking / Library / Settings structure. This is an initial native alpha, **not full feature parity with STAK 1.0**.
 
-## Original-app parity work
+## Native design and feature work
 
-The user requires the original React/Capacitor UI and behavior, screen for screen, in Compose. The original components, CSS, fonts, assets and motion policy are the specification. Design and animation improvements are deferred. **Pixel-perfect visual and functional parity has not been achieved or verified. Do not publish this branch as a replica.**
+The current direction is a polished Nothing-inspired native experience that keeps STAK's screens and features. Original React components, fonts, assets, design tokens and interactions remain the reference; thoughtful UI and animation improvements are authorized. Exact pixel equality is no longer a release requirement. **Full functional coverage is still unfinished, and pixel-perfect parity has not been claimed.**
 
-This branch replaces the simplified alpha layouts with the original dock, Settings destination index, theme controls, three-column shelves/grids, backdrop-led title screen and episode rail. It also adds direct TMDb browsing/details, Jellyfin user login and selection, source search, TorBox actions, remote and person destinations. These implementations need the full parity review; their presence does not establish equivalence.
+This branch replaces the simplified alpha layouts with the original dock, Settings destination index, theme controls, three-column shelves/grids, backdrop-led title screen and episode rail. It also adds direct TMDb browsing/details, Jellyfin user login and selection, source search, TorBox actions, remote and person destinations. These implementations still need feature and interaction review; their presence does not establish full equivalence.
 
-See [`parity/README.md`](parity/README.md) for original reference screenshots, comparison instructions, evidence limits and the blocking gap inventory. Hosted API 35 tests retain matching-viewport captures and functional smoke reports. Fixture tests cannot verify private live services.
+See [`parity/README.md`](parity/README.md) for original reference screenshots, comparison instructions, evidence limits and the remaining feature inventory. Hosted API 35 tests retain matching-viewport captures and functional smoke reports. Fixture tests cannot verify private live services.
 
 The original frontend and stable app remain unchanged. Existing alpha release notes describe the published alpha, not the unfinished branch.
 

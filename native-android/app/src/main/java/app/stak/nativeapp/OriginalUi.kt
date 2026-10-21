@@ -191,6 +191,8 @@ fun OriginalField(
     reveal: Boolean = false,
     singleLine: Boolean = true,
     horizontalInset: Dp = 14.dp,
+    enabled: Boolean = true,
+    visibilityLabel: String? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
     Row(
@@ -212,6 +214,7 @@ fun OriginalField(
                 contentDescription = placeholder
             },
             singleLine = singleLine,
+            enabled = enabled,
             textStyle =
                 TextStyle(
                     fontFamily = BodyFont,
@@ -245,10 +248,10 @@ fun OriginalField(
             },
         )
         if (secret && reveal)
-            IconButton({ visible = !visible }, Modifier.size(32.dp)) {
+            IconButton({ visible = !visible }, Modifier.size(32.dp), enabled = enabled) {
                 Icon(
                     if (visible) StakIcons.EyeOff else StakIcons.Eye,
-                    if (visible) "Hide key" else "Show key",
+                    visibilityLabel ?: if (visible) "Hide key" else "Show key",
                     Modifier.size(16.dp),
                 )
             }
