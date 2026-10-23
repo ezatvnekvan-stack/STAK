@@ -1,6 +1,7 @@
 package app.stak.nativeapp
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.*
 import org.junit.Test
@@ -17,6 +18,8 @@ class PremiumDesignTest {
                 assertTrue("Secondary text contrast on $surface", contrast(colors.onSurfaceVariant, surface) >= 4.5f)
             }
             assertTrue(contrast(colors.primary, colors.onPrimary) >= 7f)
+            val destructiveSurface = colors.error.copy(alpha = .08f).compositeOver(colors.surface)
+            assertTrue("Destructive action text contrast", contrast(colors.error, destructiveSurface) >= 4.5f)
         }
     }
 

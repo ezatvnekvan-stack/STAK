@@ -3,6 +3,7 @@ package app.stak.nativeapp
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -39,17 +40,20 @@ class PremiumUiTest {
                     val density = LocalDensity.current
                     CompositionLocalProvider(LocalDensity provides Density(density.density, 1.35f), LocalStakMotion provides MotionPreferences(reduced = true)) {
                         MaterialTheme(colorScheme = premiumColors(dark), typography = premiumTypography()) {
-                            Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                MotionButton("Continue", Modifier.testTag("premium-primary"), primary = true) { clicks++ }
-                                OriginalField(input.value, { input.value = it }, "Example input", Modifier.testTag("premium-field"))
-                                StakSwitch("Example switch", false, Modifier.testTag("premium-switch"), {})
-                                StakIconButton(StakIcons.RefreshCw, "Example action", Modifier.testTag("premium-icon")) { clicks++ }
+                            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                                Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    MotionButton("Continue", Modifier.testTag("premium-primary"), primary = true) { clicks++ }
+                                    MotionButton("Remove example", Modifier.testTag("premium-destructive"), tone = ButtonTone.Destructive) { clicks++ }
+                                    OriginalField(input.value, { input.value = it }, "Example input", Modifier.testTag("premium-field"))
+                                    StakSwitch("Example switch", false, Modifier.testTag("premium-switch"), {})
+                                    StakIconButton(StakIcons.RefreshCw, "Example action", Modifier.testTag("premium-icon")) { clicks++ }
+                                }
                             }
                         }
                     }
                 }
             }
-            for (tag in listOf("premium-primary", "premium-field", "premium-switch", "premium-icon"))
+            for (tag in listOf("premium-primary", "premium-destructive", "premium-field", "premium-switch", "premium-icon"))
                 compose.onNodeWithTag(tag).assertHeightIsAtLeast(48.dp)
             val before = clicks
             compose.onNodeWithTag("premium-primary").performClick()

@@ -125,7 +125,7 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
                     ) {
                         Text(
                             if (tab == 0) "Your library awaits" else "No key",
-                            fontFamily = DotFont,
+                            fontFamily = BodyFont,
                             fontWeight = FontWeight.Black,
                             fontSize = 20.sp,
                             lineHeight = 28.sp,

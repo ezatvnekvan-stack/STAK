@@ -123,7 +123,7 @@ class BetaUiTest {
         assertTrue(homeShelves(vm.options.value, 2026).any { it.id == "genre:movie:18" })
         compose.onNodeWithTag("nav-home").performClick()
         compose.onNodeWithTag("nav-settings").performClick()
-        compose.onNodeWithTag("settings-home").performClick()
+        compose.onNodeWithTag("settings-home").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Show Drama movies").performScrollTo().assertIsOn()
     }
 

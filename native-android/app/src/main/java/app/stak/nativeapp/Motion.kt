@@ -137,7 +137,7 @@ fun MotionButton(
             when (tone) {
                 ButtonTone.Accent -> Accent.copy(alpha = if (enabled) 1f else .4f)
                 ButtonTone.Destructive ->
-                    Color(0xffd71921).copy(alpha = if (enabled) .08f else .032f)
+                    MaterialTheme.colorScheme.error.copy(alpha = if (enabled) .08f else .032f)
                 else ->
                     if (primary)
                         Accent.copy(alpha = if (enabled) 1f else .4f)
@@ -146,7 +146,7 @@ fun MotionButton(
         contentColor =
             (when (tone) {
                     ButtonTone.Accent -> AccentForeground
-                    ButtonTone.Destructive -> Color(0xffff636b)
+                    ButtonTone.Destructive -> MaterialTheme.colorScheme.error
                     else ->
                         if (primary) AccentForeground
                         else MaterialTheme.colorScheme.onSurface
@@ -158,7 +158,7 @@ fun MotionButton(
                 when (tone) {
                     ButtonTone.Accent -> AccentInk.copy(alpha = if (enabled) 1f else .4f)
                     ButtonTone.Destructive ->
-                        Color(0xffd71921).copy(alpha = if (enabled) .4f else .16f)
+                        MaterialTheme.colorScheme.error.copy(alpha = if (enabled) .4f else .16f)
                     else -> MaterialTheme.colorScheme.outlineVariant
                 },
             ),
@@ -173,7 +173,7 @@ fun MotionButton(
                 text.uppercase(java.util.Locale.ROOT),
                 style =
                     MaterialTheme.typography.labelLarge.copy(
-                        fontSize = if (tone == ButtonTone.Destructive) 11.sp else 11.sp,
+                        fontSize = 11.sp,
                         lineHeight = if (tone == ButtonTone.Destructive) 15.4.sp else 16.sp,
                         letterSpacing = if (tone == ButtonTone.Destructive) .66.sp else .55.sp,
                         fontWeight =

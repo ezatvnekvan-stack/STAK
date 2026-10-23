@@ -62,7 +62,7 @@ fun AppearanceSettings(vm: StakViewModel) {
                 Text(
                     "Make it yours.",
                     Modifier.heightIn(min = 36.dp),
-                    fontFamily = DotFont,
+                    fontFamily = BodyFont,
                     fontWeight = FontWeight.Black,
                     fontSize = 30.sp,
                     lineHeight = 36.sp,
@@ -112,7 +112,7 @@ fun AppearanceSettings(vm: StakViewModel) {
                 val selected = (o["theme"] ?: "dark") == theme
                 Box(
                     Modifier.weight(1f)
-                        .height(44.dp)
+                        .height(48.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(if (selected) accent.copy(alpha = .1f) else Color.Transparent)
                         .border(1.dp, if (selected) ink else Rule, RoundedCornerShape(18.dp))
@@ -146,13 +146,13 @@ fun AppearanceSettings(vm: StakViewModel) {
                         val selected = rawAccent == choice.id
                         val paint = colorFromHex(choice.hex)
                         Box(
-                            Modifier.weight(1f).height(44.dp),
+                            Modifier.weight(1f).height(48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             if (selected)
                                 Box(Modifier.requiredSize(52.dp).border(2.dp, paint, CircleShape))
                             Box(
-                                Modifier.size(44.dp)
+                                Modifier.size(48.dp)
                                     .border(1.dp, Rule, CircleShape)
                                     .semantics {
                                         contentDescription = choice.label
@@ -187,7 +187,7 @@ fun AppearanceSettings(vm: StakViewModel) {
         ) {
             AppearanceLabel("Custom colour", Modifier.weight(1f))
             Box(
-                Modifier.size(44.dp)
+                Modifier.size(48.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(MaterialTheme.colorScheme.surface)
                     .border(1.dp, Rule, RoundedCornerShape(18.dp))
