@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -116,7 +117,9 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    SharedPoster(media, "source", Modifier.size(42.dp, 63.dp))
+                    // A modal sheet has its own window, outside the navigation shared-transition
+                    // layout. Registering a shared element here crashes with normal motion.
+                    Artwork(media, Modifier.size(42.dp, 63.dp).clip(RoundedCornerShape(9.dp)))
                     Column(Modifier.weight(1f)) {
                         Text(media.name, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                         Text(

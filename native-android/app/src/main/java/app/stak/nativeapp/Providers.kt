@@ -58,69 +58,7 @@ suspend fun Repository.browse(
     query: String = "",
     page: Int = 1,
     filters: Map<String, String> = emptyMap(),
-): List<Media> {
-    if (credentials.get("tmdb_key").isBlank()) {
-        require(category == "popular" && filters.values.all { it.isBlank() }) {
-            "Configure a TMDb key to use curated discovery and filters."
-        }
-        return catalog(type, query, (page - 1) * 100)
-    }
-    val kind = if (type == "movie") "movie" else "tv"
-    val params = mutableMapOf("page" to page.toString(), "include_adult" to "false")
-    var path = "/discover/$kind"
-    val today = this.today
-    val dateField = if (type == "movie") "primary_release_date" else "first_air_date"
-    when {
-        query.isNotBlank() -> {
-            path = "/search/$kind"
-            params["query"] = query
-        }
-        category == "trending" -> path = "/trending/$kind/week"
-        category == "top" -> {
-            params["sort_by"] = "vote_average.desc"
-            params["vote_count.gte"] = "300"
-        }
-        category == "new" -> {
-            params["$dateField.gte"] = today.minusDays(90).toString()
-            params["$dateField.lte"] = today.toString()
-            params["sort_by"] = "$dateField.desc"
-        }
-        category == "upcoming" -> {
-            params["$dateField.gte"] = today.toString()
-            params["$dateField.lte"] = today.plusYears(1).toString()
-            params["sort_by"] = "$dateField.asc"
-        }
-        category == "hidden" -> {
-            params["sort_by"] = "popularity.asc"
-            params["vote_count.gte"] = "100"
-            params["vote_average.gte"] = "7"
-        }
-        else -> params["sort_by"] = "popularity.desc"
-    }
-    filters.forEach { (key, value) ->
-        if (value.isNotBlank())
-            when (key) {
-                "genre" -> params["with_genres"] = value
-                "provider" -> {
-                    params["with_watch_providers"] = value
-                    params["watch_region"] = filters["region"] ?: "US"
-                }
-                "language" -> params["with_original_language"] = value
-                "year_from" -> params["$dateField.gte"] = "$value-01-01"
-                "year_to" -> params["$dateField.lte"] = "$value-12-31"
-                "certification" -> {
-                    params["certification"] = value
-                    params["certification_country"] = "US"
-                }
-                "sort" -> params["sort_by"] = value
-            }
-    }
-    return tmdb(path, params)
-        .optJSONArray("results")
-        .objects()
-        .filter { it.optInt("id") > 0 }
-        .map { remember(tmdbMedia(it, type)) }
-}
+): List<Media> = discoveryPage(type, category, query, page, filters).items
 
 suspend fun Repository.tmdbDetails(media: Media, loadEpisodes: Boolean = true): Media =
     coroutineScope {
@@ -340,7 +278,7 @@ suspend fun Repository.publicMetadata(
 
 data class JellyfinUser(val id: String, val name: String)
 
-data class JellyfinLogin(val token: String, val users: List<JellyfinUser>, val serverName: String)
+data class JellyfinLogin(val token: String, val users: List<JellyfinUser>, val serverName: String, val serverUrl: String = "")
 
 suspend fun Repository.testJellyfin(
     address: String,
@@ -349,22 +287,13 @@ suspend fun Repository.testJellyfin(
     apiKey: String,
     passwordMode: Boolean,
 ): JellyfinLogin {
-    val base = address.trim().trimEnd('/').toHttpUrl()
-    require(
-        base.query == null &&
-            base.fragment == null &&
-            base.username.isBlank() &&
-            base.password.isBlank()
-    ) {
-        "Enter only your server address."
-    }
-    val url = base.toString().trimEnd('/')
+    val url = normalizeJellyfinAddress(address)
     if (passwordMode) {
         val result =
             request(
                 "$url/Users/AuthenticateByName",
                 jellyfin = true,
-                body = JSONObject().put("Username", username).put("Pw", password),
+                body = JSONObject().put("Username", username.trim()).put("Pw", password),
             )
         val token = result.optString("AccessToken")
         require(token.isNotBlank()) { "Jellyfin did not return a session." }
@@ -373,13 +302,16 @@ suspend fun Repository.testJellyfin(
             token,
             listOf(JellyfinUser(user.optString("Id"), user.optString("Name"))),
             result.optString("ServerId", "Jellyfin"),
+            url,
         )
     }
-    val info = request("$url/System/Info", apiKey, jellyfin = true)
+    val key = apiKey.trim()
+    require(key.isNotBlank()) { "Enter your Jellyfin API key." }
+    val info = request("$url/System/Info", key, jellyfin = true)
     val users =
-        request("$url/Users", apiKey, jellyfin = true).optJSONArray("items").objects().map {
+        request("$url/Users", key, jellyfin = true).optJSONArray("items").objects().map {
             JellyfinUser(it.optString("Id"), it.optString("Name"))
         }
     require(users.isNotEmpty()) { "This key cannot list Jellyfin users." }
-    return JellyfinLogin(apiKey, users, info.optString("ServerName", "Jellyfin"))
+    return JellyfinLogin(key, users, info.optString("ServerName", "Jellyfin"), url)
 }
