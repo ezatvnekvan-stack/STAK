@@ -8,6 +8,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.Density
@@ -82,8 +84,13 @@ class PremiumUiTest {
                         CompositionLocalProvider(LocalDensity provides Density(density.density, 1.35f)) { StakApp(vm, "settings") }
                     }
                 }
-                compose.onNodeWithText("Settings", substring = false).assertHeightIsAtLeast(50.dp)
                 capture("settings-$theme-large")
+                compose.onNodeWithText("Settings", substring = false).assertHeightIsAtLeast(50.dp)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { action ->
+                        val layouts = mutableListOf<TextLayoutResult>()
+                        assertTrue(action(layouts))
+                        assertFalse("Large-text heading must not clip", layouts.single().hasVisualOverflow)
+                    }
                 compose.onNodeWithTag("settings-appearance").performScrollTo().assertHeightIsAtLeast(48.dp).performClick()
                 compose.onNodeWithText("All settings").performScrollTo().assertIsDisplayed()
                 compose.onNodeWithContentDescription("Reduce animations").performScrollTo().assertExists()

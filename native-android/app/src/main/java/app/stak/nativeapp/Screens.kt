@@ -56,7 +56,7 @@ fun PageHeading(
         }
         Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text(title, style = MaterialTheme.typography.headlineLarge.copy(fontSize = if (title.length > 18) 29.sp else 36.sp, lineHeight = if (title.length > 18) 36.sp else 44.sp))
+                Text(title, Modifier.heightIn(min = 52.dp), style = MaterialTheme.typography.headlineLarge.copy(fontSize = if (title.length > 18) 29.sp else 36.sp, lineHeight = if (title.length > 18) 36.sp else 44.sp))
                 val description = subtitle.ifBlank { caption.second }
                 if (description.isNotBlank()) Text(description, style = MaterialTheme.typography.bodySmall, color = Muted)
             }
