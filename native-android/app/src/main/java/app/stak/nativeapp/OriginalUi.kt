@@ -53,6 +53,28 @@ fun Modifier.cssTopBorder(color: Color) = drawBehind {
     drawLine(color, Offset(0f, stroke / 2), Offset(size.width, stroke / 2), strokeWidth = stroke)
 }
 
+
+fun Modifier.cssDashedBorder(color: Color, radius: Dp = 16.dp) = drawWithContent {
+    drawContent()
+    val stroke = 1.dp.toPx()
+    drawRoundRect(color, Offset(stroke / 2, stroke / 2), androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius.toPx()),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx()))))
+}
+
+@Composable
+fun CapacitorSettingsPanel(modifier: Modifier = Modifier, verticalPadding: Dp = 16.dp, content: @Composable ColumnScope.() -> Unit) {
+    val light = MaterialTheme.colorScheme.background.red > .5f
+    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (light) Color.White else Color.Transparent)
+        .padding(vertical = verticalPadding), content = content)
+}
+
+@Composable
+fun SectionHeading(text: String, modifier: Modifier = Modifier) {
+    Text(text.uppercase(java.util.Locale.ROOT), modifier, fontFamily = SectionFont,
+        fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold, fontSize = 15.sp, lineHeight = 21.75.sp, letterSpacing = .675.sp)
+}
+
 @Composable
 fun Ambient(
     modifier: Modifier = Modifier,
@@ -157,6 +179,8 @@ fun StakIconButton(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    iconSize: Dp = 17.dp,
+    primary: Boolean = false,
     onClick: () -> Unit,
 ) {
     val interactions = remember {
@@ -178,9 +202,11 @@ fun StakIconButton(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                alpha = if (enabled) 1f else .4f
             }
             .clip(CircleShape)
-            .border(1.dp, Rule, CircleShape)
+            .background(if (primary) MaterialTheme.colorScheme.onSurface else Color.Transparent)
+            .border(1.dp, if (primary) MaterialTheme.colorScheme.onSurface else Rule, CircleShape)
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
@@ -196,8 +222,8 @@ fun StakIconButton(
         Icon(
             icon,
             label,
-            Modifier.size(17.dp),
-            tint = if (enabled) Muted else Muted.copy(alpha = .3f),
+            Modifier.size(iconSize),
+            tint = if (primary) MaterialTheme.colorScheme.background else Muted,
         )
     }
 }
@@ -228,6 +254,7 @@ fun OriginalField(
     horizontalInset: Dp = 14.dp,
     enabled: Boolean = true,
     visibilityLabel: String? = null,
+    accessibilityLabel: String? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
@@ -255,7 +282,7 @@ fun OriginalField(
             Modifier.weight(1f)
                 .padding(vertical = 10.dp)
                 .onFocusChanged { focused = it.isFocused }
-                .semantics { contentDescription = placeholder },
+                .semantics { contentDescription = accessibilityLabel ?: placeholder },
             singleLine = singleLine,
             enabled = enabled,
             textStyle =
@@ -346,6 +373,7 @@ fun StakSwitch(
     Box(
         modifier
             .size(48.dp, 44.dp)
+            .graphicsLayer { alpha = if (enabled) 1f else .5f }
             .semantics { contentDescription = label }
             .toggleable(checked, enabled = enabled, role = Role.Switch) {
                 if (policy.haptics)

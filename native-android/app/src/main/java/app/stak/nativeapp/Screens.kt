@@ -836,6 +836,7 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                     .height(44.dp)
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 media.indices.forEach { i ->
                     val indicatorWidth by

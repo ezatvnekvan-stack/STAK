@@ -167,9 +167,9 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
             }
             Spacer(Modifier.height(16.dp))
             when (section) {
-                "appearance" -> AppearanceSettings(vm)
+                "appearance" -> CapacitorSettingsPanel(verticalPadding = 0.dp) { AppearanceSettings(vm) }
                 "account" -> TorBoxSettings(vm)
-                "metadata" -> MetadataSettings(vm)
+                "metadata" -> CapacitorSettingsPanel { MetadataSettings(vm) }
                 "jellyfin" -> JellyfinSettings(vm)
                 "sources" -> SourcesSettings(vm)
                 "home" -> HomeSettings(vm)
@@ -399,174 +399,187 @@ fun JellyfinSettings(vm: StakViewModel) {
     var busy by remember { mutableStateOf(false) }
     var tested by remember { mutableStateOf<JellyfinLogin?>(null) }
     var error by remember { mutableStateOf("") }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Label("Jellyfin")
+    CapacitorSettingsPanel {
+        SectionHeading("Jellyfin")
+        Spacer(Modifier.height(10.dp))
         Text(
             "Track what you watch on Jellyfin. Watched status, progress and history sync into STAK, and marking watched here updates Jellyfin too.",
             fontSize = 14.sp,
             color = Muted,
-            lineHeight = 21.sp,
+            lineHeight = 20.sp,
         )
+        Spacer(Modifier.height(16.dp))
         if (connected && !editing) {
-            listOf(
-                    listOf("Server" to c.get("jellyfin_url"), "User" to c.get("jellyfin_username")),
-                    listOf(
-                        "Last sync" to
-                            (LocalOptions.current["last_sync_${vm.repository.accountScope}"]
-                                ?: "—"),
-                        "Synced" to
-                            (LocalOptions.current["sync_stats_${vm.repository.accountScope}"]
-                                ?: "—"),
-                    ),
-                )
-                .forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        row.forEach { (label, value) ->
-                            Column(
-                                Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Label(label)
-                                Text(value, fontFamily = MonoFont, fontSize = 11.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                listOf(
+                        listOf("Server" to c.get("jellyfin_url"), "User" to c.get("jellyfin_username")),
+                        listOf(
+                            "Last sync" to
+                                (LocalOptions.current["last_sync_${vm.repository.accountScope}"]
+                                    ?: "—"),
+                            "Synced" to
+                                (LocalOptions.current["sync_stats_${vm.repository.accountScope}"]
+                                    ?: "—"),
+                        ),
+                    )
+                    .forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { (label, value) ->
+                                Column(
+                                    Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Label(label)
+                                    Text(value, fontFamily = MonoFont, fontSize = 11.sp)
+                                }
                             }
                         }
                     }
-                }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MotionButton("Sync now", Modifier.weight(1f), primary = true, enabled = !busy) {
-                    vm.operation {
-                        busy = true
-                        try {
-                            val stats = vm.syncJellyfin()
-                            vm.option(
-                                "last_sync_${vm.repository.accountScope}",
-                                vm.repository.today.toString(),
-                            )
-                            vm.option("sync_stats_${vm.repository.accountScope}", stats)
-                            vm.messages.emit("Jellyfin sync complete: $stats")
-                        } finally {
-                            busy = false
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MotionButton("Sync now", Modifier.weight(1f), primary = true, enabled = !busy) {
+                        vm.operation {
+                            busy = true
+                            try {
+                                val stats = vm.syncJellyfin()
+                                vm.option(
+                                    "last_sync_${vm.repository.accountScope}",
+                                    vm.repository.today.toString(),
+                                )
+                                vm.option("sync_stats_${vm.repository.accountScope}", stats)
+                                vm.messages.emit("Jellyfin sync complete: $stats")
+                            } finally {
+                                busy = false
+                            }
                         }
                     }
-                }
-                MotionButton("Disconnect", enabled = !busy) {
-                    listOf("jellyfin_url", "jellyfin_token", "jellyfin_user", "jellyfin_username")
-                        .forEach { c.set(it, "") }
-                    connected = false
-                }
-            }
-            MotionButton("Reconnect / replace session", Modifier.fillMaxWidth()) {
-                editing = true
-                url = c.get("jellyfin_url")
-                tested = null
-            }
-            Text(
-                "A saved connection can expire or be revoked by Jellyfin. Reconnecting preserves your local lists and history.",
-                fontSize = 12.sp,
-                color = Muted,
-            )
-        } else {
-            if (editing)
-                MotionButton("Cancel · keep saved connection") {
-                    editing = false
-                    tested = null
-                    password = ""
-                    key = ""
-                }
-            OriginalField(
-                url,
-                {
-                    url = it
-                    tested = null
-                    password = ""
-                    key = ""
-                },
-                "http://192.168.1.50:8096",
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MotionButton("User login", primary = mode == 0) {
-                    mode = 0
-                    tested = null
-                }
-                MotionButton("API key", primary = mode == 1) {
-                    mode = 1
-                    tested = null
-                }
-            }
-            if (mode == 0) {
-                OriginalField(
-                    username,
-                    {
-                        username = it
-                        tested = null
-                    },
-                    "Username",
-                )
-                OriginalField(
-                    password,
-                    {
-                        password = it
-                        tested = null
-                    },
-                    "Password",
-                    secret = true,
-                )
-            } else
-                OriginalField(
-                    key,
-                    {
-                        key = it
-                        tested = null
-                    },
-                    "API key (Dashboard → API Keys)",
-                    secret = true,
-                )
-            MotionButton(
-                if (busy) "Connecting…" else "Connect",
-                Modifier.fillMaxWidth(),
-                primary = true,
-                enabled =
-                    !busy &&
-                        url.isNotBlank() &&
-                        (if (mode == 0) username.isNotBlank() else key.isNotBlank()),
-            ) {
-                vm.operation {
-                    busy = true
-                    error = ""
-                    try {
-                        tested = vm.repository.testJellyfin(url, username, password, key, mode == 0)
-                        password = ""
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        error = e.message.orEmpty()
-                    } finally {
-                        busy = false
+                    MotionButton("Disconnect", enabled = !busy) {
+                        listOf("jellyfin_url", "jellyfin_token", "jellyfin_user", "jellyfin_username")
+                            .forEach { c.set(it, "") }
+                        connected = false
                     }
                 }
+                MotionButton("Reconnect / replace session", Modifier.fillMaxWidth()) {
+                    editing = true
+                    url = c.get("jellyfin_url")
+                    tested = null
+                }
+                Text(
+                    "A saved connection can expire or be revoked by Jellyfin. Reconnecting preserves your local lists and history.",
+                    fontSize = 12.sp,
+                    color = Muted,
+                )
+
             }
-            Text(
-                "HTTP sends credentials and media without encryption. Use it only on a trusted local network; prefer HTTPS.",
-                fontSize = 12.sp,
-                color = Muted,
-            )
-            if (error.isNotBlank())
-                Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
-            tested?.let { session ->
-                Label("Pick your user")
-                session.users.forEach { user ->
-                    MotionButton(user.name, Modifier.fillMaxWidth()) {
-                        c.set("jellyfin_url", session.serverUrl.ifBlank { normalizeJellyfinAddress(url) })
-                        c.set("jellyfin_token", session.token)
-                        c.set("jellyfin_user", user.id)
-                        c.set("jellyfin_username", user.name)
-                        connected = true
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (editing)
+                    MotionButton("Cancel · keep saved connection") {
                         editing = false
                         tested = null
                         password = ""
                         key = ""
                     }
+                OriginalField(
+                    url,
+                    {
+                        url = it
+                        tested = null
+                        password = ""
+                        key = ""
+                    },
+                    "http://192.168.1.50:8096",
+                    enabled = !busy,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MotionButton("User login", tone = if (mode == 0) ButtonTone.Selection else ButtonTone.Chip, enabled = !busy) {
+                        mode = 0
+                        tested = null
+                    }
+                    MotionButton("API key", tone = if (mode == 1) ButtonTone.Selection else ButtonTone.Chip, enabled = !busy) {
+                        mode = 1
+                        tested = null
+                    }
                 }
+                if (mode == 0) {
+                    OriginalField(
+                        username,
+                        {
+                            username = it
+                            tested = null
+                        },
+                        "Username",
+                        enabled = !busy,
+                    )
+                    OriginalField(
+                        password,
+                        {
+                            password = it
+                            tested = null
+                        },
+                        "Password",
+                        secret = true,
+                        enabled = !busy,
+                    )
+                } else
+                    OriginalField(
+                        key,
+                        {
+                            key = it
+                            tested = null
+                        },
+                        "API key (Dashboard → API Keys)",
+                        secret = true,
+                        enabled = !busy,
+                    )
+                MotionButton(
+                    if (busy) "Connecting…" else "Connect",
+                    Modifier.fillMaxWidth(),
+                    tone = ButtonTone.Accent,
+                    enabled =
+                        !busy &&
+                            url.isNotBlank() &&
+                            (if (mode == 0) username.isNotBlank() else key.isNotBlank()),
+                ) {
+                    vm.operation {
+                        busy = true
+                        error = ""
+                        try {
+                            tested = vm.repository.testJellyfin(url, username, password, key, mode == 0)
+                            password = ""
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            error = e.message.orEmpty()
+                        } finally {
+                            busy = false
+                        }
+                    }
+                }
+                Text(
+                    "HTTP sends credentials and media without encryption. Use it only on a trusted local network; prefer HTTPS.",
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = Muted,
+                )
+                if (error.isNotBlank())
+                    Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                tested?.let { session ->
+                    Label("Pick your user")
+                    session.users.forEach { user ->
+                        MotionButton(user.name, Modifier.fillMaxWidth()) {
+                            c.set("jellyfin_url", session.serverUrl.ifBlank { normalizeJellyfinAddress(url) })
+                            c.set("jellyfin_token", session.token)
+                            c.set("jellyfin_user", user.id)
+                            c.set("jellyfin_username", user.name)
+                            connected = true
+                            editing = false
+                            tested = null
+                            password = ""
+                            key = ""
+                        }
+                    }
+                }
+
             }
         }
     }

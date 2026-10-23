@@ -16,6 +16,11 @@ The unchanged frontend is the visual source of truth. `parity/reference-manifest
 - Match Home branding offsets, badge spacing, hero indicators and the navigation icon/label frames.
 - Let empty Home shelves contribute no spacing; visible sections own their original margins.
 - Let the Jellyfin connection paragraph wrap its action at narrow widths and remain inline when it fits.
+- Match the original settings panels, Doto section headings, field spacing and selection chips, including the Sources dashed form and Jellyfin authentication modes.
+- Restore Taskbar before Home Screen and the inline genre-shelf controls, keeping persisted order and visibility behavior.
+- Restore the Data & app toolkit, local-backup and About layout. Native encrypted-backup safeguards remain enabled; export/import dialogs and refreshed diagnostics still require further parity work.
+
+The first layout pass passed 55 unit tests, lint, 32 first-width emulator tests and five second-width tests in [Actions run 39958354910](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39958354910). Its comparison report still contains differing pixels on every route. The next settings pass requires fresh emulator evidence; this result does not certify later changes.
 
 ## Acceptance and evidence
 

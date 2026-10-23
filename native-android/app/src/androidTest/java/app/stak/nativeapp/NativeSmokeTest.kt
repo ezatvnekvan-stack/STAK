@@ -31,8 +31,9 @@ class NativeSmokeTest {
     fun originalNavigationAndSettingsBackStack() {
         compose.onNodeWithTag("nav-settings").performClick()
         compose.onNodeWithTag("settings-appearance").performClick()
-        compose.onNodeWithContentDescription("Reduce animations").performClick()
-        compose.onNodeWithText("All settings").performClick()
+        compose.onNodeWithContentDescription("Reduce animations").performScrollTo().assertIsOn().performClick()
+        compose.onNodeWithContentDescription("Reduce animations").assertIsOff()
+        compose.onNodeWithText("All settings").performScrollTo().performClick()
         compose.onNodeWithTag("settings-metadata").assertIsDisplayed()
         compose.onNodeWithTag("nav-watchlist").performClick()
         compose.onNodeWithText("Your next watch starts here").assertIsDisplayed()

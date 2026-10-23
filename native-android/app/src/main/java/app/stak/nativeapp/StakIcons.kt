@@ -951,6 +951,20 @@ object StakIcons {
             }
             .build()
     }
+    val ChevronUp by lazy {
+        ImageVector.Builder("ChevronUp", 24.dp, 24.dp, 24f, 24f)
+            .apply {
+                addPath(
+                    PathParser().parsePathString("m18 15-6-6-6 6").toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+            }
+            .build()
+    }
     val ChevronDown by lazy {
         ImageVector.Builder("ChevronDown", 24.dp, 24.dp, 24f, 24f)
             .apply {

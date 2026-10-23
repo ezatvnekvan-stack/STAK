@@ -97,6 +97,8 @@ private fun StakSheetHandle() {
 
 enum class ButtonTone {
     Default,
+    Chip,
+    Selection,
     Accent,
     Destructive,
 }
@@ -141,6 +143,7 @@ fun MotionButton(
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         color =
             when (tone) {
+                ButtonTone.Selection -> Accent.copy(alpha = if (enabled) .1f else .04f)
                 ButtonTone.Accent -> Accent.copy(alpha = if (enabled) 1f else .4f)
                 ButtonTone.Destructive ->
                     Color(0xffd71921).copy(alpha = if (enabled) .08f else .032f)
@@ -151,6 +154,8 @@ fun MotionButton(
             },
         contentColor =
             (when (tone) {
+                    ButtonTone.Selection -> AccentInk
+                    ButtonTone.Chip -> if (MaterialTheme.colorScheme.background.red < .5f) Color(0xffe5e5e5) else Color(0xff2e2e2e)
                     ButtonTone.Accent -> AccentForeground
                     ButtonTone.Destructive -> Color(0xffff636b)
                     else ->
@@ -162,15 +167,16 @@ fun MotionButton(
             androidx.compose.foundation.BorderStroke(
                 1.dp,
                 when (tone) {
+                    ButtonTone.Selection -> Accent.copy(alpha = if (enabled) .6f else .24f)
                     ButtonTone.Accent -> AccentInk.copy(alpha = if (enabled) 1f else .4f)
                     ButtonTone.Destructive ->
                         Color(0xffd71921).copy(alpha = if (enabled) .4f else .16f)
-                    else -> MaterialTheme.colorScheme.outlineVariant
+                    else -> MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) .13f else .052f)
                 },
             ),
     ) {
         Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            Modifier.padding(horizontal = 17.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         ) {

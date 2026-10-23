@@ -118,8 +118,9 @@ class BetaUiTest {
             compose.runOnUiThread { vm.option("theme", theme) }
             capture("home-layout-$theme")
         }
-        compose.onNodeWithText("ADD GENRE SHELF").performScrollTo().performClick()
-        compose.onNodeWithText("DRAMA").performClick()
+        compose.onNodeWithContentDescription("Genre for new shelf").performScrollTo().performClick()
+        compose.onNodeWithText("Drama").performClick()
+        compose.onNodeWithContentDescription("Add genre shelf").performScrollTo().performClick()
         assertTrue(homeShelves(vm.options.value, 2026).any { it.id == "genre:movie:18" })
         compose.onNodeWithTag("nav-home").performClick()
         compose.onNodeWithTag("nav-settings").performClick()

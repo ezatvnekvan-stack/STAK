@@ -148,146 +148,92 @@ fun homeShelves(options: Map<String, String>, year: Int): List<HomeShelf> {
 fun HomeSettings(vm: StakViewModel) {
     val options = LocalOptions.current
     val shelves = homeShelves(options, vm.repository.today.year)
-    var addingGenre by remember { mutableStateOf(false) }
-    var type by remember { mutableIntStateOf(0) }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Label("Home sections")
-        Text(
-            "Choose your shelves and their order. Changes are saved on this device and included in encrypted backups.",
-            fontSize = 12.sp,
-            color = Muted,
-        )
-        shelves.forEachIndexed { index, shelf ->
-            Column {
-                Row(
-                    Modifier.fillMaxWidth()
-                        .heightIn(min = 64.dp)
-                        .testTag("home-layout-${shelf.id}"),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(shelf.label, Modifier.weight(1f), fontSize = 13.sp)
-                    StakIconButton(
-                        StakIcons.ArrowUp,
-                        "Move ${shelf.label} up",
-                        enabled = index > 0,
-                    ) {
-                        vm.option(
-                            "home_order",
-                            JSONArray(movedItem(shelves.map { it.id }, index, -1)).toString(),
-                        )
-                    }
-                    StakIconButton(
-                        StakIcons.ArrowDown,
-                        "Move ${shelf.label} down",
-                        enabled = index < shelves.lastIndex,
-                    ) {
-                        vm.option(
-                            "home_order",
-                            JSONArray(movedItem(shelves.map { it.id }, index, 1)).toString(),
-                        )
-                    }
-                    StakSwitch(
-                        "Show ${shelf.label}",
-                        shelf.enabled(options),
-                        onChange = { vm.option("home_${shelf.id}", it.toString()) },
-                    )
-                }
-                if (shelf.id.startsWith("genre:"))
-                    MotionButton("Remove ${shelf.label}") {
-                        val remaining = shelves.filter { it.genre > 0 && it.id != shelf.id }
-                        vm.option(
-                            "home_genres",
-                            JSONArray(
-                                    remaining.map {
-                                        JSONObject().put("type", it.type).put("genre", it.genre)
-                                    }
-                                )
-                                .toString(),
-                        )
-                    }
-                HorizontalDivider(color = Rule)
-            }
-        }
-        MotionButton(
-            "Add genre shelf",
-            Modifier.fillMaxWidth(),
-            enabled = shelves.count { it.genre > 0 } < 24,
-        ) {
-            addingGenre = true
-        }
-        MotionButton("Reset Home layout", Modifier.fillMaxWidth()) {
-            vm.option("home_order", "[]")
-            vm.option("home_genres", "[]")
-            homeShelves(emptyMap(), vm.repository.today.year).forEach {
-                vm.option("home_${it.id}", it.defaultOn.toString())
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Label("Taskbar")
-        Text(
-            "Choose tabs and their order. Home and Settings always stay available.",
-            fontSize = 12.sp,
-            color = Muted,
-        )
-        val nav = navigationOrder(options)
-        (nav + allNavigation).distinct().forEach { id ->
-            val index = nav.indexOf(id)
-            val label = navigationLabel(id)
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 64.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(label, Modifier.weight(1f), fontSize = 13.sp)
-                StakIconButton(StakIcons.ArrowUp, "Move $label tab up", enabled = index > 0) {
-                    vm.option("nav_order", JSONArray(movedItem(nav, index, -1)).toString())
-                }
-                StakIconButton(
-                    StakIcons.ArrowDown,
-                    "Move $label tab down",
-                    enabled = index in 0 until nav.lastIndex,
-                ) {
-                    vm.option("nav_order", JSONArray(movedItem(nav, index, 1)).toString())
-                }
-                StakSwitch(
-                    "$label tab",
-                    id in nav,
-                    enabled = id !in listOf("home", "settings"),
-                    onChange = {
-                        vm.option("nav_order", JSONArray(if (it) nav + id else nav - id).toString())
-                    },
-                )
-            }
-        }
-        MotionButton("Reset taskbar") {
-            vm.option("nav_order", JSONArray(defaultNavigation).toString())
-        }
+    val nav = navigationOrder(options)
+    var type by remember { mutableStateOf("movie") }
+    var genre by remember { mutableStateOf("") }
+    val edge = if (MaterialTheme.colorScheme.background.red < .5f) androidx.compose.ui.graphics.Color(0xff2a2a2a) else androidx.compose.ui.graphics.Color(0xffcbcbc7)
+    fun remove(shelf: HomeShelf) {
+        vm.option("home_genres", JSONArray(shelves.filter { it.genre > 0 && it.id != shelf.id }.map {
+            JSONObject().put("type", it.type).put("genre", it.genre)
+        }).toString())
     }
-    if (addingGenre)
-        StakBottomSheet({ addingGenre = false }) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Label("Add genre shelf")
-                MotionTabs(listOf("Movies", "Series"), type) { type = it }
-                Text("Genre shelves use your TMDb connection.", fontSize = 12.sp, color = Muted)
-                val kind = if (type == 0) "movie" else "series"
-                LazyColumn(Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
-                    items(homeGenres(kind)) { (id, name) ->
-                        val exists = shelves.any { it.id == "genre:$kind:$id" }
-                        MotionButton(
-                            if (exists) "$name · added" else name,
-                            Modifier.fillMaxWidth(),
-                            enabled = !exists,
-                        ) {
-                            val next =
-                                shelves
-                                    .filter { it.genre > 0 }
-                                    .map {
-                                        JSONObject().put("type", it.type).put("genre", it.genre)
-                                    } + JSONObject().put("type", kind).put("genre", id)
-                            vm.option("home_genres", JSONArray(next).toString())
-                            addingGenre = false
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        CapacitorSettingsPanel {
+            SectionHeading("Taskbar")
+            Spacer(Modifier.height(10.dp))
+            Text("Choose tabs and their order. Home and Settings always stay available.", fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
+            Spacer(Modifier.height(16.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                (nav + allNavigation).distinct().forEach { id ->
+                    val index = nav.indexOf(id)
+                    val label = navigationLabel(id)
+                    Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), color = androidx.compose.ui.graphics.Color.Transparent,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, edge)) {
+                        Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 13.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val icon = when (id) {
+                                "home" -> StakIcons.House
+                                "discover" -> StakIcons.Compass
+                                "watchlist" -> StakIcons.Bookmark
+                                "tracking" -> StakIcons.ChartNoAxesCombined
+                                "library" -> StakIcons.HardDrive
+                                "torbox" -> StakIcons.Database
+                                else -> StakIcons.Settings2
+                            }
+                            Icon(icon, null, Modifier.size(16.dp), tint = Muted)
+                            Text(label, Modifier.weight(1f), fontSize = 14.sp, lineHeight = 20.sp)
+                            StakIconButton(StakIcons.ChevronUp, "Move $label tab up", enabled = index > 0, iconSize = 14.dp) {
+                                vm.option("nav_order", JSONArray(movedItem(nav, index, -1)).toString())
+                            }
+                            StakIconButton(StakIcons.ChevronDown, "Move $label tab down", enabled = index in 0 until nav.lastIndex, iconSize = 14.dp) {
+                                vm.option("nav_order", JSONArray(movedItem(nav, index, 1)).toString())
+                            }
+                            StakSwitch("$label tab", id in nav, enabled = id !in listOf("home", "settings"), onChange = {
+                                vm.option("nav_order", JSONArray(if (it) nav + id else nav - id).toString())
+                            })
                         }
                     }
                 }
             }
         }
+        CapacitorSettingsPanel {
+            SectionHeading("Home screen")
+            Spacer(Modifier.height(10.dp))
+            shelves.forEachIndexed { index, shelf ->
+                Column {
+                    Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).testTag("home-layout-${shelf.id}"), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(shelf.label, Modifier.weight(1f), fontSize = 14.sp, lineHeight = 20.sp, maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        StakIconButton(StakIcons.ArrowUp, "Move ${shelf.label} up", enabled = index > 0, iconSize = 13.dp) {
+                            vm.option("home_order", JSONArray(movedItem(shelves.map { it.id }, index, -1)).toString())
+                        }
+                        StakIconButton(StakIcons.ArrowDown, "Move ${shelf.label} down", enabled = index < shelves.lastIndex, iconSize = 13.dp) {
+                            vm.option("home_order", JSONArray(movedItem(shelves.map { it.id }, index, 1)).toString())
+                        }
+                        if (shelf.genre > 0) StakIconButton(StakIcons.Trash2, "Remove ${shelf.label} shelf", iconSize = 13.dp) { remove(shelf) }
+                        StakSwitch("Show ${shelf.label}", shelf.enabled(options), onChange = { vm.option("home_${shelf.id}", it.toString()) })
+                    }
+                    if (index < shelves.lastIndex) HorizontalDivider(color = Rule)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Choice("Genre media type", type, listOf("movie" to "Movies", "series" to "Series"), { type = it; genre = "" }, Modifier.width(105.dp))
+                Choice("Genre for new shelf", genre, listOf("" to "Genre row…") + homeGenres(type).map { it.first.toString() to it.second }, { genre = it }, Modifier.weight(1f))
+                StakIconButton(StakIcons.Plus, "Add genre shelf", enabled = genre.isNotBlank() && shelves.none { it.id == "genre:$type:$genre" } && shelves.count { it.genre > 0 } < 24,
+                    primary = true, iconSize = 16.dp) {
+                    val next = shelves.filter { it.genre > 0 }.map { JSONObject().put("type", it.type).put("genre", it.genre) } + JSONObject().put("type", type).put("genre", genre.toInt())
+                    vm.option("home_genres", JSONArray(next).toString())
+                    genre = ""
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            MotionButton("Reset to default") {
+                vm.option("home_order", "[]")
+                vm.option("home_genres", "[]")
+                homeShelves(emptyMap(), vm.repository.today.year).forEach { vm.option("home_${it.id}", it.defaultOn.toString()) }
+            }
+        }
+    }
 }

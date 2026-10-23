@@ -3,6 +3,14 @@ package app.stak.nativeapp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.*
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -92,42 +100,60 @@ fun BackupSettings(vm: StakViewModel) {
                 }
             }
         }
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Label("Backup")
-        Text(
-            "Protect your watchlist, history, Home layout, preferences, hash lists and search sources with a password-encrypted backup.",
-            fontSize = 14.sp,
-            color = Muted,
-        )
-        Text(
-            "Backups contain only the current account. Re-enter your TorBox key after reinstalling, then import. Existing records are kept when merging.",
-            fontSize = 12.sp,
-            color = Muted,
-        )
-        MotionButton(
-            "Export backup",
-            Modifier.fillMaxWidth().testTag("backup-export"),
-            enabled = !busy,
-        ) {
-            clear()
-            connections = false
-            stage = "export"
+    var platformOpen by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        MediaToolkitSettings(vm)
+        CapacitorSettingsPanel {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionHeading("Local backup")
+                Text("Export this account’s watchlist, manual tracking, home layout and saved magnet lists. Credentials and indexer URLs are excluded unless encrypted export is selected. Backups contain personal viewing data; share them carefully.",
+                    fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).toggleable(connections, enabled = !busy, role = Role.Checkbox, onValueChange = { connections = it }),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.size(13.dp).background(if (connections) Accent else Color.White, RoundedCornerShape(2.dp))
+                        .border(1.dp, if (connections) Accent else Color(0xff767676), RoundedCornerShape(2.dp)), contentAlignment = Alignment.Center) {
+                        if (connections) Icon(StakIcons.Check, null, Modifier.size(11.dp), tint = AccentForeground)
+                    }
+                    Text("Include credentials (encrypted)", fontSize = 14.sp, lineHeight = 20.sp)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Passphrase (encrypted export/import)", fontSize = 12.sp, lineHeight = 16.sp)
+                    OriginalField(password, { password = it }, "", secret = true, enabled = !busy, accessibilityLabel = "Backup passphrase")
+                }
+                MotionButton("Prepare backup", Modifier.testTag("backup-export"), tone = ButtonTone.Chip, enabled = !busy) {
+                    val passphrase = password
+                    val include = connections
+                    clear()
+                    password = passphrase
+                    connections = include
+                    stage = "export"
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Import backup (merge missing records)", fontSize = 12.sp, lineHeight = 16.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Surface(onClick = { clear(); import.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
+                            enabled = !busy, modifier = Modifier.testTag("backup-import"), shape = RoundedCornerShape(12.dp), color = Color.Transparent,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Rule)) {
+                            Box(Modifier.width(104.dp).height(44.dp), contentAlignment = Alignment.Center) { Text("Choose File", fontSize = 12.sp, lineHeight = 16.sp) }
+                        }
+                        Text("No file chosen", fontSize = 12.sp, lineHeight = 16.sp)
+                    }
+                }
+                if (stage.isEmpty() && error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, lineHeight = 16.sp)
+            }
         }
-        MotionButton(
-            "Import backup",
-            Modifier.fillMaxWidth().testTag("backup-import"),
-            enabled = !busy,
-        ) {
-            clear()
-            import.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
-        }
-        if (stage.isEmpty() && error.isNotBlank())
-            Text(error, color = MaterialTheme.colorScheme.error)
-        HorizontalDivider(color = Rule)
-        Text("STAK", style = MaterialTheme.typography.headlineLarge)
-        Text(BuildConfig.VERSION_NAME, fontFamily = MonoFont, fontSize = 11.sp, color = Muted)
-        MotionButton("Source & releases", Modifier.fillMaxWidth()) {
-            openExternal(context, "https://github.com/ezatvnekvan-stack/STAK")
+        CapacitorSettingsPanel {
+            SectionHeading("STAK 1.0.0")
+            Spacer(Modifier.height(10.dp))
+            Label("Android")
+            Spacer(Modifier.height(12.dp))
+            Text("${if (platformOpen) "▾" else "▸"} Platform information", Modifier.clickable { platformOpen = !platformOpen }, fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
+            if (platformOpen) {
+                Text("Standalone Android app. Providers connect directly from this device; no companion web server is required.", Modifier.padding(top = 12.dp), fontSize = 14.sp, lineHeight = 20.sp, color = Muted)
+                Text("Native build ${BuildConfig.VERSION_NAME}", Modifier.padding(top = 8.dp), fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
+                Text("Local watchlists and settings stay on this device. Public share links and server webhooks require separate hosting.", Modifier.padding(top = 8.dp), fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
+                MotionButton("Source & releases", Modifier.padding(top = 12.dp)) { openExternal(context, "https://github.com/ezatvnekvan-stack/STAK") }
+            }
         }
     }
     if (stage.isNotEmpty())
