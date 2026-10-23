@@ -1,6 +1,6 @@
-# Exact Capacitor visual parity
+# Capacitor design and native test build
 
-The current target is the existing Capacitor interface. The separate premium redesign branch is not the implementation target. This branch continues the tested native implementation at `3921c27`, retaining search alias/numeric-title regressions, Discover filters, the normal-motion Find sources crash fix and Jellyfin password/API-key protocol fixes.
+The current target is a usable native app that mostly follows the existing Capacitor interface. The user has explicitly relaxed pixel-perfect equality and will test the APK on their device. The separate premium redesign branch is not the implementation target. This branch continues the tested native implementation at `3921c27`, retaining search alias/numeric-title regressions, Discover filters, the normal-motion Find sources crash fix and Jellyfin password/API-key protocol fixes.
 
 ## Reference and scope
 
@@ -47,3 +47,11 @@ The title/control pass at `a0d76c0` passed local build/unit/lint and hosted [nat
 A strict `--require-identical` comparison executed against its 88 captures failed, with zero viewport-size mismatches. The 360-pixel dark title and movie differences improved to 4.199 and 2.933 average channel values. This remains a preview, not a pixel-perfect release.
 
 The follow-up replaces all production `Configuration.screenWidthDp` sizing with the Compose window's actual pixel width converted through the current density. Capture artifacts now include per-route viewport/configuration/density metadata for diagnosis. The original title artwork crop uses its 24% vertical position, and an image-load failure restores the compact header. This follow-up requires its own fresh hosted verification.
+
+## Movie and TV Find sources
+
+The current preview keeps the movie lookup and fixes TV lookup identifiers to include the selected season and episode (`imdb:season:episode`). The source sheet adds season/episode choices, season-pack mode and an explicit show-all fallback. Pack detection is an inferred filename heuristic ported from the Capacitor helper, with the original nine examples covered by a regression test. Normal-motion emulator coverage includes movie and TV opening, closing and reopening, plus TV season/episode request paths and pack filtering. Both source motion tests are included in the second viewport pass as well.
+
+The private external-files diagnostic folder did not survive test cleanup in run 39968345799. Viewport JSON is now written through MediaStore Downloads and collected from the public test-evidence folder. This fixes evidence export without requesting broad storage access.
+
+The last full hosted run before the source-selection follow-up passed 55 unit tests, 32 first-width and five second-width tests: https://github.com/ezatvnekvan-stack/STAK/actions/runs/39968345799 . The movie/TV follow-up requires its own hosted results. Exact pixel equality is not a release gate for the user testing preview; screenshot differences remain reported honestly.

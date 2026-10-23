@@ -4,7 +4,7 @@ stak_root="$(cd "$(dirname "$0")/.." && pwd)"
 collect_evidence() {
   mkdir -p "$stak_root/native-evidence"
   adb pull /sdcard/Pictures/STAK-native-evidence "$stak_root/native-evidence/" || true
-  adb pull /sdcard/Android/data/app.stak.nativeapp/files/parity-metrics "$stak_root/native-evidence/" || true
+  adb pull /sdcard/Download/STAK-native-metrics "$stak_root/native-evidence/" || true
 }
 trap collect_evidence EXIT
 cd "$stak_root/native-android"
@@ -19,5 +19,5 @@ mkdir -p "$stak_root/native-evidence/first-pass"
 cp -R app/build/reports/androidTests "$stak_root/native-evidence/first-pass/reports"
 cp -R app/build/outputs/androidTest-results "$stak_root/native-evidence/first-pass/results"
 adb shell wm size 360x928
-./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest,app.stak.nativeapp.BetaUiTest,app.stak.nativeapp.SourceFlowTest || stak_test_status=$?
+./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest,app.stak.nativeapp.BetaUiTest,app.stak.nativeapp.SourceFlowTest,app.stak.nativeapp.SourcesMotionTest || stak_test_status=$?
 exit "$stak_test_status"
