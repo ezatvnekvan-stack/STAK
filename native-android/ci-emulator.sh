@@ -7,6 +7,7 @@ collect_evidence() {
   mkdir -p "$stak_root/native-evidence/$variant"
   adb pull /sdcard/Pictures/STAK-native-evidence "$stak_root/native-evidence/$variant/" || true
   adb pull /sdcard/Download/STAK-native-metrics "$stak_root/native-evidence/$variant/" || true
+  if [[ -n "${stak_logcat_pid:-}" ]]; then kill "$stak_logcat_pid" 2>/dev/null || true; fi
 }
 trap collect_evidence EXIT
 cd "$stak_root/native-android"
@@ -15,15 +16,18 @@ adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || tr
 adb shell wm density 160
 adb shell wm size 412x928
 adb shell rm -rf /sdcard/Pictures/STAK-native-evidence /sdcard/Download/STAK-native-metrics
+mkdir -p "$stak_root/native-evidence/$variant"
+adb logcat -v threadtime > "$stak_root/native-evidence/$variant/full-logcat.txt" 2>&1 &
+stak_logcat_pid=$!
 rm -rf app/build/outputs/androidTest-results app/build/reports/androidTests
 stak_test_status=0
-./gradlew -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" || stak_test_status=$?
+./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8" -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" || stak_test_status=$?
 # Gradle replaces these reports on the second invocation; retain the functional run.
 mkdir -p "$stak_root/native-evidence/$variant/first-pass"
 cp -R app/build/reports/androidTests "$stak_root/native-evidence/$variant/first-pass/reports"
 cp -R app/build/outputs/androidTest-results "$stak_root/native-evidence/$variant/first-pass/results"
 adb shell wm size 360x928
-./gradlew -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest,app.stak.nativeapp.BetaUiTest,app.stak.nativeapp.SourceFlowTest,app.stak.nativeapp.SourcesMotionTest,app.stak.nativeapp.GlassUiTest || stak_test_status=$?
+./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8" -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest,app.stak.nativeapp.BetaUiTest,app.stak.nativeapp.SourceFlowTest,app.stak.nativeapp.SourcesMotionTest,app.stak.nativeapp.GlassUiTest || stak_test_status=$?
 mkdir -p "$stak_root/native-evidence/$variant/second-pass"
 cp -R app/build/outputs/androidTest-results "$stak_root/native-evidence/$variant/second-pass/results"
 exit "$stak_test_status"

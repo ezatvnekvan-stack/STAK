@@ -34,7 +34,9 @@ jobs:
           cache-read-only: false
       - name: Build, unit tests and lint
         working-directory: native-android
-        run: ./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug assembleDebugAndroidTest assemblePreview
+        run: |
+          ./gradlew --no-daemon --max-workers=2 assembleDebug testDebugUnitTest lintDebug assembleDebugAndroidTest assemblePreview
+          ./gradlew --no-daemon --max-workers=2 -PstakTestBuildType=preview assemblePreviewAndroidTest
       - name: Verify APK identity, signature and search regressions
         run: |
           python3 native-android/scripts/verify_debug_artifact.py
@@ -67,9 +69,18 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: false
+          # Use the stable GLES renderer for backdrop/window blur. Tests and
+          # animations remain enabled; experimental emulator Vulkan is unused.
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -feature -Vulkan
           script: |
             bash native-android/ci-emulator.sh debug
             bash native-android/ci-emulator.sh preview
+      - name: Retain runner diagnostics
+        if: always()
+        run: |
+          mkdir -p native-runner-diagnostics
+          free -m > native-runner-diagnostics/memory.txt
+          (sudo dmesg --ctime || true) > native-runner-diagnostics/kernel.txt
       - name: Compare original and native captures
         if: always()
         run: |
@@ -87,5 +98,6 @@ jobs:
             native-android/app/build/outputs/androidTest-results/
             native-android/app/build/outputs/mapping/preview/mapping.txt
             native-evidence/
+            native-runner-diagnostics/
             native-comparisons/
             native-android/parity/reference-manifest.json
