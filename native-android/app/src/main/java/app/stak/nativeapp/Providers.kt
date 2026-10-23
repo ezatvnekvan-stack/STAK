@@ -62,7 +62,7 @@ suspend fun Repository.browse(
 ): List<Media> = discoveryPage(type, category, query, page, filters).items
 
 suspend fun Repository.tmdbDetails(media: Media, loadEpisodes: Boolean = true): Media =
-    coroutineScope {
+    withContext(Dispatchers.Default) {
         val kind = if (media.type == "movie") "movie" else "tv"
         val id =
             media.tmdbId.takeIf { it > 0 }
@@ -72,7 +72,7 @@ suspend fun Repository.tmdbDetails(media: Media, loadEpisodes: Boolean = true): 
                     found
                         .optJSONArray(if (kind == "tv") "tv_results" else "movie_results")
                         ?.optJSONObject(0)
-                        ?.optInt("id") ?: return@coroutineScope media
+                        ?.optInt("id") ?: return@withContext media
                 }
         val root =
             tmdb(

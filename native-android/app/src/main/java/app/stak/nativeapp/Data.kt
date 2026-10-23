@@ -522,10 +522,10 @@ class Repository(
             }
         }
 
-    suspend fun catalog(type: String, query: String = "", skip: Int = 0, refresh: Boolean = false): List<Media> {
+    suspend fun catalog(type: String, query: String = "", skip: Int = 0, refresh: Boolean = false): List<Media> = withContext(Dispatchers.Default) {
         require(type == "movie" || type == "series")
         if (credentials.get("tmdb_key").isNotBlank())
-            return browse(type, query = query, page = skip / 20 + 1)
+            return@withContext browse(type, query = query, page = skip / 20 + 1)
         val extra =
             if (query.isBlank()) (if (skip == 0) "" else "/skip=$skip")
             else
@@ -535,22 +535,22 @@ class Repository(
         val root = if (query.isBlank()) publicMetadata("catalog:$type:$skip", maxAge = if (refresh) 0L else 300_000L) {
             request(url)
         } else request(url)
-        return root.optJSONArray("metas").objects().map { remember(Media.fromJson(it)) }
+        root.optJSONArray("metas").objects().map { remember(Media.fromJson(it)) }
     }
 
-    suspend fun details(media: Media): Media {
+    suspend fun details(media: Media): Media = withContext(Dispatchers.Default) {
         if (
             credentials.get("tmdb_key").isNotBlank() &&
                 preferences.getString("metadata_${media.type}", "tmdb") == "tmdb"
         )
-            return tmdbDetails(media)
-        if (!media.id.startsWith("tt")) return media
+            return@withContext tmdbDetails(media)
+        if (!media.id.startsWith("tt")) return@withContext media
         val root =
             publicMetadata("cinemeta:${media.type}:${media.id}") {
                     request("https://v3-cinemeta.strem.io/meta/${media.type}/${media.id}.json")
                 }
                 .optJSONObject("meta") ?: error("Title unavailable.")
-        return remember(
+        remember(
             Media.fromJson(root)
                 .copy(
                     episodes =
