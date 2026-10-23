@@ -52,10 +52,28 @@ class FrameTimingTest {
         val thread = HandlerThread("stak-frame-reports").apply { start() }
         val frames = Collections.synchronizedList(mutableListOf<Long>())
         val navigation = Collections.synchronizedList(mutableListOf<Long>())
+        val render = Collections.synchronizedList(mutableListOf<Long>())
+        val layout = Collections.synchronizedList(mutableListOf<Long>())
+        val draw = Collections.synchronizedList(mutableListOf<Long>())
+        val delay = Collections.synchronizedList(mutableListOf<Long>())
+        val gpu = Collections.synchronizedList(mutableListOf<Long>())
+        val swap = Collections.synchronizedList(mutableListOf<Long>())
+        val droppedReports = java.util.concurrent.atomic.AtomicInteger()
         var phase = frames
-        val listener = Window.OnFrameMetricsAvailableListener { _, metric, _ -> phase.add(metric.getMetric(FrameMetrics.TOTAL_DURATION)) }
+        val listener = Window.OnFrameMetricsAvailableListener { _, metric, dropped ->
+            droppedReports.addAndGet(dropped)
+            phase.add(metric.getMetric(FrameMetrics.TOTAL_DURATION))
+            render.add(metric.getMetric(FrameMetrics.DRAW_DURATION) + metric.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION)
+                + metric.getMetric(FrameMetrics.ANIMATION_DURATION) + metric.getMetric(FrameMetrics.INPUT_HANDLING_DURATION))
+            layout.add(metric.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION))
+            draw.add(metric.getMetric(FrameMetrics.DRAW_DURATION))
+            delay.add(metric.getMetric(FrameMetrics.UNKNOWN_DELAY_DURATION))
+            swap.add(metric.getMetric(FrameMetrics.SWAP_BUFFERS_DURATION))
+            if (android.os.Build.VERSION.SDK_INT >= 31) metric.getMetric(FrameMetrics.GPU_DURATION).takeIf { it >= 0 }?.let { gpu.add(it) }
+        }
         val destination = mutableStateOf("watchlist")
-        val report = JSONObject().put("buildType", "debug").put("hardware", android.os.Build.HARDWARE)
+        val variant = if (app.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) "debug" else "preview"
+        val report = JSONObject().put("buildType", variant).put("hardware", android.os.Build.HARDWARE)
             .put("note", "Diagnostic emulator timings; not a 90 Hz device benchmark")
         try {
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -65,11 +83,14 @@ class FrameTimingTest {
                     activity.setContent { StakApp(vm, destination.value) }
                     @Suppress("DEPRECATION")
                     report.put("displayRefreshHz", activity.window.decorView.display.refreshRate)
+                        .put("requestedRefreshHz", activity.window.attributes.preferredRefreshRate)
+                        .put("hardwareAccelerated", activity.window.decorView.isHardwareAccelerated)
                     activity.window.addOnFrameMetricsAvailableListener(listener, Handler(thread.looper))
                 }
                 instrumentation.waitForIdleSync()
                 Thread.sleep(1500)
-                frames.clear()
+                frames.clear(); render.clear(); layout.clear(); draw.clear(); delay.clear(); gpu.clear(); swap.clear()
+                droppedReports.set(0)
                 val width = app.resources.displayMetrics.widthPixels
                 val height = app.resources.displayMetrics.heightPixels
                 repeat(8) { index ->
@@ -101,9 +122,14 @@ class FrameTimingTest {
                     .put("frameDurationMs", JSONArray(sorted))
             }
             report.put("watchlistScroll", summary(frames)).put("navigation", summary(navigation))
+                .put("uiWork", summary(render)).put("layout", summary(layout)).put("draw", summary(draw))
+                .put("unknownDelay", summary(delay))
+                .put("swapBuffers", summary(swap))
+            if (gpu.isNotEmpty()) report.put("gpu", summary(gpu))
+            report.put("droppedMetricReports", droppedReports.get())
             val resolver = app.contentResolver
             val uri = requireNotNull(resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, "frame-timing.json")
+                put(MediaStore.Downloads.DISPLAY_NAME, "frame-timing-$variant.json")
                 put(MediaStore.Downloads.MIME_TYPE, "application/json")
                 put(MediaStore.Downloads.RELATIVE_PATH, "Download/STAK-native-metrics")
             }))

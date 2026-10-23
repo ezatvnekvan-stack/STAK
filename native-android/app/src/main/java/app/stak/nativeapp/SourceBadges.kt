@@ -59,7 +59,7 @@ fun SourceBadge(feature: SourceFeature, modifier: Modifier = Modifier, selected:
     ) {
         Row(Modifier.heightIn(min = if (interactive) 44.dp else 26.dp)
             .padding(horizontal = if (interactive) 13.dp else 8.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
             if (feature == SourceFeature.Hdr || feature == SourceFeature.Atmos || feature == SourceFeature.Remux) {
                 Icon(when (feature) {
                     SourceFeature.Hdr -> StakIcons.Sun

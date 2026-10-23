@@ -288,7 +288,7 @@ fun PosterCard(
     val collections = LocalPosterState.current
     val watchlisted = media.key in collections.watchlisted
     val watched = media.key in collections.watched
-    Column(
+    Box(
         modifier
             .graphicsLayer {
                 scaleX = pressScale
@@ -308,6 +308,7 @@ fun PosterCard(
                 },
             )
     ) {
+      Column {
         Box(
             Modifier.fillMaxWidth()
                 .aspectRatio(2f / 3f)
@@ -388,33 +389,20 @@ fun PosterCard(
             }
         }
     }
-    if (menu)
-        StakBottomSheet({ menu = false }) {
-            Column(
-                Modifier.padding(20.dp).navigationBarsPadding(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(media.name, style = MaterialTheme.typography.titleLarge)
-                MotionButton("Open details", Modifier.fillMaxWidth()) {
-                    menu = false
-                    onOpen(media, source)
-                }
-                MotionButton(
-                    "${if (watchlisted) "Remove from" else "Add to"} watchlist",
-                    Modifier.fillMaxWidth(),
-                ) {
-                    vm.toggle(media, "watchlist")
-                    menu = false
-                }
-                MotionButton(
-                    if (watched) "Mark unwatched" else "Mark watched",
-                    Modifier.fillMaxWidth(),
-                ) {
-                    vm.operation { vm.changeWatched(media, !watched) }
-                    menu = false
-                }
-            }
-        }
+      DropdownMenu(expanded = menu, onDismissRequest = { menu = false },
+          modifier = Modifier.width(224.dp).testTag("poster-actions"),
+          shape = RoundedCornerShape(18.dp), containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .96f),
+          border = BorderStroke(1.dp, Rule)) {
+          DropdownMenuItem(text = { Text("Open details", fontSize = 13.sp) }, leadingIcon = { Icon(StakIcons.Eye, null, Modifier.size(16.dp)) },
+              onClick = { menu = false; onOpen(media, source) })
+          DropdownMenuItem(text = { Text(if (watchlisted) "Remove from watchlist" else "Add to watchlist", fontSize = 13.sp) },
+              leadingIcon = { Icon(StakIcons.Bookmark, null, Modifier.size(16.dp)) },
+              onClick = { vm.toggle(media, "watchlist"); menu = false })
+          DropdownMenuItem(text = { Text(if (watched) "Mark unwatched" else "Mark watched", fontSize = 13.sp) },
+              leadingIcon = { Icon(StakIcons.Check, null, Modifier.size(16.dp)) },
+              onClick = { vm.operation { vm.changeWatched(media, !watched) }; menu = false })
+      }
+    }
 }
 
 @Composable
@@ -739,11 +727,12 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
         Box(
             Modifier.fillMaxWidth()
                 .height(
-                    (viewportWidthDp() * .65f)
-                        .coerceIn(240f, 310f)
+                    ((viewportWidthDp() - 32f) * .74f)
+                        .coerceIn(240f, 360f)
                         .dp
                 )
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(20.dp))
+                .border(1.dp, Color.White.copy(alpha = .12f), RoundedCornerShape(20.dp))
         ) {
             HorizontalPager(pager, Modifier.fillMaxSize(), beyondViewportPageCount = 1) { index ->
                 val summary = media[index % media.size]

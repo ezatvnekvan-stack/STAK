@@ -121,6 +121,9 @@ fun jellyfinMedia(item: JSONObject, session: JellyfinConnection): Media {
             item.optLong("RunTimeTicks").takeIf { it > 0 }?.let { "${it / 600000000}m" }.orEmpty(),
         genres = item.optJSONArray("Genres").strings(),
         jellyfinId = id,
+        seriesName = if (episode) item.optString("SeriesName") else "",
+        episodeSeason = if (episode) item.optInt("ParentIndexNumber") else 0,
+        episodeNumber = if (episode) item.optInt("IndexNumber") else 0,
         progress =
             if (data?.optBoolean("Played") == true) 100f
             else data?.optDouble("PlayedPercentage", 0.0)?.toFloat()?.coerceIn(0f, 100f) ?: 0f,
