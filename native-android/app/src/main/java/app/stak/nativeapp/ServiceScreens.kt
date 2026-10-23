@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.compose.currentStateAsState
@@ -64,9 +65,9 @@ fun RemoteScreen(vm: StakViewModel) {
     ) {
         PageHeading("Jellyfin Remote")
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(24.dp),
             border = BorderStroke(1.dp, Rule),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+            color = MaterialTheme.colorScheme.surface,
         ) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -187,7 +188,11 @@ fun PersonScreen(vm: StakViewModel, id: Int, onOpen: (Media, String) -> Unit, on
         verticalArrangement = Arrangement.spacedBy(20.dp),
         contentPadding = PaddingValues(top = 20.dp, bottom = 112.dp),
     ) {
-        item(span = { GridItemSpan(3) }) { MotionButton("← Back", onClick = onBack) }
+        item(span = { GridItemSpan(3) }) {
+            PageHeading("People", "Behind the stories you love", "THE CREATOR PROFILE") {
+                StakIconButton(StakIcons.ArrowLeft, "Back", onClick = onBack)
+            }
+        }
         if (error.isNotBlank()) item(span = { GridItemSpan(3) }) { EmptyState(error) { retry++ } }
         if (person == null && error.isBlank())
             item(span = { GridItemSpan(3) }) { DotStatus(label = "Loading person") }
@@ -201,7 +206,7 @@ fun PersonScreen(vm: StakViewModel, id: Int, onOpen: (Media, String) -> Unit, on
                         AsyncImage(
                             "https://image.tmdb.org/t/p/w185${p.optString("profile_path")}",
                             null,
-                            Modifier.width(110.dp).aspectRatio(.75f),
+                            Modifier.width(110.dp).aspectRatio(.75f).clip(RoundedCornerShape(24.dp)),
                             contentScale = ContentScale.Crop,
                         )
                     Text(

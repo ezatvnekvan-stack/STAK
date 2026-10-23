@@ -27,10 +27,10 @@ fun HomeSearchInput(value: String, onChange: (String) -> Unit, onClear: () -> Un
     val keyboard = LocalSoftwareKeyboardController.current
     Box(
         Modifier.fillMaxWidth()
-            .height(44.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = .74f))
-            .border(1.dp, Rule, RoundedCornerShape(12.dp))
+            .height(54.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, Rule, RoundedCornerShape(18.dp))
     ) {
         Row(
             Modifier.fillMaxSize()
@@ -38,7 +38,7 @@ fun HomeSearchInput(value: String, onChange: (String) -> Unit, onClear: () -> Un
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(StakIcons.Search, null, Modifier.size(16.dp), tint = Muted)
+            Icon(StakIcons.Search, null, Modifier.size(18.dp), tint = Muted)
             BasicTextField(
                 text,
                 {

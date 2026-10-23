@@ -28,7 +28,7 @@ fun colorFromHex(hex: String) = Color(0xff000000L or hex.removePrefix("#").toLon
 
 /** Original resolveAccent raises label contrast against the theme's panel. */
 fun accentInk(value: Color, light: Boolean): Color {
-    val background = if (light) colorFromHex("#F4F4F2") else colorFromHex("#181818")
+    val background = premiumColors(dark = !light).surface
     fun contrast(a: Color, b: Color) =
         (maxOf(a.luminance(), b.luminance()) + .05f) / (minOf(a.luminance(), b.luminance()) + .05f)
     var ink = value

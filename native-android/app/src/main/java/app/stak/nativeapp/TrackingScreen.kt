@@ -131,11 +131,11 @@ private fun ActivityScreen(
         }
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.dp, Rule),
         ) {
-            Column(Modifier.padding(17.dp)) {
+            Column(Modifier.padding(20.dp)) {
                 Row(
                     Modifier.fillMaxWidth().height(48.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -180,7 +180,7 @@ private fun ActivityScreen(
                                 ) {
                                     Text(
                                         value,
-                                        fontFamily = DotFont,
+                                        fontFamily = BodyFont,
                                         fontWeight = FontWeight.Black,
                                         fontSize = size.sp,
                                         lineHeight = (size * 1.1f).sp,
@@ -230,7 +230,7 @@ private fun ActivityScreen(
             ) {
                 Text(
                     if (selectedDay.isBlank()) "History" else "Watched $selectedDay",
-                    fontFamily = DotFont,
+                    fontFamily = BodyFont,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     lineHeight = 25.2.sp,
@@ -309,8 +309,8 @@ private fun ActivityScreen(
                             val title = vm.media(row.mediaKey) ?: row.media()
                             Surface(
                                 onClick = { onOpen(title, "tracking") },
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+                                shape = RoundedCornerShape(18.dp),
+                                color = MaterialTheme.colorScheme.surface,
                                 border = BorderStroke(1.dp, Rule),
                             ) {
                                 Row(
@@ -598,7 +598,7 @@ fun CalendarScreen(
                 Text(
                     month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
                     Modifier.weight(1f),
-                    fontFamily = DotFont,
+                    fontFamily = BodyFont,
                     fontWeight = FontWeight.Black,
                     fontSize = 23.sp,
                     lineHeight = 29.9.sp,

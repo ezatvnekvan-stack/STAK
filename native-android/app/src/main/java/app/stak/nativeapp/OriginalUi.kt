@@ -42,9 +42,9 @@ val AccentForeground: Color
 val Muted: Color
     @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 val Rule: Color
-    @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = .12f)
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .8f)
 val Soft: Color
-    @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = .045f)
+    @Composable get() = MaterialTheme.colorScheme.surfaceContainer
 
 @Composable
 fun Ambient(
@@ -53,8 +53,8 @@ fun Ambient(
     tone: Color = Color(0xff6c7078),
 ) {
     val options = LocalOptions.current
-    val dot = ((options["dotIntensity"] ?: "5").toFloatOrNull() ?: 5f).coerceIn(0f, 10f) / 100
-    val glow = ((options["glowIntensity"] ?: "16").toFloatOrNull() ?: 16f).coerceIn(0f, 30f) / 100
+    val dot = ((options["dotIntensity"] ?: "2").toFloatOrNull() ?: 2f).coerceIn(0f, 10f) / 100
+    val glow = ((options["glowIntensity"] ?: "12").toFloatOrNull() ?: 12f).coerceIn(0f, 30f) / 100
     val dark = MaterialTheme.colorScheme.background.red < .5f
     val adaptive = cinematic && options["cinematicColors"] != "false"
     val opacity =
@@ -167,13 +167,14 @@ fun StakIconButton(
         )
     Box(
         modifier
-            .size(44.dp)
+            .size(48.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(CircleShape)
-            .border(1.dp, Rule, CircleShape)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, Rule, RoundedCornerShape(16.dp))
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
@@ -189,7 +190,7 @@ fun StakIconButton(
         Icon(
             icon,
             label,
-            Modifier.size(17.dp),
+            Modifier.size(19.dp),
             tint = if (enabled) Muted else Muted.copy(alpha = .3f),
         )
     }
@@ -233,10 +234,10 @@ fun OriginalField(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = 44.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = .74f))
-            .border(1.dp, border, RoundedCornerShape(12.dp))
+            .heightIn(min = 52.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, border, RoundedCornerShape(16.dp))
             .padding(horizontal = horizontalInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -246,7 +247,7 @@ fun OriginalField(
             value,
             onChange,
             Modifier.weight(1f)
-                .padding(vertical = 10.dp)
+                .padding(vertical = 13.dp)
                 .onFocusChanged { focused = it.isFocused }
                 .semantics { contentDescription = placeholder },
             singleLine = singleLine,
@@ -318,8 +319,8 @@ fun StakSwitch(
     val track by
         androidx.compose.animation.animateColorAsState(
             if (checked) Accent
-            else if (MaterialTheme.colorScheme.background.red < .5f) Color(0xff222222)
-            else Color(0xffd9d9d5),
+            else if (MaterialTheme.colorScheme.background.red < .5f) MaterialTheme.colorScheme.surfaceContainerHighest
+            else MaterialTheme.colorScheme.surfaceContainerHighest,
             motionSpec(policy.reduced, 180),
             label = "Switch track",
         )
@@ -338,7 +339,7 @@ fun StakSwitch(
         )
     Box(
         modifier
-            .size(48.dp, 44.dp)
+            .size(52.dp, 48.dp)
             .semantics { contentDescription = label }
             .toggleable(checked, enabled = enabled, role = Role.Switch) {
                 if (policy.haptics)
@@ -369,12 +370,12 @@ fun Choice(
     Box(modifier) {
         Row(
             Modifier.fillMaxWidth()
-                .heightIn(min = 44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, if (plain) Color.Transparent else Rule, RoundedCornerShape(12.dp))
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.dp, if (plain) Color.Transparent else Rule, RoundedCornerShape(16.dp))
                 .background(
                     if (plain) Color.Transparent
-                    else MaterialTheme.colorScheme.surface.copy(alpha = .74f)
+                    else MaterialTheme.colorScheme.surface
                 )
                 .clickable(role = Role.Button) { open = true }
                 .padding(horizontal = 12.dp, vertical = 10.dp)
@@ -411,51 +412,18 @@ fun OriginalEmpty(
     compact: Boolean = false,
     onClick: () -> Unit = {},
 ) {
-    val rule = Rule
-    Column(
-        Modifier.fillMaxWidth()
-            .drawWithContent {
-                drawContent()
-                drawRoundRect(
-                    rule,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx()),
-                    style =
-                        androidx.compose.ui.graphics.drawscope.Stroke(
-                            1.dp.toPx(),
-                            pathEffect =
-                                PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx())),
-                        ),
-                )
-            }
-            .background(
-                MaterialTheme.colorScheme.surface.copy(alpha = .74f),
-                RoundedCornerShape(16.dp),
-            )
-            .padding(
-                horizontal = if (compact) 17.dp else 25.dp,
-                vertical = if (compact) 25.dp else 49.dp,
-            ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            Modifier.size(52.dp).background(Soft, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center,
+    PremiumPanel {
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = if (compact) 8.dp else 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Icon(icon, null, Modifier.size(23.dp), tint = Muted)
+            Box(Modifier.size(58.dp).background(Accent.copy(alpha = .09f), RoundedCornerShape(20.dp)), contentAlignment = Alignment.Center) {
+                Icon(icon, null, Modifier.size(25.dp), tint = AccentInk)
+            }
+            Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(description, style = MaterialTheme.typography.bodyMedium, color = Muted, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            if (action.isNotBlank()) MotionButton(action, Modifier.padding(top = 6.dp), primary = true, onClick = onClick)
         }
-        Text(
-            title,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
-        Text(
-            description,
-            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-            color = Muted,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
-        if (action.isNotBlank())
-            MotionButton(action, Modifier.padding(top = 4.dp), onClick = onClick)
     }
 }
