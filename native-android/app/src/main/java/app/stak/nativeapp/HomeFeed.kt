@@ -82,7 +82,7 @@ fun HomeFeedShelf(
         try {
             items =
                 when {
-                    shelf.id == "continue" -> vm.repository.library(true)
+                    shelf.id == "continue" -> vm.repository.continueFeed().let { feed -> error = feed.warning; feed.items }
                     jellyfin -> vm.repository.jellyfinShelf(shelf.id)
                     else -> {
                         val filters =
@@ -112,6 +112,7 @@ fun HomeFeedShelf(
         }
     }
     when {
+        items.isNotEmpty() && shelf.id == "continue" -> ContinueWatchingRail(items, onOpen)
         items.isNotEmpty() ->
             MediaRail(
                 if (shelf.id in listOf("for_you", "genre_trending") && favorite == null)

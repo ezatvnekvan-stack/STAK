@@ -263,7 +263,7 @@ fun parseTorznab(xml: String, source: String): TorznabResults {
 data class SourceSearch(val streams: List<SourceStream>, val errors: List<String>)
 
 suspend fun Repository.searchSources(media: Media, episode: Episode? = null): SourceSearch =
-    coroutineScope {
+    withContext(Dispatchers.Default) {
         val id = media.imdbId.ifBlank { media.id.takeIf { it.startsWith("tt") }.orEmpty() }
         require(Regex("tt[0-9]+").matches(id)) {
             "No IMDb identity is available for source search."
@@ -311,19 +311,7 @@ suspend fun Repository.searchSources(media: Media, episode: Episode? = null): So
                                             indexerText("$base/stream/${media.type}/$suffix.json")
                                         )
                                     SourceSearch(
-                                        data.optJSONArray("streams").objects().mapNotNull {
-                                            val hash =
-                                                normalizeTorrentHash(it.optString("infoHash"))
-                                            if (hash.isBlank()) null
-                                            else
-                                                SourceStream(
-                                                    it.optString("name", item.name),
-                                                    it.optString("title"),
-                                                    hash,
-                                                    it.optInt("fileIdx", -1).takeIf { n -> n >= 0 },
-                                                    item.name,
-                                                )
-                                        },
+                                        data.optJSONArray("streams").objects().mapNotNull { parseAddonStream(it, item.name) },
                                         emptyList(),
                                     )
                                 } else {

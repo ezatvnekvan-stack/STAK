@@ -60,6 +60,7 @@ fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnSco
     if (LocalStakMotion.current.reduced) {
         Dialog(onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                GlassSheetBlur()
                 Box(Modifier.matchParentSize().clickable(onClick = onDismissRequest))
                 Surface(
                     Modifier.fillMaxWidth(),
@@ -68,7 +69,7 @@ fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnSco
                             topStart = 24.dp,
                             topEnd = 24.dp,
                         ),
-                    color = MaterialTheme.colorScheme.surface,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = .94f),
                 ) {
                     Column(Modifier.navigationBarsPadding()) {
                         StakSheetHandle()
@@ -81,9 +82,9 @@ fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnSco
         ModalBottomSheet(
             onDismissRequest,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .94f),
             dragHandle = { StakSheetHandle() },
-            content = content,
+            content = { GlassSheetBlur(); content() },
         )
 }
 

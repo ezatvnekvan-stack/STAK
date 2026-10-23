@@ -10,7 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -153,7 +153,7 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                     // layout. Registering a shared element here crashes with normal motion.
                     Artwork(media, Modifier.size(56.dp, 84.dp).clip(RoundedCornerShape(10.dp)))
                     Column(Modifier.weight(1f)) {
-                        Text(media.name, fontSize = 17.sp, lineHeight = 21.25.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(media.name, fontFamily = DotFont, fontSize = 19.sp, lineHeight = 25.sp, fontWeight = FontWeight.Black, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(
                             listOfNotNull(
                                     media.year.takeIf { it.isNotBlank() },
@@ -201,10 +201,10 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         SectionHeading("Fine tune your sources")
                         Text("4K + 1080p only · tap badges to filter", fontFamily = MonoFont, fontSize = 10.sp, color = Muted)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowRow(maxItemsInEachRow = 3, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             SourceFeature.entries.forEach { feature ->
                                 val quality = feature == SourceFeature.UltraHd || feature == SourceFeature.FullHd
-                                SourceBadge(feature, selected = if (quality) resolution == feature else feature in selectedFeatures) {
+                                SourceBadge(feature, Modifier.weight(1f), selected = if (quality) resolution == feature else feature in selectedFeatures) {
                                     if (quality) resolution = if (resolution == feature) null else feature
                                     else selectedFeatures = if (feature in selectedFeatures) selectedFeatures - feature else selectedFeatures + feature
                                 }
@@ -304,11 +304,11 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                         if (series && packMode) showAll = true
                     }
                 }
-            items(visible, key = { "${it.hash}:${it.fileIndex}" }) { source ->
+            itemsIndexed(visible, key = { _, item -> "${item.hash}:${item.fileIndex}" }) { index, source ->
                 SourceReleaseRow(vm, media, lookupEpisode, source, cache, library[source.hash], dismiss,
                     Modifier.animateItem(fadeInSpec = if (reduced) null else tween(160),
                         placementSpec = if (reduced) null else tween(200, easing = StakEase),
-                        fadeOutSpec = if (reduced) null else tween(100)))
+                        fadeOutSpec = if (reduced) null else tween(100)), suggested = index == 0)
             }
         }
     }
@@ -324,6 +324,7 @@ private fun SourceReleaseRow(
     existing: Torrent?,
     dismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    suggested: Boolean = false,
 ) {
     var details by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
@@ -336,71 +337,53 @@ private fun SourceReleaseRow(
     val badges = remember(facts) { sourceFeatures(facts) }
     val seasonPack = remember(source, episode?.season) { episode?.let { source.isSeasonPackFor(it.season) } == true }
     val match = remember(source, media.key, media.name, media.year, episode) { sourceMatch(source, media, episode) }
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, Rule),
-        color = MaterialTheme.colorScheme.surface,
-    ) {
+    val recommended = suggested && match.label == "Filename matches · inferred"
+    GlassPanel(modifier, radius = 20.dp, emphasized = recommended) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                badges.forEach { SourceBadge(it) }
+            if (recommended) Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(StakIcons.Check, null, Modifier.size(14.dp), tint = Muted)
+                Text("Suggested match", fontFamily = MonoFont, fontSize = 10.sp, color = Muted)
             }
-            Text(
-                media.name,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 23.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(listOfNotNull(media.year.takeIf { it.isNotBlank() },
-                episode?.let { if (seasonPack) "Season ${it.season} pack" else "S%02d · E%02d".format(it.season, it.number) }, source.source).joinToString(" · "),
-                fontFamily = MonoFont, fontSize = 10.sp, color = Muted)
-            Text(
-                listOfNotNull(
-                        source.size.takeIf { it > 0 }?.let { accountBytes(it) }
-                            ?: "Size unavailable",
-                        source.seeders?.let { "$it seeders" } ?: "Seeders unknown",
-                    )
-                    .joinToString(" · "),
-                fontSize = 11.sp,
-                color = Muted,
-            )
-            val availability =
-                when {
-                    existing != null || added -> "On TorBox"
-                    source.hash in cache.cached -> "Cached on TorBox"
-                    source.hash in cache.checked -> "Not cached at last check"
-                    else -> "Cached availability unknown"
+            Text(source.title.lineSequence().firstOrNull().orEmpty().ifBlank { source.name },
+                fontSize = 14.sp, lineHeight = 21.sp, fontWeight = FontWeight.SemiBold,
+                maxLines = 3, overflow = TextOverflow.Ellipsis)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+                itemVerticalAlignment = Alignment.CenterVertically) {
+                badges.forEach { SourceBadge(it) }
+                source.size.takeIf { it > 0 }?.let { Text(accountBytes(it), fontFamily = MonoFont, fontSize = 10.sp, color = Muted) }
+                if (seasonPack && episode != null) {
+                    val count = media.episodes.count { it.season == episode.season }
+                    Text("S%02d PACK".format(episode.season) + if (count > 0) " · $count EP" else "",
+                        Modifier.clip(RoundedCornerShape(6.dp)).then(Modifier), fontFamily = MonoFont, fontSize = 9.sp, color = Muted)
                 }
-            Text(
-                availability,
-                fontFamily = MonoFont,
-                fontSize = 10.sp,
-                color =
-                    if (source.hash in cache.cached || existing != null || added) AccentInk
-                    else Muted,
-            )
-            Text(
-                (listOf(match.label) + match.reasons + match.warnings).joinToString(" · "),
-                fontSize = 11.sp,
-                lineHeight = 16.sp,
-                color = Muted,
-            )
+            }
+            val availability = when {
+                existing != null || added -> "On TorBox"
+                source.hash in cache.cached -> "Cached on TorBox"
+                source.hash in cache.checked -> "Not cached at last check"
+                else -> "Cached availability unknown"
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(5.dp),
+                itemVerticalAlignment = Alignment.CenterVertically) {
+                Icon(StakIcons.Radio, null, Modifier.size(13.dp), tint = Muted)
+                Text(availability, fontFamily = MonoFont, fontSize = 10.sp)
+                Text(listOfNotNull(source.seeders?.let { "$it seeds" }, source.tracker.ifBlank { source.source }).joinToString(" · "),
+                    fontFamily = MonoFont, fontSize = 9.sp, color = Muted)
+            }
+            if (match.label != "Filename matches · inferred" || match.warnings.isNotEmpty())
+                Text((listOf(match.label) + match.reasons + match.warnings).joinToString(" · "),
+                    fontSize = 11.sp, lineHeight = 16.sp, color = Muted)
+            HorizontalDivider(color = Rule)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MotionButton(
                     if (details) "Hide details" else "Release details",
-                    Modifier.weight(1f),
+                    Modifier.weight(1f), tone = ButtonTone.Link, horizontalPadding = 0.dp,
                 ) {
                     details = !details
                 }
-                MotionButton(
-                    if (existing != null || added) "Open TorBox"
-                    else if (busy) "Adding…"
-                    else if (error.isNotBlank()) "Retry add" else "Add to TorBox",
-                    Modifier.weight(1f),
-                    primary = true,
+                StakIconButton(
+                    if (existing != null || added) StakIcons.ExternalLink else if (busy) StakIcons.RefreshCw else StakIcons.Plus,
+                    if (existing != null || added) "Open TorBox" else if (busy) "Adding source" else if (error.isNotBlank()) "Retry add" else "Add to TorBox",
                     enabled = !busy,
                 ) {
                     if (existing != null || added) {
@@ -433,7 +416,7 @@ private fun SourceReleaseRow(
               Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(source.title.ifBlank { source.name }, fontFamily = MonoFont, fontSize = 11.sp, lineHeight = 17.sp)
                 Text(
-                    "${cache.sizes[source.hash]?.let { "Torrent total: ${accountBytes(it)}\n" }.orEmpty()}${facts.joinToString(" · ").ifBlank { "No technical tags detected" }}\n${source.hash}\n${source.fileIndex?.let { "File index: $it\n" }.orEmpty()}Cached availability does not verify content, language or playback compatibility.",
+                    "${cache.sizes[source.hash]?.let { "Torrent total: ${accountBytes(it)}\n" }.orEmpty()}${facts.joinToString(" · ").ifBlank { "No technical tags detected" }}\n${source.hash}\n${source.fileIndex?.let { "File index: $it\n" }.orEmpty()}Size scope: ${source.sizeScope}. Cached availability does not verify content, language or playback compatibility.",
                     fontSize = 11.sp,
                     lineHeight = 17.sp,
                     color = Muted,

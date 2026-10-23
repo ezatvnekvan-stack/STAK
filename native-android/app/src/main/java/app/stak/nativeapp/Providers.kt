@@ -214,6 +214,8 @@ data class SourceStream(
     val size: Long = 0,
     val seeders: Int? = null,
     val magnet: String = "",
+    val tracker: String = "",
+    val sizeScope: String = "torrent",
 )
 
 suspend fun Repository.addMagnet(magnet: String) {

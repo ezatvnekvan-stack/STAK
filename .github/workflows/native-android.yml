@@ -14,7 +14,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -34,9 +34,11 @@ jobs:
           cache-read-only: false
       - name: Build, unit tests and lint
         working-directory: native-android
-        run: ./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug assembleDebugAndroidTest
+        run: ./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug assembleDebugAndroidTest assemblePreview
       - name: Verify APK identity, signature and search regressions
-        run: python3 native-android/scripts/verify_debug_artifact.py
+        run: |
+          python3 native-android/scripts/verify_debug_artifact.py
+          python3 native-android/scripts/verify_debug_artifact.py --variant preview
       - name: Upload verified native debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -45,6 +47,14 @@ jobs:
           path: |
             native-android/app/build/outputs/apk/debug/app-debug.apk
             native-android/app/build/verification/
+      - name: Upload verified optimized native APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: STAK-native-optimized-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            native-android/app/build/outputs/apk/preview/app-preview.apk
+            native-android/app/build/verification/preview/
       - name: Enable hardware acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -57,12 +67,14 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: false
-          script: bash native-android/ci-emulator.sh
+          script: |
+            bash native-android/ci-emulator.sh debug
+            bash native-android/ci-emulator.sh preview
       - name: Compare original and native captures
         if: always()
         run: |
           python3 -m pip install Pillow
-          python3 native-android/parity/compare.py --native native-evidence --output native-comparisons
+          python3 native-android/parity/compare.py --native native-evidence/preview --output native-comparisons
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -73,6 +85,7 @@ jobs:
             native-android/app/build/test-results/
             native-android/app/build/verification/
             native-android/app/build/outputs/androidTest-results/
+            native-android/app/build/outputs/mapping/preview/mapping.txt
             native-evidence/
             native-comparisons/
             native-android/parity/reference-manifest.json

@@ -18,8 +18,8 @@ android {
         applicationId = "app.stak.nativeapp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.4.1-native-motion.1"
+        versionCode = 6
+        versionName = "0.5.0-native-glass.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true; buildConfig = true }
@@ -38,7 +38,17 @@ android {
             isMinifyEnabled = false
             if (distributionReady) signingConfig = signingConfigs.getByName("distribution")
         }
+        create("preview") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "preview-rules.pro")
+        }
     }
+    testBuildType = providers.gradleProperty("stakTestBuildType").orElse("debug").get()
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     testOptions { unitTests.isReturnDefaultValues = true }
 }
@@ -67,6 +77,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.7.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("dev.chrisbanes.haze:haze:1.5.3")
     implementation("app.rive:rive-android:10.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     debugImplementation("androidx.compose.ui:ui-tooling")

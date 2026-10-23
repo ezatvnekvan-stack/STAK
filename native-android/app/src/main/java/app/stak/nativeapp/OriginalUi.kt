@@ -64,9 +64,9 @@ fun Modifier.cssDashedBorder(color: Color, radius: Dp = 16.dp) = drawWithContent
 
 @Composable
 fun CapacitorSettingsPanel(modifier: Modifier = Modifier, verticalPadding: Dp = 16.dp, content: @Composable ColumnScope.() -> Unit) {
-    val light = MaterialTheme.colorScheme.background.red > .5f
-    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (light) Color.White else Color.Transparent)
-        .padding(vertical = verticalPadding), content = content)
+    GlassPanel(modifier, radius = 18.dp) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = verticalPadding), content = content)
+    }
 }
 
 @Composable
@@ -153,28 +153,7 @@ fun Ambient(
                 if (adaptive) .80f else .65f,
             )
         }
-        Canvas(Modifier.matchParentSize()) {
-            val step = 20.dp.toPx()
-            var x = step / 2
-            while (x < size.width) {
-                var y = step / 2
-                while (y < size.height) {
-                    val fraction = y / size.height
-                    val mask =
-                        if (fraction < .3f) .6f + .4f * fraction / .3f
-                        else 1f - (1f - 2f / 3f) * (fraction - .3f) / .7f
-                    // CSS paints a radial-gradient tile; a tiny antialiased circle halves
-                    // the four center pixels at density 1 and makes the pattern too faint.
-                    val radius = 1.dp.toPx()
-                    val ink = color.copy(alpha = dot * mask)
-                    drawRect(Brush.radialGradient(0f to ink, .7f to ink, 1f to Color.Transparent,
-                        center = Offset(x, y), radius = radius),
-                        topLeft = Offset(x - radius, y - radius), size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2))
-                    y += step
-                }
-                x += step
-            }
-        }
+        CachedDotField(color, dot, Modifier.matchParentSize())
     }
 }
 

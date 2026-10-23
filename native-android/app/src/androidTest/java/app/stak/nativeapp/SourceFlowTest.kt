@@ -181,13 +181,13 @@ class SourceFlowTest {
         }
         compose.onNodeWithTag("sources-results").performScrollToNode(hasContentDescription("Cached sources only"))
         compose.onNodeWithContentDescription("Cached sources only").performClick()
-        compose.onNodeWithTag("sources-results").performScrollToNode(hasText("ADD TO TORBOX"))
-        compose.onNodeWithText("ADD TO TORBOX").performClick()
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasContentDescription("Add to TorBox"))
+        compose.onNodeWithContentDescription("Add to TorBox").performClick()
         compose.waitUntil(10000) {
-            compose.onAllNodesWithText("OPEN TORBOX").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithContentDescription("Open TorBox").fetchSemanticsNodes().isNotEmpty()
         }
         assertEquals(1, requests.count { it.url.encodedPath.endsWith("/torrents/createtorrent") })
-        compose.onNodeWithText("OPEN TORBOX").performClick()
+        compose.onNodeWithContentDescription("Open TorBox").performClick()
         compose.waitUntil(10000) {
             compose.onAllNodesWithText("Fixture torrent").fetchSemanticsNodes().isNotEmpty()
         }

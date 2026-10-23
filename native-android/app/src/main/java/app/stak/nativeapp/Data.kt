@@ -52,6 +52,9 @@ data class Media(
     val totalEpisodes: Int = 0,
     val releaseDate: String = "",
     val aliases: List<String> = emptyList(),
+    val seriesName: String = "",
+    val episodeSeason: Int = 0,
+    val episodeNumber: Int = 0,
 ) {
     val key
         get() = "$type:$id"
@@ -78,11 +81,15 @@ data class Media(
             totalEpisodes = totalEpisodes.takeIf { it > 0 } ?: previous.totalEpisodes,
             releaseDate = releaseDate.ifBlank { previous.releaseDate },
             aliases = (aliases + previous.aliases).distinct(),
+            seriesName = seriesName.ifBlank { previous.seriesName },
+            episodeSeason = episodeSeason.takeIf { it > 0 } ?: previous.episodeSeason,
+            episodeNumber = episodeNumber.takeIf { it > 0 } ?: previous.episodeNumber,
         )
     }
 
     fun json() =
         JSONObject()
+            .put("seriesName", seriesName).put("episodeSeason", episodeSeason).put("episodeNumber", episodeNumber)
             .put("imdb_id", id)
             .put("type", type)
             .put("name", name)
@@ -110,6 +117,9 @@ data class Media(
                 type = if (j.optString("type") == "movie") "movie" else "series",
                 name = j.optString("name", j.optString("title")),
                 aliases = mediaAliases(j),
+                seriesName = j.optString("seriesName"),
+                episodeSeason = j.optInt("episodeSeason"),
+                episodeNumber = j.optInt("episodeNumber"),
                 poster = j.optString("poster"),
                 background = j.optString("background"),
                 year = j.optString("year", j.optString("releaseInfo")),

@@ -4,6 +4,29 @@ import java.text.Normalizer
 import kotlinx.coroutines.CancellationException
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONObject
+import kotlin.math.roundToLong
+
+private val addonSize = Regex("💾\\s*([0-9]+(?:[.,][0-9]+)?)\\s*(KB|MB|GB|TB)", RegexOption.IGNORE_CASE)
+private val addonSeeds = Regex("👤\\s*([0-9]+)")
+private val addonTracker = Regex("⚙[\\uFE0F]?\\s*(.+)$")
+
+/** Preserve addon identity for filtering; present tracker/file facts separately. */
+fun parseAddonStream(item: JSONObject, provider: String): SourceStream? {
+    val hash = normalizeTorrentHash(item.optString("infoHash"))
+    if (hash.isBlank()) return null
+    val title = item.optString("title").ifBlank { item.optJSONObject("behaviorHints")?.optString("filename").orEmpty() }
+    val metadata = title.lineSequence().firstOrNull { it.contains("👤") || it.contains("💾") }.orEmpty()
+    val size = addonSize.find(metadata)?.let { found ->
+        val exponent = when (found.groupValues[2].uppercase(java.util.Locale.ROOT)) { "KB" -> 1; "MB" -> 2; "GB" -> 3; else -> 4 }
+        val bytes = found.groupValues[1].replace(',', '.').toDoubleOrNull()?.times(Math.pow(1024.0, exponent.toDouble()))
+        bytes?.takeIf { it.isFinite() && it > 0 && it < Long.MAX_VALUE }?.roundToLong()
+    } ?: 0L
+    return SourceStream(item.optString("name", provider), title, hash,
+        item.optInt("fileIdx", -1).takeIf { it >= 0 }, provider,
+        item.optJSONObject("behaviorHints")?.optLong("videoSize")?.takeIf { it > 0 } ?: size,
+        addonSeeds.find(metadata)?.groupValues?.get(1)?.toIntOrNull(),
+        tracker = addonTracker.find(metadata)?.groupValues?.get(1)?.trim().orEmpty(), sizeScope = "file")
+}
 
 /** Same filename tags as the original mediaQuality.js. These are inferred, never verified. */
 private val qualityRules =
