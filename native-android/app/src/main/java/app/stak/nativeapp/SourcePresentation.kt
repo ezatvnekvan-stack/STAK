@@ -33,9 +33,11 @@ private val qualityRules =
         )
         .map { Regex(it.first, RegexOption.IGNORE_CASE) to it.second }
 
-fun qualityTags(release: String): List<String> = qualityRules
-    .filter { it.first.containsMatchIn(release) }
-    .map { it.second }
+fun qualityTags(release: String): List<String> {
+    // An underscore is a filename separator, but regex word boundaries treat it as a letter.
+    val normalized = release.replace('_', '.')
+    return qualityRules.filter { it.first.containsMatchIn(normalized) }.map { it.second }
+}
 
 fun SourceStream.quality() = qualityTags("$name $title")
 

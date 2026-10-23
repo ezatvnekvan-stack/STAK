@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SourceBadgeTest {
+    @Test fun underscoreSeparatedReleasesKeepTheirResolutionAndFormatBadges() {
+        val features = sourceFeatures(qualityTags("Movie_2160p_HDR10_WEB_DL_ATMOS"))
+        assertEquals(setOf(SourceFeature.UltraHd, SourceFeature.Hdr, SourceFeature.WebDl, SourceFeature.Atmos), features)
+        assertTrue(supportedSource(features))
+        assertTrue(SourceFeature.FullHd in sourceFeatures(qualityTags("Movie_1080p_REMUX")))
+        assertFalse(supportedSource(sourceFeatures(qualityTags("Movie_720p_WEB_DL"))))
+    }
+
     @Test fun exposesOnlyTheRequestedBadgesAndGroupsHdrVariants() {
         assertEquals(SourceFeature.entries.toSet() - SourceFeature.FullHd,
             sourceFeatures(qualityTags("Title.2160p.HDR10+.WEB-DL.REMUX.TrueHD.Atmos.HEVC.AAC")))
