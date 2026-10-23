@@ -34,6 +34,6 @@ The dock retains its destinations and saved order, with an animated accent selec
 
 ## Validation
 
-The existing production test gates remain enabled, including Find sources with normal motion and Jellyfin password/API-key request regressions. Added checks cover text contrast, opaque modal surfaces, large-font headings, 48dp touch targets and functioning controls in both themes. The existing 88-state capture matrix supplies both viewport sizes and themes. Screenshot differences from the old Capacitor design are expected under this explicit redesign direction; dimensions and behavior checks remain enforced.
+The existing production test gates remain enabled, including Find sources with normal motion and Jellyfin password/API-key request regressions. Added checks cover text contrast, opaque modal surfaces, large-font headings, 48dp touch targets and functioning controls in both themes. The existing matrix supplies 88 captures across 22 routes, two viewport sizes and both themes. Screenshot differences from the old Capacitor design are expected under this explicit redesign direction; dimensions and behavior checks remain enforced.
 
 This does not certify complete functional parity, live-provider behavior, physical-device performance or every accessibility scenario. Review the actual PR workflow reports and retained captures for the validated checkpoint. Debug signing continuity still requires an owner-controlled key; no signing keys or credentials are included in source or artifacts.

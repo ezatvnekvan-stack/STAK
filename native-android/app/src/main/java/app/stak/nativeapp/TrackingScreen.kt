@@ -215,7 +215,7 @@ private fun ActivityScreen(
                             .padding(horizontal = 4.dp, vertical = 14.dp),
                         fontSize = 12.sp,
                         lineHeight = 16.8.sp,
-                        color = Accent,
+                        color = AccentInk,
                     )
                 }
             }
@@ -559,7 +559,7 @@ fun CalendarScreen(
                     .padding(horizontal = 4.dp),
                 fontSize = 12.sp,
                 lineHeight = 16.8.sp,
-                color = Accent,
+                color = AccentInk,
             )
             StakIconButton(StakIcons.SlidersHorizontal, "Calendar filters") { filters = true }
         }
@@ -689,7 +689,7 @@ fun CalendarScreen(
                                 lineHeight = 18.sp,
                                 color =
                                     if (selectedCell) AccentForeground
-                                    else if (day == today) Accent
+                                    else if (day == today) AccentInk
                                     else if (art.isNotBlank()) Color.White
                                     else if (inMonth) MaterialTheme.colorScheme.onSurface
                                     else Muted.copy(alpha = .5f),
