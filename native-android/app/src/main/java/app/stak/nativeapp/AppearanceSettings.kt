@@ -33,9 +33,9 @@ fun AppearanceSettings(vm: StakViewModel) {
     Column(Modifier.padding(vertical = 16.dp)) {
         Box(
             Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(22.dp))
                 .background(MaterialTheme.colorScheme.background)
-                .border(1.dp, Rule, RoundedCornerShape(14.dp))
+                .border(1.dp, Rule, RoundedCornerShape(22.dp))
         ) {
             Canvas(Modifier.matchParentSize()) {
                 withTransform({ scale(1f, size.height / size.width, pivot = Offset.Zero) }) {
@@ -52,7 +52,7 @@ fun AppearanceSettings(vm: StakViewModel) {
             Column(Modifier.padding(21.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     "LIVE PREVIEW",
-                    Modifier.padding(bottom = 10.dp).height(13.5.dp),
+                    Modifier.padding(bottom = 10.dp).heightIn(min = 13.5.dp),
                     fontFamily = MonoFont,
                     fontSize = 9.sp,
                     lineHeight = 13.5.sp,
@@ -61,8 +61,8 @@ fun AppearanceSettings(vm: StakViewModel) {
                 )
                 Text(
                     "Make it yours.",
-                    Modifier.height(36.dp),
-                    fontFamily = DotFont,
+                    Modifier.heightIn(min = 36.dp),
+                    fontFamily = BodyFont,
                     fontWeight = FontWeight.Black,
                     fontSize = 30.sp,
                     lineHeight = 36.sp,
@@ -91,7 +91,7 @@ fun AppearanceSettings(vm: StakViewModel) {
                 }
                 Text(
                     "Your accent · your atmosphere",
-                    Modifier.height(16.dp),
+                    Modifier.heightIn(min = 16.dp),
                     fontFamily = MonoFont,
                     fontSize = 11.sp,
                     lineHeight = 16.sp,
@@ -112,10 +112,10 @@ fun AppearanceSettings(vm: StakViewModel) {
                 val selected = (o["theme"] ?: "dark") == theme
                 Box(
                     Modifier.weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(18.dp))
                         .background(if (selected) accent.copy(alpha = .1f) else Color.Transparent)
-                        .border(1.dp, if (selected) ink else Rule, RoundedCornerShape(12.dp))
+                        .border(1.dp, if (selected) ink else Rule, RoundedCornerShape(18.dp))
                         .semantics {
                             role = Role.RadioButton
                             this.selected = selected
@@ -146,13 +146,13 @@ fun AppearanceSettings(vm: StakViewModel) {
                         val selected = rawAccent == choice.id
                         val paint = colorFromHex(choice.hex)
                         Box(
-                            Modifier.weight(1f).height(44.dp),
+                            Modifier.weight(1f).height(48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             if (selected)
                                 Box(Modifier.requiredSize(52.dp).border(2.dp, paint, CircleShape))
                             Box(
-                                Modifier.size(44.dp)
+                                Modifier.size(48.dp)
                                     .border(1.dp, Rule, CircleShape)
                                     .semantics {
                                         contentDescription = choice.label
@@ -187,10 +187,10 @@ fun AppearanceSettings(vm: StakViewModel) {
         ) {
             AppearanceLabel("Custom colour", Modifier.weight(1f))
             Box(
-                Modifier.size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                Modifier.size(48.dp)
+                    .clip(RoundedCornerShape(18.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, Rule, RoundedCornerShape(12.dp))
+                    .border(1.dp, Rule, RoundedCornerShape(18.dp))
                     .clickable { customOpen = true }
                     .padding(7.dp)
                     .semantics { contentDescription = "Custom accent colour" }
@@ -223,7 +223,7 @@ fun AppearanceSettings(vm: StakViewModel) {
             )
             .forEach { (key, label, max) ->
                 val value =
-                    (o[key]?.toIntOrNull() ?: if (key == "dotIntensity") 5 else 16).coerceIn(0, max)
+                    (o[key]?.toIntOrNull() ?: if (key == "dotIntensity") 2 else 12).coerceIn(0, max)
                 Column(
                     Modifier.padding(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -253,8 +253,8 @@ fun AppearanceSettings(vm: StakViewModel) {
                 vm.option("accent", "red")
                 vm.appearance("reduced", false)
                 mapOf(
-                        "dotIntensity" to "5",
-                        "glowIntensity" to "16",
+                        "dotIntensity" to "2",
+                        "glowIntensity" to "12",
                         "compact" to "false",
                         "amoled" to "false",
                         "ambientAnimation" to "false",
@@ -289,7 +289,7 @@ fun AppearanceSettings(vm: StakViewModel) {
                             .height(64.dp)
                             .background(
                                 runCatching { colorFromHex(custom) }.getOrDefault(accent),
-                                RoundedCornerShape(12.dp),
+                                RoundedCornerShape(18.dp),
                             )
                     )
                     OriginalField(custom, { custom = it }, "#D71921")
@@ -315,7 +315,7 @@ fun AppearanceSettings(vm: StakViewModel) {
 private fun AppearanceLabel(text: String, modifier: Modifier = Modifier, bottom: Dp = 10.dp) {
     Text(
         text.uppercase(Locale.ROOT),
-        modifier.padding(bottom = bottom).height(15.dp),
+        modifier.padding(bottom = bottom).heightIn(min = 15.dp),
         fontFamily = MonoFont,
         fontSize = 10.sp,
         lineHeight = 15.sp,

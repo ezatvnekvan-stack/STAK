@@ -260,7 +260,7 @@ private fun SourceReleaseRow(
     val facts = source.quality()
     val match = sourceMatch(source, media, episode)
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(22.dp),
         border = BorderStroke(1.dp, Rule),
         color = MaterialTheme.colorScheme.surface,
     ) {

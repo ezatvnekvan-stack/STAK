@@ -48,55 +48,33 @@ fun PageHeading(
     eyebrow: String = "",
     action: (@Composable () -> Unit)? = null,
 ) {
-    val discover = title == "Discover"
-    val width = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
-    val heading =
-        if (discover) {
-            val size = (width * .08f).coerceIn(32f, 42f)
-            MaterialTheme.typography.headlineLarge.copy(
-                fontSize = size.sp,
-                lineHeight = (size * 1.08f).sp,
-            )
-        } else MaterialTheme.typography.headlineLarge
-    Column {
-        Row(
-            Modifier.fillMaxWidth().padding(top = 24.dp, bottom = if (discover) 14.dp else 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                if (eyebrow.isNotBlank()) {
-                    Label(eyebrow)
-                    Spacer(Modifier.height(8.dp))
-                }
-                Text(
-                    title,
-                    Modifier.padding(vertical = 3.dp).height(heading.lineHeight.value.dp),
-                    style = heading,
-                )
-                if (subtitle.isNotBlank())
-                    Text(
-                        subtitle,
-                        Modifier.padding(top = if (discover) 6.dp else 7.dp),
-                        fontSize = 12.sp,
-                        lineHeight = if (discover) 16.8.sp else 18.sp,
-                        color = Muted,
-                    )
+    val caption = premiumPageCaption(title)
+    Column(Modifier.premiumReveal(title).padding(top = 24.dp, bottom = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.width(20.dp).height(2.dp).background(Accent, RoundedCornerShape(2.dp)))
+            Label(eyebrow.ifBlank { caption.first })
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text(title, Modifier.heightIn(min = 52.dp), style = MaterialTheme.typography.headlineLarge.copy(fontSize = if (title.length > 18) 29.sp else 36.sp, lineHeight = if (title.length > 18) 36.sp else 44.sp))
+                val description = subtitle.ifBlank { caption.second }
+                if (description.isNotBlank()) Text(description, style = MaterialTheme.typography.bodySmall, color = Muted)
             }
             action?.invoke()
         }
-        HorizontalDivider(color = Rule)
     }
 }
 
 @Composable
 fun EmptyState(message: String, retry: (() -> Unit)? = null) {
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(message, color = Muted, fontSize = 13.sp)
-        retry?.let { MotionButton("Retry", onClick = it) }
+    PremiumPanel(Modifier.padding(vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(Modifier.size(40.dp).background(Accent.copy(alpha = .09f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                Icon(StakIcons.Film, null, Modifier.size(18.dp), tint = AccentInk)
+            }
+            Text(message, Modifier.weight(1f).padding(top = 4.dp), style = MaterialTheme.typography.bodyMedium, color = Muted)
+        }
+        retry?.let { MotionButton("Retry", primary = true, onClick = it) }
     }
 }
 
@@ -115,7 +93,10 @@ fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = fal
                 Headers.headersOf("X-Emby-Token", repo.credentials.get("jellyfin_token"))
             else Headers.headersOf()
         }
-    Box(modifier.background(Color(0xff111111))) {
+    var loaded by remember(url) { mutableStateOf(false) }
+    val placeholder = MaterialTheme.colorScheme.surfaceContainerHighest
+    Box(modifier.background(Brush.linearGradient(listOf(placeholder, MaterialTheme.colorScheme.surface)))) {
+        if (!loaded) Icon(StakIcons.Film, null, Modifier.align(Alignment.Center).size(28.dp), tint = Muted.copy(alpha = .25f))
         AsyncImage(
             ImageRequest.Builder(context)
                 .data(url)
@@ -125,6 +106,8 @@ fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = fal
             null,
             Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
+            onSuccess = { loaded = true },
+            onError = { loaded = false },
         )
     }
 }
@@ -143,7 +126,7 @@ fun SharedPoster(media: Media, source: String, modifier: Modifier = Modifier) {
                 )
             }
         } else modifier
-    Artwork(media, moving.clip(RoundedCornerShape(9.dp)))
+    Artwork(media, moving.clip(RoundedCornerShape(15.dp)))
 }
 
 /** The cell paths and SVG view box are copied from the original RatingLogo. */
@@ -250,7 +233,7 @@ fun RatingBadge(
             RatingLogo(media.ratingSource, Modifier.alpha(if (quiet) .65f else .8f))
             Text(
                 media.rating,
-                Modifier.height(valueSize.value.dp),
+                Modifier.heightIn(min = valueSize.value.dp),
                 fontFamily = MonoFont,
                 fontSize = valueSize,
                 lineHeight = valueSize,
@@ -313,8 +296,8 @@ fun PosterCard(
         Box(
             Modifier.fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(9.dp))
-                .border(1.dp, Rule, RoundedCornerShape(9.dp))
+                .clip(RoundedCornerShape(15.dp))
+                .border(1.dp, Rule, RoundedCornerShape(15.dp))
         ) {
             SharedPoster(media, source, Modifier.fillMaxSize())
             Box(
@@ -323,7 +306,7 @@ fun PosterCard(
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = .9f))
+                            listOf(Color.Transparent, Color.Black.copy(alpha = .55f))
                         )
                     )
             )
@@ -350,7 +333,7 @@ fun PosterCard(
                 )
         }
         Column(
-            Modifier.padding(top = 8.dp, start = 1.dp, end = 1.dp),
+            Modifier.padding(top = 10.dp, start = 2.dp, end = 2.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
@@ -367,15 +350,15 @@ fun PosterCard(
                         )
                 },
                 fontSize = if (LocalOptions.current["compact"] == "true") 12.sp else 13.sp,
-                lineHeight = 18.2.sp,
+                lineHeight = 19.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 media.year.ifBlank { "—" },
-                fontFamily = MonoFont,
-                fontSize = 10.sp,
+                fontFamily = BodyFont,
+                fontSize = 11.sp,
                 lineHeight = 15.sp,
                 color = Muted,
                 maxLines = 1,
@@ -423,7 +406,7 @@ fun PosterCard(
 fun PosterSkeletons() {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         repeat(3) {
-            Box(Modifier.weight(1f).aspectRatio(2f / 3f).background(Soft, RoundedCornerShape(9.dp)))
+            Box(Modifier.weight(1f).aspectRatio(2f / 3f).background(Soft, RoundedCornerShape(15.dp)))
         }
     }
 }
@@ -559,7 +542,7 @@ fun HomeScreen(
                         StakBrand(Modifier.size(34.dp))
                         Text(
                             "STAK",
-                            Modifier.padding(start = 10.dp).weight(1f).height(25.dp),
+                            Modifier.padding(start = 10.dp).weight(1f).heightIn(min = 25.dp),
                             fontFamily = DotFont,
                             fontWeight = FontWeight.Black,
                             fontSize = 25.sp,
@@ -588,6 +571,7 @@ fun HomeScreen(
                             Text(accountLabel, fontFamily = MonoFont, fontSize = 10.sp)
                         }
                     }
+                    if (query.isBlank()) PremiumIntro("YOUR PRIVATE SCREENING ROOM", "A great night starts here.")
                     HomeSearchInput(input, { input = it }) {
                         input = ""
                         query = ""
@@ -739,11 +723,11 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
         Box(
             Modifier.fillMaxWidth()
                 .height(
-                    (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp * .65f)
-                        .coerceIn(240f, 310f)
+                    (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp * .88f)
+                        .coerceIn(310f, 380f)
                         .dp
                 )
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(28.dp))
         ) {
             HorizontalPager(pager, Modifier.fillMaxSize()) { index ->
                 val summary = media[index % media.size]
@@ -763,9 +747,10 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                     )
                     Column(
                         Modifier.align(Alignment.BottomStart)
-                            .padding(start = 20.dp, end = 20.dp, bottom = 48.dp),
+                            .padding(start = 20.dp, end = 20.dp, bottom = 56.dp),
                         verticalArrangement = Arrangement.Top,
                     ) {
+                        Text("IN THE SPOTLIGHT", Modifier.padding(bottom = 10.dp), fontFamily = MonoFont, fontSize = 10.sp, letterSpacing = 1.5.sp, color = Color.White.copy(alpha = .8f))
                         Text(
                             title.name,
                             fontFamily = BodyFont,
@@ -897,11 +882,11 @@ fun MediaRail(
             Text(
                 title.uppercase(),
                 Modifier.weight(1f),
-                fontFamily = SectionFont,
+                fontFamily = BodyFont,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 15.sp,
+                fontSize = 19.sp,
                 lineHeight = 21.75.sp,
-                letterSpacing = .7.sp,
+                letterSpacing = (-.25).sp,
             )
             if (seeAll != null)
                 Text(
@@ -1432,12 +1417,10 @@ fun WatchlistScreen(vm: StakViewModel, saved: List<SavedMedia>, onOpen: (Media, 
             }
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                "${list.size} saved ${if (list.size == 1) "title" else "titles"}",
-                fontFamily = MonoFont,
-                fontSize = 11.sp,
-                color = Muted,
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                PremiumMetric(list.size.toString(), "Saved titles", Modifier.weight(1f))
+                PremiumMetric(list.count { it.media().type == "series" }.toString(), "Series to follow", Modifier.weight(1f))
+            }
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
             Row(
@@ -1574,7 +1557,9 @@ fun DetailScreen(
 ) {
     val initial = remember(key) { vm.media(key) }
     if (initial == null) {
-        EmptyState("This title is unavailable.", onBack)
+        Box(Modifier.padding(20.dp)) {
+            OriginalEmpty("Title unavailable", "This title could not be loaded. Return to your collection and try again.", "Back", onClick = onBack)
+        }
         return
     }
     var media by remember(key) { mutableStateOf(initial) }
@@ -1686,7 +1671,7 @@ fun DetailScreen(
                         ) {
                             Text(
                                 media.name,
-                                fontFamily = DotFont,
+                                fontFamily = BodyFont,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 32.sp,
                                 lineHeight = 38.sp,
@@ -1707,7 +1692,7 @@ fun DetailScreen(
                                     color = Muted,
                                 )
                         }
-                        SharedPoster(media, source, Modifier.width(88.dp).aspectRatio(2f / 3f))
+                        SharedPoster(media, source, Modifier.width(96.dp).aspectRatio(2f / 3f))
                     }
                 }
             }
@@ -1918,7 +1903,7 @@ fun DetailScreen(
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                     ) {
                         HorizontalDivider(color = Rule)
-                        Text("BEHIND THE CAMERA", fontFamily = DotFont, fontSize = 14.sp)
+                        Text("BEHIND THE CAMERA", fontFamily = BodyFont, fontSize = 14.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             media.crew.take(3).forEach { person ->
                                 Column(
@@ -1941,7 +1926,7 @@ fun DetailScreen(
                         Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        Text("CAST", fontFamily = DotFont, fontSize = 14.sp)
+                        Text("CAST", fontFamily = BodyFont, fontSize = 14.sp)
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(media.cast) { person ->
                                 Column(
@@ -1971,7 +1956,7 @@ fun DetailScreen(
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                     ) {
                         HorizontalDivider(color = Rule)
-                        Text("GALLERY", fontFamily = DotFont, fontSize = 14.sp)
+                        Text("GALLERY", fontFamily = BodyFont, fontSize = 14.sp)
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(media.gallery) {
                                 AsyncImage(
@@ -1988,8 +1973,8 @@ fun DetailScreen(
                 }
         }
         Surface(
-            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp),
-            shape = RoundedCornerShape(18.dp),
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 20.dp),
+            shape = RoundedCornerShape(26.dp),
             border = BorderStroke(1.dp, Rule),
             color = MaterialTheme.colorScheme.surface,
         ) {

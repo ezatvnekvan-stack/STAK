@@ -18,7 +18,7 @@ def run(*args):
 
 badging = run(tools / 'aapt', 'dump', 'badging', apk)
 package = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging)
-if not package or package.groups() != ('app.stak.nativeapp', '3', '0.3.0-native-beta.1'):
+if not package or package.groups() != ('app.stak.nativeapp', '4', '0.4.0-native-preview.1'):
     raise SystemExit('Unexpected application ID or version: ' + badging[:400])
 if 'application-debuggable' not in badging:
     raise SystemExit('Expected an installable debug build')

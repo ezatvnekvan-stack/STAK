@@ -87,66 +87,24 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
         if (section.isBlank()) {
             ConnectionStatus(vm) { navigate("settings?section=$it") }
             Spacer(Modifier.height(18.dp))
-            destinations.chunked(2).forEach { row ->
-                Row(
-                    Modifier.height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+            destinations.forEach { destination ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp).testTag("settings-${destination.id}"),
+                    onClick = { navigate("settings?section=${destination.id}") },
+                    shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, Rule),
                 ) {
-                    row.forEach { destination ->
-                        Surface(
-                            modifier =
-                                Modifier.weight(1f)
-                                    .fillMaxHeight()
-                                    .heightIn(min = 126.dp)
-                                    .testTag("settings-${destination.id}"),
-                            onClick = { navigate("settings?section=${destination.id}") },
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
-                            border = BorderStroke(1.dp, Rule),
-                        ) {
-                            Column(
-                                Modifier.padding(15.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.Top,
-                                ) {
-                                    Box(
-                                        Modifier.size(40.dp)
-                                            .background(Soft, RoundedCornerShape(12.dp)),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(destination.icon, null, Modifier.size(20.dp))
-                                    }
-                                    Icon(
-                                        StakIcons.ChevronRight,
-                                        null,
-                                        Modifier.padding(top = 5.dp).size(17.dp),
-                                        tint = Muted,
-                                    )
-                                }
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Text(
-                                        destination.title,
-                                        fontSize = 15.sp,
-                                        lineHeight = 21.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(
-                                        destination.hint,
-                                        fontSize = 11.sp,
-                                        lineHeight = 16.5.sp,
-                                        color = Muted,
-                                    )
-                                }
-                            }
+                    Row(Modifier.padding(17.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Box(Modifier.size(46.dp).background(Accent.copy(alpha = .09f), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+                            Icon(destination.icon, null, Modifier.size(21.dp), tint = AccentInk)
                         }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(destination.title, style = MaterialTheme.typography.titleMedium)
+                            Text(destination.hint, style = MaterialTheme.typography.bodySmall, color = Muted)
+                        }
+                        Icon(StakIcons.ChevronRight, null, Modifier.size(18.dp), tint = Muted)
                     }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
-                Spacer(Modifier.height(10.dp))
             }
         } else {
             Row(
@@ -166,15 +124,18 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
                 )
             }
             Spacer(Modifier.height(16.dp))
-            when (section) {
-                "appearance" -> AppearanceSettings(vm)
-                "account" -> TorBoxSettings(vm)
-                "metadata" -> MetadataSettings(vm)
-                "jellyfin" -> JellyfinSettings(vm)
-                "sources" -> SourcesSettings(vm)
-                "home" -> HomeSettings(vm)
-                "advanced" -> BackupSettings(vm)
+            PremiumPanel {
+                when (section) {
+                    "appearance" -> AppearanceSettings(vm)
+                    "account" -> TorBoxSettings(vm)
+                    "metadata" -> MetadataSettings(vm)
+                    "jellyfin" -> JellyfinSettings(vm)
+                    "sources" -> SourcesSettings(vm)
+                    "home" -> HomeSettings(vm)
+                    "advanced" -> BackupSettings(vm)
+                }
             }
+
         }
     }
 }
@@ -213,8 +174,8 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
         }
     }
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, Rule),
     ) {
         Column(Modifier.padding(horizontal = 15.dp, vertical = 9.dp)) {
@@ -243,7 +204,9 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
                                     account.data != null && configured -> "Verified"
                                     else -> "Not verified"
                                 }
-                            } else states[id] ?: if (configured) "Configured" else "Not configured"
+                            } else {
+                                states[id] ?: if (configured) "Configured" else "Not configured"
+                            }
                         Box(
                             Modifier.size(6.dp)
                                 .background(
@@ -310,7 +273,7 @@ fun MetadataSettings(vm: StakViewModel) {
             var busy by remember { mutableStateOf(false) }
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+                color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(1.dp, Rule),
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -108,9 +108,10 @@ fun HashListsScreen(vm: StakViewModel) {
         contentPadding = PaddingValues(bottom = 112.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { PageHeading("Share", eyebrow = "Hash lists") }
+        item { PageHeading("Share", eyebrow = "CURATED TOGETHER") }
+        item { PremiumMetric(lists.size.toString(), "Your curated lists", Modifier.fillMaxWidth()) }
         item {
-            Column(Modifier.clickable { limits = !limits }) {
+            PremiumPanel(Modifier.clickable { limits = !limits }) {
                 Text("Sharing limits", fontSize = 12.sp, lineHeight = 18.sp, color = Muted)
                 if (limits)
                     Text(
@@ -142,7 +143,7 @@ fun HashListsScreen(vm: StakViewModel) {
         items(lists, key = { it.optString("id") }) { list ->
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+                color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(1.dp, Rule),
             ) {
                 Row(

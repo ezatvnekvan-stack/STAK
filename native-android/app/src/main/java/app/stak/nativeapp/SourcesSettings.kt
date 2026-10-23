@@ -67,7 +67,7 @@ fun SourcesSettings(vm: StakViewModel) {
                     Text(
                         "INDEXERS",
                         Modifier.weight(1f),
-                        fontFamily = SectionFont,
+                        fontFamily = BodyFont,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 18.sp,
                         letterSpacing = .7.sp,

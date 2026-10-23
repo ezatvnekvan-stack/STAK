@@ -99,13 +99,10 @@ fun TorBoxScreen(vm: StakViewModel, openJellyfin: () -> Unit) {
             }
         else {
             item {
-                Text(
-                    "${torrents.size} torrents · ${formatBytes(torrents.sumOf { it.size })}",
-                    fontFamily = MonoFont,
-                    fontSize = 11.sp,
-                    lineHeight = 16.5.sp,
-                    color = Muted,
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PremiumMetric(torrents.size.toString(), "Torrents", Modifier.weight(1f))
+                    PremiumMetric(formatBytes(torrents.sumOf { it.size }), "Cloud library", Modifier.weight(1f))
+                }
                 Spacer(Modifier.height(16.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

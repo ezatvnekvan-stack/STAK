@@ -68,6 +68,7 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
             }
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
+            PremiumPanel {
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -109,13 +110,14 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
                     navigate("settings?section=${if (tab == 0) "jellyfin" else "account"}")
                 }
             }
+            }
         }
         if (!connected)
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(22.dp),
                     border = BorderStroke(1.dp, Rule),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+                    color = MaterialTheme.colorScheme.surface,
                 ) {
                     Column(
                         Modifier.padding(17.dp),
@@ -123,7 +125,7 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
                     ) {
                         Text(
                             if (tab == 0) "Your library awaits" else "No key",
-                            fontFamily = DotFont,
+                            fontFamily = BodyFont,
                             fontWeight = FontWeight.Black,
                             fontSize = 20.sp,
                             lineHeight = 28.sp,

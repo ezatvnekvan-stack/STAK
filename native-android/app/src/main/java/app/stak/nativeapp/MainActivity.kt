@@ -153,31 +153,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
         onDispose { context.contentResolver.unregisterContentObserver(observer) }
     }
     val policy = MotionPreferences(reduced || systemReduced, haptics)
-    val baseColors =
-        if (dark)
-            darkColorScheme(
-                primary = Color(0xfff2f2f2),
-                onPrimary = Color(0xff111111),
-                background = if (options["amoled"] == "true") Color.Black else Color(0xff080808),
-                surface = Color(0xff111111),
-                surfaceContainer = Color(0xff171717),
-                surfaceContainerHighest = Color(0xff303030),
-                onSurface = Color.White,
-                onSurfaceVariant = Color(0xffa3a3a3),
-                outlineVariant = Color(0xff303030),
-            )
-        else
-            lightColorScheme(
-                primary = Color(0xff171717),
-                onPrimary = Color.White,
-                background = Color(0xfff4f4f2),
-                surface = Color.White,
-                surfaceContainer = Color(0xffefefed),
-                surfaceContainerHighest = Color(0xffddddda),
-                onSurface = Color(0xff111111),
-                onSurfaceVariant = Color(0xff666666),
-                outlineVariant = Color(0xffddddda),
-            )
+    val baseColors = premiumColors(dark, options["amoled"] == "true")
     val colors =
         baseColors.copy(
             primaryContainer = baseColors.surfaceContainerHighest,
@@ -210,67 +186,12 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
     }
     MaterialTheme(
         colorScheme = colors,
-        typography =
-            Typography(
-                displaySmall =
-                    TextStyle(
-                        fontFamily = DotFont,
-                        fontSize = 36.sp,
-                        lineHeight = 42.sp,
-                        letterSpacing = .72.sp,
-                    ),
-                headlineLarge =
-                    TextStyle(
-                        fontFamily = DotFont,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 32.sp,
-                        lineHeight = 35.2.sp,
-                        letterSpacing = (-.045).em,
-                    ),
-                headlineSmall =
-                    TextStyle(
-                        fontFamily = DotFont,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 24.sp,
-                        lineHeight = 32.sp,
-                        letterSpacing = .48.sp,
-                    ),
-                titleLarge =
-                    TextStyle(
-                        fontFamily = BodyFont,
-                        letterSpacing = 0.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                    ),
-                titleMedium =
-                    TextStyle(
-                        fontFamily = BodyFont,
-                        letterSpacing = 0.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp,
-                    ),
-                bodyLarge =
-                    TextStyle(
-                        fontFamily = BodyFont,
-                        fontSize = 16.sp,
-                        lineHeight = 24.sp,
-                        letterSpacing = 0.sp,
-                    ),
-                bodyMedium =
-                    TextStyle(
-                        fontFamily = BodyFont,
-                        fontSize = 14.sp,
-                        lineHeight = 21.sp,
-                        letterSpacing = 0.sp,
-                    ),
-                bodySmall =
-                    TextStyle(fontFamily = BodyFont, fontSize = 12.sp, letterSpacing = 0.sp),
-                labelLarge =
-                    TextStyle(fontFamily = MonoFont, fontSize = 10.sp, letterSpacing = .4.sp),
-                labelMedium =
-                    TextStyle(fontFamily = MonoFont, fontSize = 10.sp, letterSpacing = 0.sp),
-                labelSmall = TextStyle(fontFamily = MonoFont, fontSize = 9.sp, letterSpacing = 0.sp),
-            ),
+        typography = premiumTypography(),
+        shapes = Shapes(
+            extraSmall = RoundedCornerShape(8.dp), small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(18.dp), large = RoundedCornerShape(24.dp),
+            extraLarge = RoundedCornerShape(32.dp),
+        ),
     ) {
         CompositionLocalProvider(LocalStakMotion provides policy, LocalOptions provides options) {
             val nav = rememberNavController()
@@ -278,7 +199,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
             val entry by nav.currentBackStackEntryAsState()
             val route = entry?.destination?.route ?: "home"
             val bare = route.startsWith("title/")
-            val duration = if (policy.reduced) 0 else 280
+            val duration = if (policy.reduced) 0 else 300
             LaunchedEffect(vm) { vm.messages.collect { snackbar.showSnackbar(it) } }
             LaunchedEffect(requestedDestination) {
                 if (!requestedDestination.isNullOrBlank())
@@ -478,10 +399,11 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                         Surface(
                             Modifier.align(Alignment.BottomCenter)
                                 .navigationBarsPadding()
-                                .padding(horizontal = 12.dp, vertical = 12.dp)
+                                .padding(horizontal = 12.dp, vertical = 10.dp)
                                 .widthIn(max = 576.dp),
-                            shape = RoundedCornerShape(22.dp),
-                            color = colors.surface.copy(alpha = .97f),
+                            shape = RoundedCornerShape(28.dp),
+                            color = colors.surface,
+                            shadowElevation = 18.dp,
                             border =
                                 androidx.compose.foundation.BorderStroke(
                                     1.dp,
@@ -531,16 +453,16 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
         ) {
             val x =
                 animateDpAsState(
-                    width * selected + (width - 36.dp) / 2,
+                    width * selected + 4.dp,
                     if (LocalStakMotion.current.reduced) snap()
                     else spring(dampingRatio = 1.108f, stiffness = 600f),
                     label = "Navigation selection",
                 )
             if (selected >= 0)
                 Box(
-                    Modifier.offset { IntOffset(x.value.roundToPx(), 6.dp.roundToPx()) }
-                        .size(36.dp, 30.dp)
-                        .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp))
+                    Modifier.offset { IntOffset(x.value.roundToPx(), 5.dp.roundToPx()) }
+                        .size(width - 8.dp, 52.dp)
+                        .background(Accent.copy(alpha = .14f), RoundedCornerShape(20.dp))
                 )
             Row(Modifier.fillMaxSize()) {
                 labels.forEachIndexed { index, label ->
@@ -555,14 +477,14 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                         )
                     val iconColor by
                         animateColorAsState(
-                            if (index == selected) MaterialTheme.colorScheme.background
+                            if (index == selected) AccentInk
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                             motionSpec(policy.reduced, 180),
                             label = "Navigation ink",
                         )
                     val labelColor by
                         animateColorAsState(
-                            if (index == selected) MaterialTheme.colorScheme.onSurface
+                            if (index == selected) AccentInk
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                             motionSpec(policy.reduced, 180),
                             label = "Navigation label",
@@ -602,10 +524,11 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                         }
                         Text(
                             label.uppercase(java.util.Locale.ROOT),
-                            fontFamily = MonoFont,
+                            fontFamily = BodyFont,
+                            fontWeight = FontWeight.SemiBold,
                             fontSize = 9.sp,
                             lineHeight = 11.25.sp,
-                            letterSpacing = (-.36).sp,
+                            letterSpacing = 0.sp,
                             maxLines = 1,
                             color = labelColor,
                         )

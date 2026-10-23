@@ -26,16 +26,16 @@ fun TorBoxSettings(vm: StakViewModel) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (account.error.isNotBlank()) {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
-                        border = BorderStroke(1.dp, Color(0xffd71921).copy(alpha = .6f)),
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = .6f)),
                     ) {
                         Text(
                             "Key error: ${account.error}",
                             Modifier.fillMaxWidth().padding(17.dp).testTag("account-key-error"),
                             fontSize = 14.sp,
                             lineHeight = 20.sp,
-                            color = Color(0xffff4d55),
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 } else {
@@ -72,8 +72,8 @@ fun TorBoxSettings(vm: StakViewModel) {
                     }
                 }
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(1.dp, Rule),
                 ) {
                     Row(
@@ -90,6 +90,8 @@ fun TorBoxSettings(vm: StakViewModel) {
                                 fontSize = 14.sp,
                                 lineHeight = 20.sp,
                                 letterSpacing = 0.sp,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             )
                         }
                         MotionButton(
@@ -110,7 +112,7 @@ fun TorBoxSettings(vm: StakViewModel) {
         Column(Modifier.padding(vertical = 16.dp)) {
             Text(
                 if (savedKey.isBlank()) "CONNECT" else "REPLACE KEY",
-                fontFamily = SectionFont,
+                fontFamily = BodyFont,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 15.sp,
                 lineHeight = 21.75.sp,
@@ -188,7 +190,7 @@ private fun AccountStat(
 ) {
     Surface(
         modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = .8f),
         border = BorderStroke(1.dp, Rule),
     ) {
@@ -213,7 +215,7 @@ private fun AccountStat(
 private fun AccountLabel(value: String) {
     Text(
         value.uppercase(java.util.Locale.ROOT),
-        Modifier.padding(bottom = 10.dp).height(15.dp),
+        Modifier.padding(bottom = 10.dp).heightIn(min = 15.dp),
         fontFamily = MonoFont,
         fontSize = 10.sp,
         lineHeight = 15.sp,
