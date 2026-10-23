@@ -1,8 +1,12 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package app.stak.nativeapp
 
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,7 +29,7 @@ import kotlinx.coroutines.*
 @Composable
 fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: () -> Unit) {
     val series = media.type == "series"
-    val knownEpisodes = media.episodes.filter { it.season > 0 && it.number > 0 }
+    val knownEpisodes = remember(media.episodes) { media.episodes.filter { it.season > 0 && it.number > 0 } }
     var season by rememberSaveable(media.key, episode?.id) { mutableIntStateOf(episode?.season ?: knownEpisodes.firstOrNull()?.season ?: 1) }
     var number by rememberSaveable(media.key, episode?.id) { mutableIntStateOf(episode?.number ?: knownEpisodes.firstOrNull()?.number ?: 1) }
     var packMode by rememberSaveable(media.key, episode?.id) { mutableStateOf(series && episode == null) }
@@ -38,6 +42,8 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
     } else null
     LaunchedEffect(season, packMode) { showAll = false }
     var results by remember { mutableStateOf(emptyList<SourceStream>()) }
+    var features by remember { mutableStateOf(emptyMap<SourceStream, Set<SourceFeature>>()) }
+    var packs by remember { mutableStateOf(emptySet<SourceStream>()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var warnings by remember { mutableStateOf(emptyList<String>()) }
@@ -46,10 +52,12 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
     var checking by remember { mutableStateOf(false) }
     var library by remember { mutableStateOf(emptyMap<String, Torrent>()) }
     var libraryNotice by remember { mutableStateOf("") }
-    var quality by remember { mutableStateOf("") }
+    var resolution by remember { mutableStateOf<SourceFeature?>(null) }
+    var selectedFeatures by remember { mutableStateOf(emptySet<SourceFeature>()) }
     var provider by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf("cached") }
     var cachedOnly by remember { mutableStateOf(false) }
+    var advanced by remember { mutableStateOf(false) }
     val navigate = LocalNavigate.current
     val account = vm.repository.accountScope
     val connected = vm.repository.credentials.get("torbox_token").isNotBlank()
@@ -62,6 +70,12 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
         error = ""
         try {
             val found = vm.repository.searchSources(media, lookupEpisode)
+            val prepared = withContext(Dispatchers.Default) {
+                found.streams.associateWith { sourceFeatures(it.quality()) } to
+                    found.streams.filter { it.isSeasonPackFor(season) }.toSet()
+            }
+            features = prepared.first
+            packs = prepared.second
             results = found.streams
             warnings = found.errors
         } catch (cancelled: CancellationException) {
@@ -104,20 +118,23 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
             checking = false
         }
     }
-    val filtered =
+    val filtered = remember(results, features, resolution, selectedFeatures, provider, cachedOnly, cache.cached, packMode, showAll, packs) {
         results.filter {
-            (quality.isBlank() || it.resolution() == quality) &&
+            matchesSourceFeatures(features[it].orEmpty(), resolution, selectedFeatures) &&
                 (provider.isBlank() || it.source == provider) &&
                 (!cachedOnly || it.hash in cache.cached) &&
-                (!series || !packMode || showAll || it.isSeasonPackFor(season))
+                (!series || !packMode || showAll || it in packs)
         }
-    val visible =
+    }
+    val visible = remember(filtered, sort, cache.cached) {
         when (sort) {
             "seeders" -> filtered.sortedByDescending { it.seeders ?: -1 }
             "small" -> filtered.sortedBy { it.size.takeIf { n -> n > 0 } ?: Long.MAX_VALUE }
             "large" -> filtered.sortedByDescending { it.size }
             else -> filtered.sortedByDescending { it.hash in cache.cached }
         }
+    }
+    val reduced = LocalStakMotion.current.reduced
     StakBottomSheet(dismiss) {
         LazyColumn(
             Modifier.fillMaxWidth()
@@ -172,7 +189,7 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                     if (!packMode) Choice("Search episode", number.toString(),
                         (seasonEpisodes.ifEmpty { listOf(requireNotNull(lookupEpisode)) }).map { it.number.toString() to "E${it.number} · ${it.name}" },
                         { number = it.toInt() })
-                    if (packMode && results.any { !it.isSeasonPackFor(season) }) {
+                    if (packMode && results.any { it !in packs }) {
                         MotionButton(if (showAll) "Packs only" else "Show all releases") { showAll = !showAll }
                     }
                 }
@@ -182,25 +199,30 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
             if (results.isNotEmpty()) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Choice(
-                                "Source quality",
-                                quality,
-                                listOf("" to "All quality") +
-                                    results.map { it.resolution() }.distinct().map { it to it },
-                                { quality = it },
-                                Modifier.weight(1f),
-                            )
+                        SectionHeading("Fine tune your sources")
+                        Text("4K + 1080p only · tap badges to filter", fontFamily = MonoFont, fontSize = 10.sp, color = Muted)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SourceFeature.entries.forEach { feature ->
+                                val quality = feature == SourceFeature.UltraHd || feature == SourceFeature.FullHd
+                                SourceBadge(feature, selected = if (quality) resolution == feature else feature in selectedFeatures) {
+                                    if (quality) resolution = if (resolution == feature) null else feature
+                                    else selectedFeatures = if (feature in selectedFeatures) selectedFeatures - feature else selectedFeatures + feature
+                                }
+                            }
+                        }
+                        AnimatedVisibility(advanced,
+                            enter = fadeIn(motionSpec(reduced, 140)) + expandVertically(motionSpec(reduced, 180)),
+                            exit = fadeOut(motionSpec(reduced, 90)) + shrinkVertically(motionSpec(reduced, 140))) {
+                          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Choice(
                                 "Source provider",
                                 provider,
                                 listOf("" to "All providers") +
                                     results.map { it.source }.distinct().map { it to it },
                                 { provider = it },
-                                Modifier.weight(1f),
+                                Modifier.fillMaxWidth(),
                             )
-                        }
-                        Choice(
+                            Choice(
                             "Sort sources",
                             sort,
                             listOf(
@@ -210,7 +232,9 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                                 "large" to "Largest first",
                             ),
                             { sort = it },
-                        )
+                            )
+                          }
+                        }
                         Row(
                             Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -222,6 +246,9 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                                 onChange = { cachedOnly = it },
                                 enabled = connected && cache.checked.isNotEmpty(),
                             )
+                            Spacer(Modifier.width(12.dp))
+                            StakIconButton(if (advanced) StakIcons.ChevronUp else StakIcons.SlidersHorizontal,
+                                "More source filters", primary = advanced) { advanced = !advanced }
                         }
                         if (checking) DotStatus(label = "Checking TorBox availability")
                         if (!connected)
@@ -267,17 +294,21 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                     OriginalEmpty(
                         if (series && packMode && !showAll) "No season packs found" else "No matching releases",
                         if (series && packMode && !showAll) "Try episodes or show all releases. Pack labels are inferred from filenames."
-                        else "Try another quality, provider or cached filter.",
+                        else "Only 4K and 1080p releases are shown. Try another badge, provider or cached filter.",
                         if (series && packMode && !showAll) "Show all releases" else "Clear filters",
                     ) {
-                        quality = ""
+                        resolution = null
+                        selectedFeatures = emptySet()
                         provider = ""
                         cachedOnly = false
                         if (series && packMode) showAll = true
                     }
                 }
             items(visible, key = { "${it.hash}:${it.fileIndex}" }) { source ->
-                SourceReleaseRow(vm, media, lookupEpisode, source, cache, library[source.hash], dismiss)
+                SourceReleaseRow(vm, media, lookupEpisode, source, cache, library[source.hash], dismiss,
+                    Modifier.animateItem(fadeInSpec = if (reduced) null else tween(160),
+                        placementSpec = if (reduced) null else tween(200, easing = StakEase),
+                        fadeOutSpec = if (reduced) null else tween(100)))
             }
         }
     }
@@ -292,6 +323,7 @@ private fun SourceReleaseRow(
     cache: SourceCache,
     existing: Torrent?,
     dismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var details by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
@@ -300,29 +332,31 @@ private fun SourceReleaseRow(
     val context = LocalContext.current
     val navigate = LocalNavigate.current
     val magnet = source.magnet.ifBlank { "magnet:?xt=urn:btih:${source.hash}" }
-    val facts = source.quality()
-    val match = sourceMatch(source, media, episode)
+    val facts = remember(source) { source.quality() }
+    val badges = remember(facts) { sourceFeatures(facts) }
+    val seasonPack = remember(source, episode?.season) { episode?.let { source.isSeasonPackFor(it.season) } == true }
+    val match = remember(source, media.key, media.name, media.year, episode) { sourceMatch(source, media, episode) }
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
         border = BorderStroke(1.dp, Rule),
         color = MaterialTheme.colorScheme.surface,
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Label(source.source)
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                badges.forEach { SourceBadge(it) }
+            }
             Text(
-                source.title.ifBlank { source.name },
-                fontSize = 13.sp,
-                lineHeight = 20.sp,
-                maxLines = if (details) Int.MAX_VALUE else 4,
+                media.name,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 23.sp,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (facts.isNotEmpty())
-                Text(
-                    facts.joinToString(" · "),
-                    fontFamily = MonoFont,
-                    fontSize = 10.sp,
-                    color = AccentInk,
-                )
+            Text(listOfNotNull(media.year.takeIf { it.isNotBlank() },
+                episode?.let { if (seasonPack) "Season ${it.season} pack" else "S%02d · E%02d".format(it.season, it.number) }, source.source).joinToString(" · "),
+                fontFamily = MonoFont, fontSize = 10.sp, color = Muted)
             Text(
                 listOfNotNull(
                         source.size.takeIf { it > 0 }?.let { accountBytes(it) }
@@ -394,7 +428,10 @@ private fun SourceReleaseRow(
                     }
                 }
             }
-            if (details) {
+            AnimatedVisibility(details, enter = fadeIn(motionSpec(LocalStakMotion.current.reduced, 160)) + expandVertically(motionSpec(LocalStakMotion.current.reduced, 200)),
+                exit = fadeOut(motionSpec(LocalStakMotion.current.reduced, 100)) + shrinkVertically(motionSpec(LocalStakMotion.current.reduced, 160))) {
+              Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(source.title.ifBlank { source.name }, fontFamily = MonoFont, fontSize = 11.sp, lineHeight = 17.sp)
                 Text(
                     "${cache.sizes[source.hash]?.let { "Torrent total: ${accountBytes(it)}\n" }.orEmpty()}${facts.joinToString(" · ").ifBlank { "No technical tags detected" }}\n${source.hash}\n${source.fileIndex?.let { "File index: $it\n" }.orEmpty()}Cached availability does not verify content, language or playback compatibility.",
                     fontSize = 11.sp,
@@ -405,6 +442,7 @@ private fun SourceReleaseRow(
                     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                         .setPrimaryClip(ClipData.newPlainText(media.name, magnet))
                 }
+              }
             }
             if (error.isNotBlank())
                 Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)

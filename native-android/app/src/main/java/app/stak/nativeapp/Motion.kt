@@ -41,6 +41,16 @@ data class MotionPreferences(val reduced: Boolean = false, val haptics: Boolean 
 val LocalStakMotion = staticCompositionLocalOf { MotionPreferences() }
 val StakEase = CubicBezierEasing(.22f, .68f, .18f, 1f)
 
+/** Cheap layer-only feedback for clickable tiles; no list remeasurement during a press. */
+@Composable
+fun Modifier.stakPressMotion(interactions: MutableInteractionSource): Modifier {
+    val pressed by interactions.collectIsPressedAsState()
+    val reduced = LocalStakMotion.current.reduced
+    val scale = animateFloatAsState(if (pressed && !reduced) .975f else 1f,
+        motionSpec(reduced, 130), label = "Tile press")
+    return graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+}
+
 fun <T> motionSpec(reduced: Boolean, duration: Int = 220): FiniteAnimationSpec<T> =
     if (reduced) snap() else tween(duration, easing = StakEase)
 

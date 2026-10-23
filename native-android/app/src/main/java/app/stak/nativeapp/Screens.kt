@@ -104,7 +104,7 @@ fun EmptyState(message: String, retry: (() -> Unit)? = null) {
 fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = false,
     alignment: Alignment = Alignment.Center, onError: () -> Unit = {}) {
     val context = LocalContext.current
-    val repo = androidx.lifecycle.viewmodel.compose.viewModel<StakViewModel>().repository
+    val repo = (LocalStakViewModel.current ?: androidx.lifecycle.viewmodel.compose.viewModel<StakViewModel>()).repository
     val url = if (backdrop) media.background.ifBlank { media.poster } else media.poster
     val headers =
         remember(url) {
@@ -116,13 +116,13 @@ fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = fal
                 Headers.headersOf("X-Emby-Token", repo.credentials.get("jellyfin_token"))
             else Headers.headersOf()
         }
+    val reduced = LocalStakMotion.current.reduced
+    val request = remember(context, url, headers, reduced) {
+        ImageRequest.Builder(context).data(url).headers(headers).crossfade(if (reduced) 0 else 150).build()
+    }
     Box(modifier.background(Color(0xff111111))) {
         AsyncImage(
-            ImageRequest.Builder(context)
-                .data(url)
-                .headers(headers)
-                .crossfade(if (LocalStakMotion.current.reduced) 0 else 180)
-                .build(),
+            request,
             null,
             Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
@@ -284,15 +284,10 @@ fun PosterCard(
             label = "Poster press",
         )
     var menu by remember { mutableStateOf(false) }
-    val vm: StakViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-    val saved by vm.saved.collectAsStateWithLifecycle()
-    val watchlisted = saved.any { it.mediaKey == media.key && it.collection == "watchlist" }
-    val watched =
-        saved.any {
-            it.mediaKey == media.key &&
-                it.collection == "tracking" &&
-                org.json.JSONObject(it.json).optBoolean("played")
-        }
+    val vm = LocalStakViewModel.current ?: androidx.lifecycle.viewmodel.compose.viewModel<StakViewModel>()
+    val collections = LocalPosterState.current
+    val watchlisted = media.key in collections.watchlisted
+    val watched = media.key in collections.watched
     Column(
         modifier
             .graphicsLayer {
@@ -711,20 +706,22 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
             Int.MAX_VALUE
         }
     val activeIndex = pager.currentPage % media.size
-    var details by remember { mutableStateOf<Map<String, Media>>(emptyMap()) }
-    LaunchedEffect(activeIndex) {
-        val active = media[activeIndex]
-        if (details.containsKey(active.key)) return@LaunchedEffect
-        try {
-            val result =
-                if (vm.repository.credentials.get("tmdb_key").isNotBlank())
+    val heroKeys = media.map { it.key }
+    var details by remember(heroKeys) { mutableStateOf<Map<String, Media>>(emptyMap()) }
+    LaunchedEffect(activeIndex, heroKeys) {
+        // One adjacent title is enough to warm metadata without flooding provider requests.
+        listOf(activeIndex, (activeIndex + 1) % media.size).distinct().forEach { index ->
+            val active = media[index]
+            if (!details.containsKey(active.key)) try {
+                val result = if (vm.repository.credentials.get("tmdb_key").isNotBlank())
                     vm.repository.tmdbDetails(active, loadEpisodes = false)
                 else vm.repository.details(active)
-            details = details + (active.key to result)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            /* Hero retains its catalog data. */
+                details = details + (active.key to result)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                /* Hero retains its catalog data and readable title fallback. */
+            }
         }
     }
     val reduced = LocalStakMotion.current.reduced
@@ -748,7 +745,7 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                 )
                 .clip(RoundedCornerShape(14.dp))
         ) {
-            HorizontalPager(pager, Modifier.fillMaxSize()) { index ->
+            HorizontalPager(pager, Modifier.fillMaxSize(), beyondViewportPageCount = 1) { index ->
                 val summary = media[index % media.size]
                 val title = details[summary.key] ?: summary
                 Box(Modifier.fillMaxSize().clickable { onOpen(title, "home-hero") }) {
@@ -769,24 +766,7 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                             .padding(start = 20.dp, end = 20.dp, bottom = 48.dp),
                         verticalArrangement = Arrangement.Top,
                     ) {
-                        Text(
-                            title.name,
-                            fontFamily = BodyFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize =
-                                (viewportWidthDp() * .07f)
-                                    .coerceIn(26f, 40f)
-                                    .sp,
-                            lineHeight =
-                                ((viewportWidthDp() * .07f).coerceIn(
-                                        26f,
-                                        40f,
-                                    ) * 1.1f)
-                                    .sp,
-                            letterSpacing = (-.025).em,
-                            color = Color.White,
-                            maxLines = 2,
-                        )
+                        HomeHeroBrand(title)
                         Spacer(Modifier.height(12.dp))
                         if (title.genres.isNotEmpty() || title.certificate.isNotBlank()) {
                             Row(
@@ -1010,8 +990,7 @@ fun DiscoverScreen(
         providerError = ""
         if (vm.repository.credentials.get("tmdb_key").isBlank()) return@LaunchedEffect
         try {
-            providers =
-                vm.repository
+            providers = vm.repository
                     .tmdb(
                         "/watch/providers/${if (type == 0) "movie" else "tv"}",
                         mapOf("watch_region" to "US"),
@@ -1396,17 +1375,18 @@ fun WatchlistScreen(vm: StakViewModel, saved: List<SavedMedia>, onOpen: (Media, 
     var filters by remember { mutableStateOf(false) }
     var hideWatched by rememberSaveable { mutableStateOf(false) }
     var sort by rememberSaveable { mutableStateOf("added") }
-    val list = saved.filter { it.collection == "watchlist" }
-    val watched =
+    val list = remember(saved) { saved.filter { it.collection == "watchlist" } }
+    val decoded = remember(list) { list.map { it.media() } }
+    val watched = remember(saved) {
         saved
             .filter {
                 it.collection == "tracking" && org.json.JSONObject(it.json).optBoolean("played")
             }
             .map { it.mediaKey }
             .toSet()
-    val media =
-        list
-            .map { it.media() }
+    }
+    val media = remember(decoded, type, query, hideWatched, watched, sort) {
+        decoded
             .filter {
                 (type == 0 || it.type == if (type == 1) "movie" else "series") &&
                     it.name.contains(query, true) &&
@@ -1420,6 +1400,7 @@ fun WatchlistScreen(vm: StakViewModel, saved: List<SavedMedia>, onOpen: (Media, 
                     else -> items
                 }
             }
+    }
     val navigate = LocalNavigate.current
     LazyVerticalGrid(
         GridCells.Fixed(if (layout == 0) 3 else 1),

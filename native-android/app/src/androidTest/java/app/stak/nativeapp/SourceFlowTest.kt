@@ -3,6 +3,7 @@ package app.stak.nativeapp
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.concurrent.CopyOnWriteArrayList
@@ -99,7 +100,7 @@ class SourceFlowTest {
                                                     .put("name", "Test addon 4K")
                                                     .put(
                                                         "title",
-                                                        "Pipeline.fixture.2026.2160p.WEB-DL.HEVC",
+                                                        "Pipeline.fixture.2026.2160p.HDR.WEB-DL.Atmos.HEVC",
                                                     )
                                                     .put("infoHash", hash)
                                             )
@@ -131,6 +132,7 @@ class SourceFlowTest {
         vm = StakViewModel(app, Repository(app, client))
         vm.repository.credentials.set("torbox_token", "test-only-source-flow")
         vm.repository.credentials.set("tmdb_key", "")
+        vm.repository.metadataDirectory.listFiles()?.forEach { it.delete() }
         compose.runOnUiThread {
             vm.appearance("reduced", true)
             vm.option("torrentio", "true")
@@ -147,20 +149,37 @@ class SourceFlowTest {
         compose.onNodeWithTag(searchResult).performClick()
         compose.onNodeWithText("FIND SOURCES").performClick()
         compose.waitUntil(15000) {
-            compose.onAllNodesWithText("Cached on TorBox").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithContentDescription("Cached sources only").fetchSemanticsNodes()
+                .any { !it.config.contains(SemanticsProperties.Disabled) }
         }
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasContentDescription("Cached sources only"))
         compose.onNodeWithContentDescription("Cached sources only").performClick()
         compose
             .onNodeWithText("1 of 2 releases · tags and title matches are inferred from filenames.")
             .assertExists()
-        compose.onNodeWithContentDescription("Source quality").performClick()
-        compose.onNodeWithText("1080p").performClick()
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasContentDescription("Filter 1080p"))
+        compose.onNodeWithContentDescription("Filter 1080p").assertIsOff().performClick().assertIsOn()
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasText("No matching releases"))
         compose.onNodeWithText("No matching releases").assertExists()
         compose.onNodeWithText("CLEAR FILTERS").performClick()
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasContentDescription("Filter HDR"))
+        compose.onNodeWithContentDescription("Filter HDR").performClick().assertIsOn()
+        compose.onNodeWithContentDescription("Filter Atmos").performClick().assertIsOn()
+        compose.onNodeWithContentDescription("Filter WEB-DL").performClick().assertIsOn()
+        val oneRelease = "1 of 2 releases · tags and title matches are inferred from filenames."
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasText(oneRelease))
+        compose.onNodeWithText(oneRelease).assertExists()
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasContentDescription("Filter Remux"))
+        compose.onNodeWithContentDescription("Filter Remux").performClick().assertIsOn()
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasText("No matching releases"))
+        compose.onNodeWithText("No matching releases").assertExists()
+        compose.onNodeWithText("CLEAR FILTERS").performClick()
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasContentDescription("Filter 4K"))
         for (theme in listOf("dark", "light")) {
             compose.runOnUiThread { vm.option("theme", theme) }
             capture(theme)
         }
+        compose.onNodeWithTag("sources-results").performScrollToNode(hasContentDescription("Cached sources only"))
         compose.onNodeWithContentDescription("Cached sources only").performClick()
         compose.onNodeWithTag("sources-results").performScrollToNode(hasText("ADD TO TORBOX"))
         compose.onNodeWithText("ADD TO TORBOX").performClick()

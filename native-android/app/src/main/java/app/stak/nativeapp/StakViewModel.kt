@@ -56,6 +56,7 @@ constructor(application: Application, val repository: Repository = Repository(ap
     val messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     private val mutationLock = Mutex()
     val catalogs = java.util.concurrent.ConcurrentHashMap<String, List<Media>>()
+    private val catalogReads = ReadLocks()
 
     init {
         viewModelScope.launch {
@@ -76,7 +77,10 @@ constructor(application: Application, val repository: Repository = Repository(ap
             catalogs[key]?.let {
                 return it
             }
-        return repository.catalog(type, query).also { catalogs[key] = it }
+        return catalogReads.forKey(key).withLock {
+            if (!refresh) catalogs[key]?.let { return@withLock it }
+            repository.catalog(type, query, refresh = refresh).also { catalogs[key] = it }
+        }
     }
 
     fun appearance(name: String, enabled: Boolean) {

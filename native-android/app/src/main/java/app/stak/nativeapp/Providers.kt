@@ -3,6 +3,7 @@ package app.stak.nativeapp
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.sync.withLock
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.*
 
@@ -253,27 +254,29 @@ suspend fun Repository.publicMetadata(
     load: suspend () -> JSONObject,
 ): JSONObject =
     withContext(Dispatchers.IO) {
-        val hash =
-            java.security.MessageDigest.getInstance("SHA-256")
-                .digest(key.toByteArray())
-                .joinToString("") { "%02x".format(it) }
-        val file = java.io.File(metadataDirectory, "$hash.json")
-        if (file.exists() && System.currentTimeMillis() - file.lastModified() < maxAge) {
-            runCatching { JSONObject(file.readText()) }
-                .getOrNull()
-                ?.let {
-                    return@withContext it
-                }
+        metadataReads.forKey(key).withLock {
+            val hash =
+                java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(key.toByteArray())
+                    .joinToString("") { "%02x".format(it) }
+            val file = java.io.File(metadataDirectory, "$hash.json")
+            if (maxAge > 0 && file.exists() && System.currentTimeMillis() - file.lastModified() in 0 until maxAge) {
+                runCatching { JSONObject(file.readText()) }
+                    .getOrNull()
+                    ?.let {
+                        return@withLock it
+                    }
+            }
+            val result = load()
+            val temporary = java.io.File.createTempFile("metadata-", ".tmp", metadataDirectory)
+            try {
+                temporary.writeText(result.toString())
+                if (!temporary.renameTo(file)) temporary.delete()
+            } finally {
+                temporary.delete()
+            }
+            result
         }
-        val result = load()
-        val temporary = java.io.File.createTempFile("metadata-", ".tmp", metadataDirectory)
-        try {
-            temporary.writeText(result.toString())
-            if (!temporary.renameTo(file)) temporary.delete()
-        } finally {
-            temporary.delete()
-        }
-        result
     }
 
 data class JellyfinUser(val id: String, val name: String)

@@ -422,6 +422,7 @@ class Repository(
     val metadataDirectory = java.io.File(context.cacheDir, "public-metadata").apply { mkdirs() }
     val preferences = context.getSharedPreferences("stak_appearance", 0)
     private val metadataCache = java.util.concurrent.ConcurrentHashMap<String, Media>()
+    val metadataReads = ReadLocks()
 
     fun remember(media: Media): Media =
         metadataCache.compute(media.key) { _, previous -> media.enrichedBy(previous) }!!
@@ -473,7 +474,7 @@ class Repository(
                 )
             else if (body != null)
                 builder.post(body.toString().toRequestBody("application/json".toMediaType()))
-            client.newCall(builder.build()).execute().use { response ->
+            client.newCall(builder.build()).awaitResponse().use { response ->
                 check(response.isSuccessful) {
                     when (response.code) {
                         401,
@@ -506,7 +507,7 @@ class Repository(
                     .header("Accept", "application/json, application/xml, text/xml")
                     .header("User-Agent", "STAK Native/0.1")
                     .build()
-            client.newCall(request).execute().use { response ->
+            client.newCall(request).awaitResponse().use { response ->
                 check(response.isSuccessful) {
                     when (response.code) {
                         401,
@@ -521,7 +522,7 @@ class Repository(
             }
         }
 
-    suspend fun catalog(type: String, query: String = "", skip: Int = 0): List<Media> {
+    suspend fun catalog(type: String, query: String = "", skip: Int = 0, refresh: Boolean = false): List<Media> {
         require(type == "movie" || type == "series")
         if (credentials.get("tmdb_key").isNotBlank())
             return browse(type, query = query, page = skip / 20 + 1)
@@ -530,7 +531,10 @@ class Repository(
             else
                 "/search=${java.net.URLEncoder.encode(query, "UTF-8").replace("+", "%20")}" +
                     if (skip > 0) "&skip=$skip" else ""
-        val root = request("https://v3-cinemeta.strem.io/catalog/$type/top$extra.json")
+        val url = "https://v3-cinemeta.strem.io/catalog/$type/top$extra.json"
+        val root = if (query.isBlank()) publicMetadata("catalog:$type:$skip", maxAge = if (refresh) 0L else 300_000L) {
+            request(url)
+        } else request(url)
         return root.optJSONArray("metas").objects().map { remember(Media.fromJson(it)) }
     }
 
