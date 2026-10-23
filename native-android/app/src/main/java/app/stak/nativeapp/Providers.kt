@@ -35,6 +35,7 @@ fun tmdbMedia(item: JSONObject, type: String) =
         id = "tmdb:${item.optInt("id")}",
         type = type,
         name = item.optString("title", item.optString("name")),
+        aliases = mediaAliases(item),
         releaseDate = item.optString("release_date", item.optString("first_air_date")),
         poster = imagePath(item.optString("poster_path")),
         background = imagePath(item.optString("backdrop_path"), "w1280"),

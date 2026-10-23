@@ -51,6 +51,7 @@ data class Media(
     val ratingSource: String = "IMDb",
     val totalEpisodes: Int = 0,
     val releaseDate: String = "",
+    val aliases: List<String> = emptyList(),
 ) {
     val key
         get() = "$type:$id"
@@ -76,6 +77,7 @@ data class Media(
             certificate = certificate.ifBlank { previous.certificate },
             totalEpisodes = totalEpisodes.takeIf { it > 0 } ?: previous.totalEpisodes,
             releaseDate = releaseDate.ifBlank { previous.releaseDate },
+            aliases = (aliases + previous.aliases).distinct(),
         )
     }
 
@@ -97,6 +99,7 @@ data class Media(
             .put("tmdbId", tmdbId)
             .put("imdbId", imdbId)
             .put("released", releaseDate)
+            .put("aliases", JSONArray(aliases))
             .put("ratingSource", ratingSource)
             .put("total_episodes", totalEpisodes.takeIf { it > 0 } ?: episodes.size)
 
@@ -105,7 +108,8 @@ data class Media(
             Media(
                 id = j.optString("imdb_id", j.optString("id")),
                 type = if (j.optString("type") == "movie") "movie" else "series",
-                name = j.optString("name"),
+                name = j.optString("name", j.optString("title")),
+                aliases = mediaAliases(j),
                 poster = j.optString("poster"),
                 background = j.optString("background"),
                 year = j.optString("year", j.optString("releaseInfo")),
@@ -678,4 +682,22 @@ class Repository(
             require(it.toHttpUrl().isHttps) { "Invalid download link." }
         }
     }
+}
+
+
+/** Preserve provider title variants through cache, backup and metadata enrichment. */
+internal fun mediaAliases(item: JSONObject): List<String> {
+    val alternatives = item.optJSONArray("alternative_titles")
+        ?: item.optJSONObject("alternative_titles")?.let {
+            it.optJSONArray("titles") ?: it.optJSONArray("results")
+        }
+    return (listOf(item.optString("title"), item.optString("original_title"),
+        item.optString("original_name")) + item.optJSONArray("aliases").strings() +
+        (0 until (alternatives?.length() ?: 0)).map { index ->
+            when (val value = alternatives?.opt(index)) {
+                is String -> value
+                is JSONObject -> value.optString("title", value.optString("name"))
+                else -> ""
+            }
+        }).filter { it.isNotBlank() }.distinct()
 }

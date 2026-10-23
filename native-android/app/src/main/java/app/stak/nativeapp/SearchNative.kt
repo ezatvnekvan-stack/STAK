@@ -38,12 +38,12 @@ fun searchRelevance(media: Media, query: String): Double {
     val term = searchName(stripped.ifBlank { raw })
     if (term.isBlank()) return 0.0
     if (searchName(media.imdbId.ifBlank { media.id }) == term) return -1.0
-    val name = searchName(media.name)
-    if (name == searchName(raw)) return -.5
+    val names = (listOf(media.name) + media.aliases).filter { it.isNotBlank() }.map(::searchName)
+    if (searchName(raw) in names) return -.5
     val tokens = term.split(' ')
-    val words = name.split(' ')
-    val score =
-        when {
+    fun score(name: String): Double {
+        val words = name.split(' ')
+        return when {
             name == term -> 0.0
             name.startsWith("$term ") -> 100.0
             tokens.all { it in words } -> 200.0 + kotlin.math.abs(name.length - term.length)
@@ -55,7 +55,10 @@ fun searchRelevance(media: Media, query: String): Double {
                             tokens.size) * 100 +
                     editDistance(name, term).toDouble() / maxOf(name.length, term.length, 1) * 100
         }
-    return score + if (year != null && media.year.take(4) != year) 30 else 0
+    }
+    val titleYear = Regex("[0-9]{4}").find(media.year.ifBlank { media.releaseDate })?.value
+    return minOf(names.minOfOrNull(::score) ?: 1000.0, 1000.0) +
+        if (year != null && titleYear != year) 30 else 0
 }
 
 data class NativeSearchPage(
@@ -120,8 +123,11 @@ suspend fun Repository.searchTitles(query: String, page: Int = 1): NativeSearchP
             var result = tmdb("/search/multi", params)
             val parts = Regex("^(.*?)\\s+\\(?((?:19|20)\\d{2})\\)?$").matchEntire(term)
             val year = parts?.groupValues?.get(2).orEmpty()
+            val exactNumericTitle = result.optJSONArray("results").objects().any {
+                matchesSearchTitle(tmdbMedia(it, if (it.optString("media_type") == "tv") "series" else "movie"), term)
+            }
             if (
-                year.isNotBlank() &&
+                year.isNotBlank() && !exactNumericTitle &&
                     result.optJSONArray("results").objects().none {
                         it.optString("release_date", it.optString("first_air_date"))
                             .startsWith(year)
@@ -134,7 +140,8 @@ suspend fun Repository.searchTitles(query: String, page: Int = 1): NativeSearchP
                 .objects()
                 .filter { it.optString("media_type") in listOf("movie", "tv") }
                 .filter {
-                    year.isBlank() ||
+                    matchesSearchTitle(tmdbMedia(it, if (it.optString("media_type") == "tv") "series" else "movie"), term) ||
+                        year.isBlank() ||
                         it.optString("release_date", it.optString("first_air_date"))
                             .startsWith(year)
                 }
@@ -174,3 +181,7 @@ suspend fun Repository.searchTitles(query: String, page: Int = 1): NativeSearchP
         if (page < totalPages) page + 1 else null,
     )
 }
+
+
+internal fun matchesSearchTitle(media: Media, query: String): Boolean =
+    (listOf(media.name) + media.aliases).any { searchName(it) == searchName(query) }

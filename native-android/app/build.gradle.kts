@@ -13,6 +13,7 @@ val distributionReady = listOf(distributionStore, distributionStorePassword, dis
 android {
     namespace = "app.stak.nativeapp"
     compileSdk = 35
+    buildToolsVersion = "35.0.0"
     defaultConfig {
         applicationId = "app.stak.nativeapp"
         minSdk = 26
