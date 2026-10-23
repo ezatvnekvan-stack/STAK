@@ -52,6 +52,11 @@ android {
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     testOptions { unitTests.isReturnDefaultValues = true }
 }
+// Guava's compiler annotations reference javax.lang.model, which Android does not
+// provide. Keep them on the test compiler classpath, out of the device runtime.
+configurations.matching { it.name.endsWith("AndroidTestRuntimeClasspath") }.configureEach {
+    exclude(group = "com.google.errorprone", module = "error_prone_annotations")
+}
 // Never produce an unsigned or silently debug-signed distribution build.
 tasks.matching { it.name in listOf("packageRelease", "assembleRelease", "bundleRelease") }.configureEach {
     doFirst {
