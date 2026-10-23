@@ -111,6 +111,8 @@ fun Ambient(
     Box(modifier.fillMaxSize()) {
         Canvas(
             Modifier.matchParentSize().graphicsLayer {
+                // Avoid a fullscreen opacity buffer underneath every scrolling frame.
+                compositingStrategy = CompositingStrategy.ModulateAlpha
                 // Read the clock in the layer phase: drifting does not recompose or redraw
                 // the gradient/dot canvases at 90/120 Hz.
                 val phase = (elapsed.longValue / 1_000_000_000.0 / 100.0) % 2
