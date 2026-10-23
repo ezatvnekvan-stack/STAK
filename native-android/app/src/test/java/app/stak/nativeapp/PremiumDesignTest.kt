@@ -13,7 +13,7 @@ class PremiumDesignTest {
     @Test fun bodyAndSecondaryTextMeetContrastTargetsInBothThemes() {
         for (dark in listOf(true, false)) {
             val colors = premiumColors(dark)
-            for (surface in listOf(colors.background, colors.surface, colors.surfaceContainer)) {
+            for (surface in listOf(colors.background, colors.surface, colors.surfaceContainerLow, colors.surfaceContainer, colors.surfaceContainerHigh)) {
                 assertTrue("Primary text contrast on $surface", contrast(colors.onSurface, surface) >= 4.5f)
                 assertTrue("Secondary text contrast on $surface", contrast(colors.onSurfaceVariant, surface) >= 4.5f)
             }
