@@ -107,21 +107,21 @@ fun SourcesSettings(vm: StakViewModel) {
         }
     }
     removing?.let { item ->
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { removing = null },
             title = { Text("Remove ${item.name}?") },
             text = {
                 Text("This removes the source from STAK. Your server and library stay intact.")
             },
             confirmButton = {
-                TextButton({
+                GlassTextButton({
                     vm.indexers.remove(item.id)
                     removing = null
                 }) {
                     Text("Remove")
                 }
             },
-            dismissButton = { TextButton({ removing = null }) { Text("Cancel") } },
+            dismissButton = { GlassTextButton({ removing = null }) { Text("Cancel") } },
         )
     }
 }
@@ -160,7 +160,7 @@ private fun SourceSettingRow(
             )
         }
         if (onRemove != null)
-            IconButton(onRemove, Modifier.size(44.dp).testTag("$tag-delete")) {
+            GlassIconButton(onRemove, Modifier.size(44.dp).testTag("$tag-delete")) {
                 Icon(
                     StakIcons.Trash2,
                     "Remove $title",

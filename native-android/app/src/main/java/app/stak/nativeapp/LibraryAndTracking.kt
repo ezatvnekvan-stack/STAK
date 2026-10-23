@@ -112,7 +112,7 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
         }
         if (!connected)
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Surface(
+                LiquidSurface(
                     shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, Rule),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
@@ -176,10 +176,10 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
                             )
                         }
                         Spacer(Modifier.weight(1f))
-                        IconButton({ layout = 0 }) {
+                        GlassIconButton({ layout = 0 }) {
                             Icon(StakIcons.LayoutGrid, "Grid view", Modifier.size(18.dp))
                         }
-                        IconButton({ layout = 1 }) {
+                        GlassIconButton({ layout = 1 }) {
                             Icon(StakIcons.List, "List view", Modifier.size(18.dp))
                         }
                     }
@@ -298,7 +298,7 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
                             Modifier.weight(1f),
                             style = MaterialTheme.typography.titleLarge,
                         )
-                        IconButton({ selected = null }) {
+                        GlassIconButton({ selected = null }) {
                             Icon(StakIcons.X, "Close dialog", Modifier.size(18.dp))
                         }
                     }
@@ -354,12 +354,12 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
             }
         }
         if (confirmDelete)
-            AlertDialog(
+            GlassAlertDialog(
                 onDismissRequest = { confirmDelete = false },
                 title = { Text("Delete torrent?") },
                 text = { Text(torrent.name) },
                 confirmButton = {
-                    TextButton({
+                    GlassTextButton({
                         vm.operation {
                             busy = true
                             try {
@@ -375,7 +375,7 @@ fun LibraryScreen(vm: StakViewModel, onOpen: (Media, String) -> Unit, initialTab
                         Text("Delete")
                     }
                 },
-                dismissButton = { TextButton({ confirmDelete = false }) { Text("Cancel") } },
+                dismissButton = { GlassTextButton({ confirmDelete = false }) { Text("Cancel") } },
             )
     }
 }

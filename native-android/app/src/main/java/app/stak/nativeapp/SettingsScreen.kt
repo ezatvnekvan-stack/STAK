@@ -96,7 +96,7 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
                 ) {
                     row.forEach { destination ->
                         val interactions = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                        Surface(
+                        LiquidSurface(
                             modifier =
                                 Modifier.weight(1f).stakPressMotion(interactions)
                                     .fillMaxHeight()
@@ -216,7 +216,7 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
             }
         }
     }
-    Surface(
+    LiquidSurface(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
         border = BorderStroke(1.dp, Rule),
@@ -224,7 +224,7 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
         Column(Modifier.padding(horizontal = 15.dp, vertical = 9.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Label("Connections", Modifier.weight(1f))
-                IconButton({ check() }, Modifier.size(44.dp), enabled = !checking) {
+                GlassIconButton({ check() }, Modifier.size(44.dp), enabled = !checking) {
                     Icon(StakIcons.RefreshCw, "Test connections", Modifier.size(15.dp))
                 }
             }
@@ -316,7 +316,7 @@ fun MetadataSettings(vm: StakViewModel) {
                 )
             }
             var busy by remember { mutableStateOf(false) }
-            Surface(
+            LiquidSurface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
                 border = BorderStroke(1.dp, Rule),

@@ -231,6 +231,7 @@ abstract class StakDatabase : RoomDatabase() {
 /** Keystore-backed storage for provider credentials and account-scoped indexer configuration. */
 class Credentials(context: Context) {
     private val prefs = context.getSharedPreferences("stak_secure", Context.MODE_PRIVATE)
+    private val reads = SnapshotReadCache()
 
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -292,8 +293,11 @@ class Credentials(context: Context) {
         if (name in scopedNames) "${name}_$scope" else name
 
     fun get(name: String): String {
-        val value = prefs.getString(storageName(name), null) ?: return ""
+        val storage = storageName(name)
+        val value = prefs.getString(storage, null)
         return runCatching {
+            reads.read(storage, value) {
+                requireNotNull(value)
                 val bytes = Base64.decode(value, Base64.NO_WRAP)
                 val cipher = Cipher.getInstance("AES/GCM/NoPadding")
                 cipher.init(
@@ -303,10 +307,12 @@ class Credentials(context: Context) {
                 )
                 String(cipher.doFinal(bytes.copyOfRange(12, bytes.size)), Charsets.UTF_8)
             }
+        }
             .getOrDefault("")
     }
 
     fun set(name: String, value: String) {
+        reads.clear()
         if (value.isBlank()) {
             check(prefs.edit().remove(storageName(name)).commit()) { "Could not save credentials." }
             return

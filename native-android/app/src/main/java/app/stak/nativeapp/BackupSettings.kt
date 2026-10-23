@@ -128,7 +128,7 @@ fun BackupSettings(vm: StakViewModel) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Import backup (merge missing records)", fontSize = 12.sp, lineHeight = 16.sp)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(onClick = { clear(); import.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
+                        LiquidSurface(onClick = { clear(); import.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
                             enabled = !busy, modifier = Modifier.testTag("backup-import"), shape = RoundedCornerShape(12.dp), color = Color.Transparent,
                             border = androidx.compose.foundation.BorderStroke(1.dp, Rule)) {
                             Box(Modifier.width(104.dp).height(44.dp), contentAlignment = Alignment.Center) { Text("Choose File", fontSize = 12.sp, lineHeight = 16.sp) }
@@ -154,7 +154,7 @@ fun BackupSettings(vm: StakViewModel) {
         }
     }
     if (stage.isNotEmpty())
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { if (!busy) clear() },
             title = {
                 Text(

@@ -25,7 +25,7 @@ fun TorBoxSettings(vm: StakViewModel) {
         if (savedKey.isNotBlank()) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (account.error.isNotBlank()) {
-                    Surface(
+                    LiquidSurface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
                         border = BorderStroke(1.dp, Color(0xffd71921).copy(alpha = .6f)),
@@ -72,7 +72,7 @@ fun TorBoxSettings(vm: StakViewModel) {
                         }
                     }
                 }
-                Surface(
+                LiquidSurface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
                     border = BorderStroke(1.dp, Rule),
@@ -186,7 +186,7 @@ private fun AccountStat(
     stat: Triple<String, String, String>,
     modifier: Modifier,
 ) {
-    Surface(
+    LiquidSurface(
         modifier,
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = .8f),

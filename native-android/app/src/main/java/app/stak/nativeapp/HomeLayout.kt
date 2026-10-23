@@ -167,7 +167,7 @@ fun HomeSettings(vm: StakViewModel) {
                 (nav + allNavigation).distinct().forEach { id ->
                     val index = nav.indexOf(id)
                     val label = navigationLabel(id)
-                    Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), color = androidx.compose.ui.graphics.Color.Transparent,
+                    LiquidSurface(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), color = androidx.compose.ui.graphics.Color.Transparent,
                         border = androidx.compose.foundation.BorderStroke(1.dp, edge)) {
                         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 13.dp), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)) {

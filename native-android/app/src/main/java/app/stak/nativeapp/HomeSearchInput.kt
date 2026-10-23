@@ -29,8 +29,7 @@ fun HomeSearchInput(value: String, onChange: (String) -> Unit, onClear: () -> Un
         Modifier.fillMaxWidth()
             .height(44.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.onSurface.copy(alpha = .065f), MaterialTheme.colorScheme.surface.copy(alpha = .5f))))
-            .border(1.dp, Rule, RoundedCornerShape(12.dp))
+            .liquidGlass(18.dp)
     ) {
         Row(
             Modifier.fillMaxSize()

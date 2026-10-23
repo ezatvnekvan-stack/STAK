@@ -96,7 +96,6 @@ val BodyFont =
             .toTypedArray()
     )
 val MonoFont = FontFamily(Font(R.font.space_mono), Font(R.font.space_mono_bold, FontWeight.Bold))
-val LocalShared = staticCompositionLocalOf<SharedTransitionScope?> { null }
 val LocalDestination = staticCompositionLocalOf<AnimatedVisibilityScope?> { null }
 
 class MainActivity : ComponentActivity() {
@@ -335,7 +334,8 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
             ) {
                 Box(Modifier.fillMaxSize().background(colors.background)) {
                     Box(Modifier.fillMaxSize().hazeSource(glass)) {
-                    Ambient(Modifier.systemBarsPadding(), cinematic = bare, tone = Color(tone))
+                        Ambient(Modifier.systemBarsPadding(), cinematic = bare, tone = Color(tone))
+                    }
                     Scaffold(
                         containerColor = Color.Transparent,
                         contentColor = colors.onSurface,
@@ -345,8 +345,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                                 WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                             ),
                     ) { padding ->
-                        SharedTransitionLayout(Modifier.fillMaxSize().padding(padding)) {
-                            CompositionLocalProvider(LocalShared provides this) {
+                        Box(Modifier.fillMaxSize().padding(padding)) {
                                 NavHost(
                                     nav,
                                     "home",
@@ -494,9 +493,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                                         }
                                     }
                                 }
-                            }
                         }
-                    }
                     }
                     if (!bare) {
                         val tabs = navigationOrder(options)
@@ -564,7 +561,7 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                 Box(
                     Modifier.offset { IntOffset(x.value.roundToPx(), 6.dp.roundToPx()) }
                         .size(36.dp, 30.dp)
-                        .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp))
+                        .liquidGlass(12.dp, highlighted = true)
                 )
             Row(Modifier.fillMaxSize()) {
                 labels.forEachIndexed { index, label ->
@@ -579,7 +576,7 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                         )
                     val iconColor by
                         animateColorAsState(
-                            if (index == selected) MaterialTheme.colorScheme.background
+                            if (index == selected) AccentInk
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                             motionSpec(policy.reduced, 180),
                             label = "Navigation ink",

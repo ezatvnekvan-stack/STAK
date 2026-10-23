@@ -140,7 +140,7 @@ fun HashListsScreen(vm: StakViewModel) {
                 )
             }
         items(lists, key = { it.optString("id") }) { list ->
-            Surface(
+            LiquidSurface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
                 border = BorderStroke(1.dp, Rule),
@@ -170,10 +170,10 @@ fun HashListsScreen(vm: StakViewModel) {
                             color = Muted,
                         )
                     }
-                    IconButton({ exportList(context, list) }) {
+                    GlassIconButton({ exportList(context, list) }) {
                         Icon(StakIcons.Share2, "Export magnets", Modifier.size(15.dp))
                     }
-                    IconButton({
+                    GlassIconButton({
                         vm.repository.removeHashList(list.optString("id"))
                         lists = vm.repository.hashLists()
                     }) {
@@ -259,7 +259,7 @@ fun HashListScreen(vm: StakViewModel, id: String) {
                         color = Muted,
                     )
                 }
-                IconButton(
+                GlassIconButton(
                     {
                         vm.operation {
                             vm.repository.addMagnet("magnet:?xt=urn:btih:${item.optString("hash")}")
@@ -269,7 +269,7 @@ fun HashListScreen(vm: StakViewModel, id: String) {
                 ) {
                     Icon(StakIcons.Plus, "Add torrent", Modifier.size(18.dp))
                 }
-                IconButton({
+                GlassIconButton({
                     copyList(
                         context,
                         JSONObject()
@@ -290,7 +290,7 @@ fun SaveHashListDialog(vm: StakViewModel, torrents: List<Torrent>, dismiss: () -
     var created by remember { mutableStateOf<JSONObject?>(null) }
     val context = LocalContext.current
     Dialog(dismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(
+        LiquidSurface(
             Modifier.padding(12.dp).fillMaxWidth().widthIn(max = 520.dp),
             shape = RoundedCornerShape(22.dp),
             border = BorderStroke(1.dp, Rule),
@@ -303,7 +303,7 @@ fun SaveHashListDialog(vm: StakViewModel, torrents: List<Torrent>, dismiss: () -
                         Modifier.weight(1f),
                         style = MaterialTheme.typography.headlineSmall,
                     )
-                    IconButton(dismiss) { Icon(StakIcons.X, "Close dialog", Modifier.size(18.dp)) }
+                    GlassIconButton(dismiss) { Icon(StakIcons.X, "Close dialog", Modifier.size(18.dp)) }
                 }
                 Text(
                     "${torrents.size} selected torrents — save a list on this device.",

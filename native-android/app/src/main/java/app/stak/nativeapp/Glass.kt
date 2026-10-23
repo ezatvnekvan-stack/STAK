@@ -1,26 +1,97 @@
 @file:OptIn(dev.chrisbanes.haze.ExperimentalHazeApi::class)
 package app.stak.nativeapp
 
-import android.os.Build
-import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogWindowProvider
 import dev.chrisbanes.haze.*
 
 val LocalGlassBackdrop = staticCompositionLocalOf<HazeState?> { null }
+
+/** Cached glass paint, without a render target or blur pass for each control. */
+@Composable
+fun Modifier.liquidGlass(radius: Dp = 16.dp, highlighted: Boolean = false,
+    strength: Float = .72f): Modifier = liquidGlassShape(RoundedCornerShape(radius), highlighted, strength)
+
+@Composable
+private fun Modifier.liquidGlassShape(shape: Shape, highlighted: Boolean = false,
+    strength: Float = .72f): Modifier {
+    val dark = MaterialTheme.colorScheme.background.red < .5f
+    val tint = if (highlighted) Accent else if (dark) Color(0xff18212b) else Color(0xfff6f9ff)
+    val edge = if (highlighted) AccentInk else if (dark) Color.White else Color(0xff64748b)
+    return clip(shape).drawWithCache {
+        val outline = shape.createOutline(size, layoutDirection, this)
+        val fill = Brush.linearGradient(listOf(
+            tint.copy(alpha = strength * if (highlighted) .42f else .9f),
+            tint.copy(alpha = strength * .5f)))
+        val shine = Brush.linearGradient(listOf(Color.White.copy(alpha = if (dark) .13f else .7f),
+            Color.White.copy(alpha = .015f), Color.Transparent), end = Offset(size.width * .65f, size.height))
+        val rim = Brush.linearGradient(listOf(edge.copy(alpha = if (highlighted) .65f else .32f),
+            edge.copy(alpha = .06f), edge.copy(alpha = .2f)))
+        val stroke = 1.dp.toPx()
+        onDrawWithContent {
+            drawOutline(outline, fill)
+            drawContent()
+            drawOutline(outline, shine)
+            drawOutline(outline, rim, style = Stroke(stroke * 2))
+        }
+    }
+}
+
+/** Shared treatment for cards, dialogs and secondary controls across every screen. */
+@Composable
+fun LiquidSurface(modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(16.dp),
+    color: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = androidx.compose.material3.contentColorFor(color),
+    border: BorderStroke? = null, onClick: (() -> Unit)? = null, enabled: Boolean = true,
+    interactionSource: MutableInteractionSource? = null, tonalElevation: Dp = 0.dp,
+    shadowElevation: Dp = 0.dp, highlighted: Boolean = false, content: @Composable () -> Unit) {
+    val surface = MaterialTheme.colorScheme.surface
+    val neutral = color == surface || color == surface.copy(alpha = .74f) || color == surface.copy(alpha = .94f)
+    val paint = modifier.liquidGlassShape(shape, highlighted = highlighted || color == Accent)
+    if (onClick == null) Surface(paint, shape, if (neutral) Color.Transparent else color, contentColor,
+        tonalElevation, shadowElevation, border, content = content)
+    else Surface(onClick, paint, enabled, shape, if (neutral) Color.Transparent else color, contentColor,
+        tonalElevation, shadowElevation, border, interactionSource, content)
+}
+
+@Composable
+fun GlassIconButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
+    content: @Composable () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    androidx.compose.material3.IconButton(onClick, modifier.stakPressMotion(interaction).liquidGlass(100.dp),
+        enabled = enabled, interactionSource = interaction, content = content)
+}
+
+@Composable
+fun GlassTextButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit) {
+    androidx.compose.material3.TextButton(onClick, modifier.liquidGlass(14.dp, highlighted = enabled), enabled = enabled,
+        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = AccentInk), content = content)
+}
+@Composable
+fun GlassAlertDialog(onDismissRequest: () -> Unit, confirmButton: @Composable () -> Unit,
+    dismissButton: (@Composable () -> Unit)? = null, title: (@Composable () -> Unit)? = null,
+    text: (@Composable () -> Unit)? = null) {
+    androidx.compose.material3.AlertDialog(onDismissRequest, confirmButton,
+        modifier = Modifier.liquidGlass(28.dp, strength = .95f),
+        dismissButton = dismissButton, title = title, text = text, containerColor = Color.Transparent)
+}
 
 /** One downsampled backdrop for floating chrome; scrolling cards use a cheap glass tint. */
 @Composable
@@ -31,31 +102,11 @@ fun GlassPanel(modifier: Modifier = Modifier, radius: Dp = 20.dp, backdrop: Bool
     val haze = LocalGlassBackdrop.current
     val style = remember(dark) { HazeStyle(backgroundColor = if (dark) Color.Black else Color.White,
         tints = listOf(HazeTint(base.copy(alpha = if (dark) .55f else .65f))), blurRadius = 22.dp,
-        noiseFactor = .015f, fallbackTint = HazeTint(base.copy(alpha = .94f))) }
+        noiseFactor = 0f, fallbackTint = HazeTint(base.copy(alpha = .94f))) }
     val shape = RoundedCornerShape(radius)
-    val glass = if (backdrop && haze != null) Modifier.hazeEffect(haze, style) { inputScale = HazeInputScale.Fixed(.5f) } else Modifier
-    Surface(modifier.clip(shape).then(glass).background(Brush.linearGradient(listOf(
-        Color.White.copy(alpha = if (dark) .075f else .48f), Color.Transparent, Color(0xffa9c8e8).copy(alpha = if (dark) .05f else .12f)))),
-        shape = shape, color = if (backdrop) Color.Transparent else base.copy(alpha = if (dark) .66f else .7f),
-        border = BorderStroke(1.dp, Brush.linearGradient(listOf(
-            Color.White.copy(alpha = if (emphasized) .55f else if (dark) .25f else .9f),
-            MaterialTheme.colorScheme.onSurface.copy(alpha = .08f), Color.White.copy(alpha = if (dark) .12f else .6f))))) {
+    val glass = if (backdrop && haze != null) Modifier.hazeEffect(haze, style) { inputScale = HazeInputScale.Fixed(.25f) } else Modifier
+    Surface(modifier.clip(shape).then(glass).liquidGlass(radius, emphasized, if (backdrop) .35f else .72f),
+        shape = shape, color = Color.Transparent) {
         content()
-    }
-}
-
-/** Window compositor blur is shared by sheets instead of adding blur passes to every card. */
-@Composable
-fun GlassSheetBlur() {
-    val view = LocalView.current
-    DisposableEffect(view) {
-        val window = (view.parent as? DialogWindowProvider)?.window
-        if (Build.VERSION.SDK_INT >= 31 && window != null) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-            window.attributes = window.attributes.apply { blurBehindRadius = 20 }
-        }
-        onDispose {
-            if (Build.VERSION.SDK_INT >= 31 && window != null) window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-        }
     }
 }

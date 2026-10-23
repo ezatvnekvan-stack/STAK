@@ -25,22 +25,12 @@ fun CapacitorTitleHeader(media: Media, onBack: () -> Unit) {
     val hasArtwork = media.background.isNotBlank() && !failedArtwork
     Box(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         if (hasArtwork) {
-            Artwork(media, Modifier.matchParentSize().graphicsLayer {
-                alpha = .94f
-                compositingStrategy = CompositingStrategy.Offscreen
-            }.drawWithContent {
-                drawContent()
-                drawRect(Brush.verticalGradient(
-                    0f to Color.Transparent, .08f to Color.Black, .38f to Color.Black,
-                    .58f to Color.Black.copy(alpha = 11f / 15f),
-                    .82f to Color.Black.copy(alpha = .2f), 1f to Color.Transparent,
-                ), blendMode = BlendMode.DstIn)
-            }, backdrop = true, alignment = androidx.compose.ui.BiasAlignment(0f, -.52f), onError = { failedArtwork = true })
+            Artwork(media, Modifier.matchParentSize(), backdrop = true, alignment = androidx.compose.ui.BiasAlignment(0f, -.52f), onError = { failedArtwork = true })
         }
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(
             0f to background.copy(alpha = .05f), .26f to Color.Transparent,
-            .54f to background.copy(alpha = .35f), .72f to background.copy(alpha = .48f),
-            1f to Color.Transparent,
+            .54f to background.copy(alpha = .4f), .72f to background.copy(alpha = .78f),
+            1f to background.copy(alpha = .97f),
         )))
         Column(Modifier.fillMaxWidth().heightIn(min = if (hasArtwork) 390.dp else 220.dp)
             .padding(horizontal = 16.dp).padding(top = if (hasArtwork) 205.dp else 90.dp, bottom = 20.dp)) {
