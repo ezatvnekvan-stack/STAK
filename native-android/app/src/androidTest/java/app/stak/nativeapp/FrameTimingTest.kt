@@ -85,6 +85,8 @@ class FrameTimingTest {
                     report.put("displayRefreshHz", activity.window.decorView.display.refreshRate)
                         .put("requestedRefreshHz", activity.window.attributes.preferredRefreshRate)
                         .put("hardwareAccelerated", activity.window.decorView.isHardwareAccelerated)
+                    if (android.os.Build.VERSION.SDK_INT >= 35)
+                        report.put("requestedViewRefreshHz", activity.window.decorView.requestedFrameRate)
                     activity.window.addOnFrameMetricsAvailableListener(listener, Handler(thread.looper))
                 }
                 instrumentation.waitForIdleSync()

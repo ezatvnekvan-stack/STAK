@@ -122,11 +122,15 @@ class MainActivity : ComponentActivity() {
         val rates = display.supportedModes.filter {
             it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight
         }.map { it.refreshRate }
-        window.attributes = window.attributes.apply { preferredRefreshRate = preferredMotionRefreshRate(rates) }
+        val rate = preferredMotionRefreshRate(rates)
+        window.attributes = window.attributes.apply { preferredRefreshRate = rate }
+        // Android 15/16 also accepts a view-level hint for adaptive frame pacing.
+        if (android.os.Build.VERSION.SDK_INT >= 35) window.decorView.requestedFrameRate = rate
     }
 
     override fun onPause() {
         window.attributes = window.attributes.apply { preferredRefreshRate = 0f }
+        if (android.os.Build.VERSION.SDK_INT >= 35) window.decorView.requestedFrameRate = 0f
         super.onPause()
     }
 }
