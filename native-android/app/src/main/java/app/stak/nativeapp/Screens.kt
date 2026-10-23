@@ -49,7 +49,7 @@ fun PageHeading(
     action: (@Composable () -> Unit)? = null,
 ) {
     val discover = title == "Discover"
-    val width = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+    val width = viewportWidthDp()
     val heading =
         if (discover) {
             val size = (width * .08f).coerceIn(32f, 42f)
@@ -101,7 +101,8 @@ fun EmptyState(message: String, retry: (() -> Unit)? = null) {
 }
 
 @Composable
-fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = false) {
+fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = false,
+    alignment: Alignment = Alignment.Center, onError: () -> Unit = {}) {
     val context = LocalContext.current
     val repo = androidx.lifecycle.viewmodel.compose.viewModel<StakViewModel>().repository
     val url = if (backdrop) media.background.ifBlank { media.poster } else media.poster
@@ -125,6 +126,8 @@ fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = fal
             null,
             Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
+            alignment = alignment,
+            onError = { onError() },
         )
     }
 }
@@ -739,7 +742,7 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
         Box(
             Modifier.fillMaxWidth()
                 .height(
-                    (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp * .65f)
+                    (viewportWidthDp() * .65f)
                         .coerceIn(240f, 310f)
                         .dp
                 )
@@ -771,11 +774,11 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                             fontFamily = BodyFont,
                             fontWeight = FontWeight.Bold,
                             fontSize =
-                                (LocalConfiguration.current.screenWidthDp * .07f)
+                                (viewportWidthDp() * .07f)
                                     .coerceIn(26f, 40f)
                                     .sp,
                             lineHeight =
-                                ((LocalConfiguration.current.screenWidthDp * .07f).coerceIn(
+                                ((viewportWidthDp() * .07f).coerceIn(
                                         26f,
                                         40f,
                                     ) * 1.1f)

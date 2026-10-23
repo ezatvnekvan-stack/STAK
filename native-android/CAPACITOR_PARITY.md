@@ -39,3 +39,11 @@ All native unit, lint and emulator gates remain enabled. Every correction requir
 - Metadata credential controls still use the existing native Save & verify flow. A proposed additional stored-key Test connection action was rejected by automatic approval review because it would send stored TMDb/OMDb keys to their official APIs; that new request path was not added. Existing verification logic is unchanged.
 - Native encrypted-backup dialogs and refreshed toolkit diagnostics still differ from the original, including the absence of the server's MongoDB diagnostics. The app does not invent successful server statuses.
 - TorBox file/share/storage workflows, Jellyfin hierarchy and advanced remote behavior, Discover suggestions, credentialed providers and physical devices still require functional validation and further parity work.
+
+## Viewport and artwork follow-up
+
+The title/control pass at `a0d76c0` passed local build/unit/lint and hosted [native validation 39965744085](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39965744085): 55 unit tests, 32 first-width and five second-width emulator tests, zero failures/errors/skips. The hosted APK was downloaded and its checksum, package/version and signature independently checked. The tested PR merge tree is identical to that branch commit. Capacitor validation [39965744050](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39965744050) also passed.
+
+A strict `--require-identical` comparison executed against its 88 captures failed, with zero viewport-size mismatches. The 360-pixel dark title and movie differences improved to 4.199 and 2.933 average channel values. This remains a preview, not a pixel-perfect release.
+
+The follow-up replaces all production `Configuration.screenWidthDp` sizing with the Compose window's actual pixel width converted through the current density. Capture artifacts now include per-route viewport/configuration/density metadata for diagnosis. The original title artwork crop uses its 24% vertical position, and an image-load failure restores the compact header. This follow-up requires its own fresh hosted verification.

@@ -1,10 +1,19 @@
 package app.stak.nativeapp
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.em
+
+/** CSS vw follows the rendered window rather than Configuration's compatibility width. */
+@Composable
+fun viewportWidthDp(): Float = with(LocalDensity.current) {
+    LocalWindowInfo.current.containerSize.width.toDp().value
+}
 
 /** CSS keeps the complete line box, including leading on the first and last line. */
 private fun TextStyle.cssLineBox() = copy(

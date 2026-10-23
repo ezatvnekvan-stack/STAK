@@ -4,6 +4,7 @@ stak_root="$(cd "$(dirname "$0")/.." && pwd)"
 collect_evidence() {
   mkdir -p "$stak_root/native-evidence"
   adb pull /sdcard/Pictures/STAK-native-evidence "$stak_root/native-evidence/" || true
+  adb pull /sdcard/Android/data/app.stak.nativeapp/files/parity-metrics "$stak_root/native-evidence/" || true
 }
 trap collect_evidence EXIT
 cd "$stak_root/native-android"

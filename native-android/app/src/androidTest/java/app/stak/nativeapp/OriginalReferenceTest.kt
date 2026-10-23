@@ -377,6 +377,16 @@ class OriginalReferenceTest {
         val width = (bitmap.width / density).toInt()
         val height = (bitmap.height / density).toInt()
         val filename = "$route-$width-$theme.png"
+        val metricsDirectory = java.io.File(compose.activity.getExternalFilesDir(null), "parity-metrics").apply { mkdirs() }
+        java.io.File(metricsDirectory, filename.removeSuffix(".png") + ".json").writeText(
+            JSONObject().put("captureWidthDp", width).put("captureHeightDp", height)
+                .put("density", density).put("fontScale", compose.activity.resources.configuration.fontScale)
+                .put("configurationWidthDp", compose.activity.resources.configuration.screenWidthDp)
+                .put("configurationHeightDp", compose.activity.resources.configuration.screenHeightDp)
+                .put("windowWidthPx", compose.activity.window.decorView.width)
+                .put("windowHeightPx", compose.activity.window.decorView.height)
+                .toString(2)
+        )
         val normalized = Bitmap.createScaledBitmap(bitmap, width, height, false)
         val resolver = compose.activity.contentResolver
         val values =
