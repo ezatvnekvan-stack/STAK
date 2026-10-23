@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +24,19 @@ import kotlinx.coroutines.*
 
 @Composable
 fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: () -> Unit) {
+    val series = media.type == "series"
+    val knownEpisodes = media.episodes.filter { it.season > 0 && it.number > 0 }
+    var season by rememberSaveable(media.key, episode?.id) { mutableIntStateOf(episode?.season ?: knownEpisodes.firstOrNull()?.season ?: 1) }
+    var number by rememberSaveable(media.key, episode?.id) { mutableIntStateOf(episode?.number ?: knownEpisodes.firstOrNull()?.number ?: 1) }
+    var packMode by rememberSaveable(media.key, episode?.id) { mutableStateOf(series && episode == null) }
+    var showAll by remember { mutableStateOf(false) }
+    val seasonEpisodes = knownEpisodes.filter { it.season == season }.sortedBy { it.number }
+    val lookupNumber = if (packMode) seasonEpisodes.firstOrNull()?.number ?: 1 else number
+    val lookupEpisode = if (series) {
+        seasonEpisodes.firstOrNull { it.number == lookupNumber }
+            ?: Episode("${media.id}:$season:$lookupNumber", season, lookupNumber, "Episode $lookupNumber", "", "", "")
+    } else null
+    LaunchedEffect(season, packMode) { showAll = false }
     var results by remember { mutableStateOf(emptyList<SourceStream>()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
@@ -39,7 +53,7 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
     val navigate = LocalNavigate.current
     val account = vm.repository.accountScope
     val connected = vm.repository.credentials.get("torbox_token").isNotBlank()
-    LaunchedEffect(media.key, episode?.id, retry) {
+    LaunchedEffect(media.key, lookupEpisode?.season, lookupEpisode?.number, retry) {
         loading = true
         results = emptyList()
         warnings = emptyList()
@@ -47,7 +61,7 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
         library = emptyMap()
         error = ""
         try {
-            val found = vm.repository.searchSources(media, episode)
+            val found = vm.repository.searchSources(media, lookupEpisode)
             results = found.streams
             warnings = found.errors
         } catch (cancelled: CancellationException) {
@@ -94,7 +108,8 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
         results.filter {
             (quality.isBlank() || it.resolution() == quality) &&
                 (provider.isBlank() || it.source == provider) &&
-                (!cachedOnly || it.hash in cache.cached)
+                (!cachedOnly || it.hash in cache.cached) &&
+                (!series || !packMode || showAll || it.isSeasonPackFor(season))
         }
     val visible =
         when (sort) {
@@ -119,21 +134,47 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                 ) {
                     // A modal sheet has its own window, outside the navigation shared-transition
                     // layout. Registering a shared element here crashes with normal motion.
-                    Artwork(media, Modifier.size(42.dp, 63.dp).clip(RoundedCornerShape(9.dp)))
+                    Artwork(media, Modifier.size(56.dp, 84.dp).clip(RoundedCornerShape(10.dp)))
                     Column(Modifier.weight(1f)) {
-                        Text(media.name, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                        Text(media.name, fontSize = 17.sp, lineHeight = 21.25.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(
                             listOfNotNull(
                                     media.year.takeIf { it.isNotBlank() },
-                                    episode?.let { "S%02d E%02d".format(it.season, it.number) },
+                                    if (series) "Series" else "Movie",
+                                    media.runtime.takeIf { it.isNotBlank() },
                                 )
                                 .joinToString(" · "),
                             fontFamily = MonoFont,
                             fontSize = 10.sp,
                             color = Muted,
                         )
+                        Text(if (series) "S$season · ${if (packMode) "Season pack" else "E$number"}" else media.genres.take(2).joinToString(" · "),
+                            fontSize = 10.sp, lineHeight = 15.sp, color = Muted)
                     }
-                    IconButton(dismiss) { Icon(StakIcons.X, "Close dialog", Modifier.size(18.dp)) }
+                    Column {
+                        StakIconButton(StakIcons.X, "Close dialog", onClick = dismiss)
+                        StakIconButton(StakIcons.RefreshCw, "Refresh torrent sources", iconSize = 14.dp) { retry++ }
+                    }
+                }
+            }
+            if (series) item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Choice("Choose season", season.toString(),
+                        (knownEpisodes.map { it.season } + season).distinct().sorted().map { it.toString() to "Season $it" },
+                        { value ->
+                            season = value.toInt()
+                            number = knownEpisodes.filter { it.season == season }.minOfOrNull { it.number } ?: 1
+                        })
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MotionButton("Season packs", tone = if (packMode) ButtonTone.Selection else ButtonTone.Chip) { packMode = true }
+                        MotionButton("Episode", tone = if (!packMode) ButtonTone.Selection else ButtonTone.Chip) { packMode = false }
+                    }
+                    if (!packMode) Choice("Search episode", number.toString(),
+                        (seasonEpisodes.ifEmpty { listOf(requireNotNull(lookupEpisode)) }).map { it.number.toString() to "E${it.number} · ${it.name}" },
+                        { number = it.toInt() })
+                    if (packMode && results.any { !it.isSeasonPackFor(season) }) {
+                        MotionButton(if (showAll) "Packs only" else "Show all releases") { showAll = !showAll }
+                    }
                 }
             }
             if (loading) item { DotStatus(label = "Searching sources") }
@@ -224,17 +265,19 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
             if (results.isNotEmpty() && visible.isEmpty())
                 item {
                     OriginalEmpty(
-                        "No matching releases",
-                        "Try another quality, provider or cached filter.",
-                        "Clear filters",
+                        if (series && packMode && !showAll) "No season packs found" else "No matching releases",
+                        if (series && packMode && !showAll) "Try episodes or show all releases. Pack labels are inferred from filenames."
+                        else "Try another quality, provider or cached filter.",
+                        if (series && packMode && !showAll) "Show all releases" else "Clear filters",
                     ) {
                         quality = ""
                         provider = ""
                         cachedOnly = false
+                        if (series && packMode) showAll = true
                     }
                 }
             items(visible, key = { "${it.hash}:${it.fileIndex}" }) { source ->
-                SourceReleaseRow(vm, media, episode, source, cache, library[source.hash], dismiss)
+                SourceReleaseRow(vm, media, lookupEpisode, source, cache, library[source.hash], dismiss)
             }
         }
     }

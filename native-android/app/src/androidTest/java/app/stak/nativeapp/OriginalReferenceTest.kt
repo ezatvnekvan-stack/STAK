@@ -377,8 +377,21 @@ class OriginalReferenceTest {
         val width = (bitmap.width / density).toInt()
         val height = (bitmap.height / density).toInt()
         val filename = "$route-$width-$theme.png"
-        val normalized = Bitmap.createScaledBitmap(bitmap, width, height, false)
         val resolver = compose.activity.contentResolver
+        val metrics = JSONObject().put("captureWidthDp", width).put("captureHeightDp", height)
+            .put("density", density).put("fontScale", compose.activity.resources.configuration.fontScale)
+            .put("configurationWidthDp", compose.activity.resources.configuration.screenWidthDp)
+            .put("configurationHeightDp", compose.activity.resources.configuration.screenHeightDp)
+            .put("windowWidthPx", compose.activity.window.decorView.width)
+            .put("windowHeightPx", compose.activity.window.decorView.height).toString(2)
+        val metricsValues = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.Downloads.DISPLAY_NAME, filename.removeSuffix(".png") + ".json")
+            put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/json")
+            put(android.provider.MediaStore.Downloads.RELATIVE_PATH, "Download/STAK-native-metrics")
+        }
+        val metricsUri = requireNotNull(resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, metricsValues))
+        requireNotNull(resolver.openOutputStream(metricsUri)).bufferedWriter().use { it.write(metrics) }
+        val normalized = Bitmap.createScaledBitmap(bitmap, width, height, false)
         val values =
             android.content.ContentValues().apply {
                 put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, filename)

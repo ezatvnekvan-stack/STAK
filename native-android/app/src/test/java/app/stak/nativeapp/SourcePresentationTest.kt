@@ -6,6 +6,20 @@ import org.junit.Test
 
 class SourcePresentationTest {
     @Test
+    fun seasonPacksMatchTheSelectedSeasonAndExcludeSingleEpisodes() {
+        listOf(
+            Triple("Show.S01.Complete", 1, true), Triple("Show.S01-S03", 2, true),
+            Triple("Show.S01-S03", 4, false), Triple("Show.S02E01-E10", 1, false),
+            Triple("Show.S02E01-E10", 2, true), Triple("Show.2x01-10", 2, true),
+            Triple("Show.S01E01", 1, false), Triple("Show.Season.2", 2, true),
+            Triple("Show.2.évad", 2, false),
+        ).forEach { (release, season, expected) ->
+            assertEquals("$release for season $season", expected,
+                SourceStream("Torrentio", release, "a".repeat(40), null).isSeasonPackFor(season))
+        }
+    }
+
+    @Test
     fun tagsPreserveNothingSourceFactsAndDistinguishHdr10Plus() {
         val tags = qualityTags("Film.2160p.HDR10+.DoVi.WEB-DL.HEVC.TrueHD.Atmos.HUN")
         assertTrue(

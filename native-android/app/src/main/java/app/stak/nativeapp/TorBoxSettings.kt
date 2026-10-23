@@ -60,13 +60,14 @@ fun TorBoxSettings(vm: StakViewModel) {
                             ),
                         )
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AccountStat(stats.first(), Modifier.fillMaxWidth(), prominent = true)
-                        Row(
-                            Modifier.height(IntrinsicSize.Min),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            stats.drop(1).forEach { stat ->
-                                AccountStat(stat, Modifier.weight(1f).fillMaxHeight())
+                        stats.chunked(2).forEach { row ->
+                            Row(
+                                Modifier.height(IntrinsicSize.Min),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                row.forEach { stat ->
+                                    AccountStat(stat, Modifier.weight(1f).fillMaxHeight())
+                                }
                             }
                         }
                     }
@@ -107,7 +108,7 @@ fun TorBoxSettings(vm: StakViewModel) {
             }
             Spacer(Modifier.height(16.dp))
         }
-        Column(Modifier.padding(vertical = 16.dp)) {
+        CapacitorSettingsPanel {
             Text(
                 if (savedKey.isBlank()) "CONNECT" else "REPLACE KEY",
                 fontFamily = SectionFont,
@@ -184,24 +185,23 @@ fun TorBoxSettings(vm: StakViewModel) {
 private fun AccountStat(
     stat: Triple<String, String, String>,
     modifier: Modifier,
-    prominent: Boolean = false,
 ) {
     Surface(
         modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = .8f),
         border = BorderStroke(1.dp, Rule),
     ) {
-        Column(Modifier.padding(if (prominent) 18.dp else 12.dp)) {
+        Column(Modifier.padding(17.dp)) {
             AccountLabel(stat.first)
             androidx.compose.foundation.text.selection.SelectionContainer {
                 Text(
                     stat.second,
                     Modifier.testTag("account-${stat.third}"),
-                    fontFamily = if (prominent) BodyFont else MonoFont,
-                    fontWeight = if (prominent) FontWeight.SemiBold else FontWeight.Normal,
-                    fontSize = if (prominent) 18.sp else 12.sp,
-                    lineHeight = if (prominent) 25.sp else 18.sp,
+                    fontFamily = MonoFont,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
                     letterSpacing = 0.sp,
                 )
             }

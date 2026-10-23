@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
@@ -45,6 +46,34 @@ val Rule: Color
     @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = .12f)
 val Soft: Color
     @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = .045f)
+
+/** A CSS border belongs inside the row's declared height. */
+fun Modifier.cssTopBorder(color: Color) = drawBehind {
+    val stroke = 1.dp.toPx()
+    drawLine(color, Offset(0f, stroke / 2), Offset(size.width, stroke / 2), strokeWidth = stroke)
+}
+
+
+fun Modifier.cssDashedBorder(color: Color, radius: Dp = 16.dp) = drawWithContent {
+    drawContent()
+    val stroke = 1.dp.toPx()
+    drawRoundRect(color, Offset(stroke / 2, stroke / 2), androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius.toPx()),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx()))))
+}
+
+@Composable
+fun CapacitorSettingsPanel(modifier: Modifier = Modifier, verticalPadding: Dp = 16.dp, content: @Composable ColumnScope.() -> Unit) {
+    val light = MaterialTheme.colorScheme.background.red > .5f
+    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (light) Color.White else Color.Transparent)
+        .padding(vertical = verticalPadding), content = content)
+}
+
+@Composable
+fun SectionHeading(text: String, modifier: Modifier = Modifier) {
+    Text(text.uppercase(java.util.Locale.ROOT), modifier, fontFamily = SectionFont,
+        fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold, fontSize = 15.sp, lineHeight = 21.75.sp, letterSpacing = .675.sp)
+}
 
 @Composable
 fun Ambient(
@@ -135,7 +164,13 @@ fun Ambient(
                     val mask =
                         if (fraction < .3f) .6f + .4f * fraction / .3f
                         else 1f - (1f - 2f / 3f) * (fraction - .3f) / .7f
-                    drawCircle(color.copy(alpha = dot * mask), .7.dp.toPx(), Offset(x, y))
+                    // CSS paints a radial-gradient tile; a tiny antialiased circle halves
+                    // the four center pixels at density 1 and makes the pattern too faint.
+                    val radius = 1.dp.toPx()
+                    val ink = color.copy(alpha = dot * mask)
+                    drawRect(Brush.radialGradient(0f to ink, .7f to ink, 1f to Color.Transparent,
+                        center = Offset(x, y), radius = radius),
+                        topLeft = Offset(x - radius, y - radius), size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2))
                     y += step
                 }
                 x += step
@@ -150,6 +185,8 @@ fun StakIconButton(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    iconSize: Dp = 17.dp,
+    primary: Boolean = false,
     onClick: () -> Unit,
 ) {
     val interactions = remember {
@@ -171,9 +208,11 @@ fun StakIconButton(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                alpha = if (enabled) 1f else .4f
             }
             .clip(CircleShape)
-            .border(1.dp, Rule, CircleShape)
+            .background(if (primary) MaterialTheme.colorScheme.onSurface else Color.Transparent)
+            .border(1.dp, if (primary) MaterialTheme.colorScheme.onSurface else Rule, CircleShape)
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
@@ -189,8 +228,8 @@ fun StakIconButton(
         Icon(
             icon,
             label,
-            Modifier.size(17.dp),
-            tint = if (enabled) Muted else Muted.copy(alpha = .3f),
+            Modifier.size(iconSize),
+            tint = if (primary) MaterialTheme.colorScheme.background else Muted,
         )
     }
 }
@@ -221,6 +260,7 @@ fun OriginalField(
     horizontalInset: Dp = 14.dp,
     enabled: Boolean = true,
     visibilityLabel: String? = null,
+    accessibilityLabel: String? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
@@ -248,7 +288,7 @@ fun OriginalField(
             Modifier.weight(1f)
                 .padding(vertical = 10.dp)
                 .onFocusChanged { focused = it.isFocused }
-                .semantics { contentDescription = placeholder },
+                .semantics { contentDescription = accessibilityLabel ?: placeholder },
             singleLine = singleLine,
             enabled = enabled,
             textStyle =
@@ -339,6 +379,7 @@ fun StakSwitch(
     Box(
         modifier
             .size(48.dp, 44.dp)
+            .graphicsLayer { alpha = if (enabled) 1f else .5f }
             .semantics { contentDescription = label }
             .toggleable(checked, enabled = enabled, role = Role.Switch) {
                 if (policy.haptics)
@@ -364,6 +405,7 @@ fun Choice(
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     plain: Boolean = false,
+    enabled: Boolean = true,
 ) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
@@ -376,15 +418,20 @@ fun Choice(
                     if (plain) Color.Transparent
                     else MaterialTheme.colorScheme.surface.copy(alpha = .74f)
                 )
-                .clickable(role = Role.Button) { open = true }
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .graphicsLayer { alpha = if (enabled) 1f else .4f }
+                .clickable(enabled = enabled, role = Role.Button) { open = true }
+                .padding(horizontal = 15.dp, vertical = 11.dp)
                 .semantics { contentDescription = label },
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 options.firstOrNull { it.first == value }?.second ?: value,
                 Modifier.weight(1f),
-                fontSize = 13.sp,
+                fontSize = 14.sp,
+                lineHeight = 19.6.sp,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             Icon(StakIcons.ChevronDown, null, Modifier.size(14.dp), tint = Muted)
         }
@@ -399,6 +446,18 @@ fun Choice(
                 )
             }
         }
+    }
+}
+
+/** Paint the compact HTML checkbox while the enclosing 44 dp row owns interaction. */
+@Composable
+fun CompactCheckbox(checked: Boolean) {
+    val light = MaterialTheme.colorScheme.background.red > .5f
+    Box(Modifier.size(13.dp)
+        .background(if (checked) Accent else if (light) Color.White else Color(0xff3b3b3b), RoundedCornerShape(2.dp))
+        .border(1.dp, if (checked) Accent else if (light) Color(0xff767676) else Color(0xff858585), RoundedCornerShape(2.dp)),
+        contentAlignment = Alignment.Center) {
+        if (checked) Icon(StakIcons.Check, null, Modifier.size(11.dp), tint = AccentForeground)
     }
 }
 

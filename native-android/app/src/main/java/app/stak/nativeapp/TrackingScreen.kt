@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
@@ -161,7 +160,7 @@ private fun ActivityScreen(
                         Icon(StakIcons.Info, "About activity", Modifier.size(17.dp))
                     }
                 }
-                val size = (LocalConfiguration.current.screenWidthDp * .08f).coerceIn(26f, 38f)
+                val size = (viewportWidthDp() * .08f).coerceIn(26f, 38f)
                 Row(Modifier.fillMaxWidth().padding(vertical = 18.dp)) {
                     listOf(
                             summary.movies.toString() to "Movies",
@@ -532,7 +531,7 @@ fun CalendarScreen(
     val byDate = visible.groupBy { it.second.released.take(10) }
     val density = LocalDensity.current
     val swipeThreshold = with(density) { 60.dp.toPx() }
-    val cellHeight = (LocalConfiguration.current.screenWidthDp * .14f).coerceIn(48f, 80f).dp
+    val cellHeight = (viewportWidthDp() * .14f).coerceIn(48f, 80f).dp
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             Modifier.fillMaxWidth().height(56.dp).padding(start = 2.dp, end = 2.dp, bottom = 8.dp),

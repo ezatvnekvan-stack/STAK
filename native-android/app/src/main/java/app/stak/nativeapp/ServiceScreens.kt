@@ -9,6 +9,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.compose.currentStateAsState
@@ -68,13 +70,16 @@ fun RemoteScreen(vm: StakViewModel) {
             border = BorderStroke(1.dp, Rule),
             color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
         ) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.padding(21.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Label("Active devices", Modifier.weight(1f))
                     StakIconButton(StakIcons.RefreshCw, "Refresh devices") { refresh++ }
                 }
-                if (error.isNotBlank())
-                    Text(error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                Spacer(Modifier.height(12.dp))
+                if (error.isNotBlank()) {
+                    Text(error, color = Color(0xfff87171), fontSize = 12.sp, lineHeight = 16.sp)
+                    Spacer(Modifier.height(12.dp))
+                }
                 Choice(
                     "Jellyfin playback device",
                     active?.optString("Id") ?: selected,
@@ -84,7 +89,9 @@ fun RemoteScreen(vm: StakViewModel) {
                                 "${it.optString("DeviceName", it.optString("Client"))} · ${it.optString("UserName", "User")}"
                         },
                     { selected = it },
+                    enabled = !busy,
                 )
+                Spacer(Modifier.height(16.dp))
                 if (selected.isNotBlank() && active == null && error.isBlank())
                     Text(
                         "The selected device is no longer connected. Refresh or choose another device.",
@@ -94,8 +101,10 @@ fun RemoteScreen(vm: StakViewModel) {
                 Text(
                     active?.optJSONObject("NowPlayingItem")?.optString("Name") ?: "Nothing playing",
                     fontSize = 14.sp,
+                    lineHeight = 20.sp,
                 )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Spacer(Modifier.height(20.dp))
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     listOf(
                             "previous" to StakIcons.SkipBack,
                             "play" to StakIcons.Play,
@@ -104,13 +113,15 @@ fun RemoteScreen(vm: StakViewModel) {
                             "stop" to StakIcons.Square,
                         )
                         .forEach { (action, icon) ->
+                            val enabled = active?.optBoolean("SupportsRemoteControl") == true && !busy && error.isBlank()
                             StakIconButton(
                                 icon,
                                 action,
-                                enabled =
-                                    active?.optBoolean("SupportsRemoteControl") == true &&
-                                        !busy &&
-                                        error.isBlank(),
+                                Modifier.size(if (action in listOf("play", "pause")) 60.dp else 48.dp)
+                                    .graphicsLayer { alpha = if (enabled) 1f else .75f },
+                                enabled = enabled,
+                                iconSize = 19.dp,
+                                primary = action in listOf("play", "pause"),
                             ) {
                                 vm.operation {
                                     busy = true
@@ -138,9 +149,11 @@ fun RemoteScreen(vm: StakViewModel) {
                             }
                         }
                 }
+                Spacer(Modifier.height(16.dp))
                 Text(
                     "Playback commands depend on the connected Jellyfin client's remote-control support.",
                     fontSize = 12.sp,
+                    lineHeight = 16.sp,
                     color = Muted,
                 )
             }

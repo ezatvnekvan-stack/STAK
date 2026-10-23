@@ -3,6 +3,8 @@ package app.stak.nativeapp
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -167,7 +169,7 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
             }
             Spacer(Modifier.height(16.dp))
             when (section) {
-                "appearance" -> AppearanceSettings(vm)
+                "appearance" -> CapacitorSettingsPanel(verticalPadding = 0.dp) { AppearanceSettings(vm) }
                 "account" -> TorBoxSettings(vm)
                 "metadata" -> MetadataSettings(vm)
                 "jellyfin" -> JellyfinSettings(vm)
@@ -230,9 +232,8 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
                     Triple("Indexers", "sources", indexers.any { it.enabled }),
                 )
                 .forEach { (label, id, configured) ->
-                    HorizontalDivider(color = Rule)
                     Row(
-                        Modifier.fillMaxWidth().height(48.dp).clickable { choose(id) },
+                        Modifier.fillMaxWidth().height(48.dp).cssTopBorder(Rule).clickable { choose(id) },
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
@@ -269,34 +270,39 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
 @Composable
 fun MetadataSettings(vm: StakViewModel) {
     val o = LocalOptions.current
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        listOf(
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf(
                 "search" to "Search source",
                 "movie" to "Movie metadata source",
                 "series" to "Series metadata source",
             )
-            .forEach { (key, label) ->
-                Text(label, fontSize = 13.sp)
-                Choice(
-                    label,
-                    o["metadata_$key"] ?: "tmdb",
-                    if (key == "search") listOf("tmdb" to "TMDb")
-                    else listOf("tmdb" to "TMDb", "cinemeta" to "Cinemeta"),
-                    {
-                        vm.option("metadata_$key", it)
-                        vm.catalogs.clear()
-                    },
-                )
-            }
-        OriginalToggle("Ratings: IMDb/RT/Metacritic via OMDb", o["ratings"] != "false") {
+                .forEach { (key, label) ->
+                    Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(label, fontSize = 11.sp, lineHeight = 16.5.sp, color = Muted)
+                        Choice(
+                            label,
+                            o["metadata_$key"] ?: "tmdb",
+                            if (key == "search") listOf("tmdb" to "TMDb")
+                            else listOf("tmdb" to "TMDb", "cinemeta" to "Cinemeta"),
+                            {
+                                vm.option("metadata_$key", it)
+                                vm.catalogs.clear()
+                            },
+                        )
+                    }
+                }
+        }
+        MetadataCheckbox("Ratings: IMDb/RT/Metacritic via OMDb", o["ratings"] != "false") {
             vm.option("ratings", it.toString())
         }
-        OriginalToggle("Show IMDb rating on lists", o["imdbOnLists"] == "true") {
+        MetadataCheckbox("Show IMDb rating on lists", o["imdbOnLists"] == "true") {
             vm.option("imdbOnLists", it.toString())
         }
         Text(
             "IMDb list ratings and IMDb filters use your daily OMDb quota. Cached ratings are reused for at least 24 hours.",
             fontSize = 12.sp,
+            lineHeight = 16.sp,
             color = Muted,
         )
         listOf("tmdb", "omdb").forEach { provider ->
@@ -313,9 +319,9 @@ fun MetadataSettings(vm: StakViewModel) {
                 color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
                 border = BorderStroke(1.dp, Rule),
             ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row {
-                        Label(provider, Modifier.weight(1f))
+                        SectionHeading(provider, Modifier.weight(1f))
                         Label(status)
                     }
                     OriginalField(
@@ -388,6 +394,15 @@ fun MetadataSettings(vm: StakViewModel) {
 }
 
 @Composable
+private fun MetadataCheckbox(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).toggleable(checked, role = Role.Checkbox, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(label, Modifier.weight(1f), fontSize = 14.sp, lineHeight = 20.sp)
+        CompactCheckbox(checked)
+    }
+}
+
+@Composable
 fun JellyfinSettings(vm: StakViewModel) {
     val c = vm.repository.credentials
     var connected by remember { mutableStateOf(c.get("jellyfin_url").isNotBlank()) }
@@ -400,174 +415,187 @@ fun JellyfinSettings(vm: StakViewModel) {
     var busy by remember { mutableStateOf(false) }
     var tested by remember { mutableStateOf<JellyfinLogin?>(null) }
     var error by remember { mutableStateOf("") }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Label("Jellyfin")
+    CapacitorSettingsPanel {
+        SectionHeading("Jellyfin")
+        Spacer(Modifier.height(10.dp))
         Text(
             "Track what you watch on Jellyfin. Watched status, progress and history sync into STAK, and marking watched here updates Jellyfin too.",
             fontSize = 14.sp,
             color = Muted,
-            lineHeight = 21.sp,
+            lineHeight = 20.sp,
         )
+        Spacer(Modifier.height(16.dp))
         if (connected && !editing) {
-            listOf(
-                    listOf("Server" to c.get("jellyfin_url"), "User" to c.get("jellyfin_username")),
-                    listOf(
-                        "Last sync" to
-                            (LocalOptions.current["last_sync_${vm.repository.accountScope}"]
-                                ?: "—"),
-                        "Synced" to
-                            (LocalOptions.current["sync_stats_${vm.repository.accountScope}"]
-                                ?: "—"),
-                    ),
-                )
-                .forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        row.forEach { (label, value) ->
-                            Column(
-                                Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Label(label)
-                                Text(value, fontFamily = MonoFont, fontSize = 11.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                listOf(
+                        listOf("Server" to c.get("jellyfin_url"), "User" to c.get("jellyfin_username")),
+                        listOf(
+                            "Last sync" to
+                                (LocalOptions.current["last_sync_${vm.repository.accountScope}"]
+                                    ?: "—"),
+                            "Synced" to
+                                (LocalOptions.current["sync_stats_${vm.repository.accountScope}"]
+                                    ?: "—"),
+                        ),
+                    )
+                    .forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { (label, value) ->
+                                Column(
+                                    Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Label(label)
+                                    Text(value, fontFamily = MonoFont, fontSize = 11.sp)
+                                }
                             }
                         }
                     }
-                }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MotionButton("Sync now", Modifier.weight(1f), primary = true, enabled = !busy) {
-                    vm.operation {
-                        busy = true
-                        try {
-                            val stats = vm.syncJellyfin()
-                            vm.option(
-                                "last_sync_${vm.repository.accountScope}",
-                                vm.repository.today.toString(),
-                            )
-                            vm.option("sync_stats_${vm.repository.accountScope}", stats)
-                            vm.messages.emit("Jellyfin sync complete: $stats")
-                        } finally {
-                            busy = false
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MotionButton("Sync now", Modifier.weight(1f), primary = true, enabled = !busy) {
+                        vm.operation {
+                            busy = true
+                            try {
+                                val stats = vm.syncJellyfin()
+                                vm.option(
+                                    "last_sync_${vm.repository.accountScope}",
+                                    vm.repository.today.toString(),
+                                )
+                                vm.option("sync_stats_${vm.repository.accountScope}", stats)
+                                vm.messages.emit("Jellyfin sync complete: $stats")
+                            } finally {
+                                busy = false
+                            }
                         }
                     }
-                }
-                MotionButton("Disconnect", enabled = !busy) {
-                    listOf("jellyfin_url", "jellyfin_token", "jellyfin_user", "jellyfin_username")
-                        .forEach { c.set(it, "") }
-                    connected = false
-                }
-            }
-            MotionButton("Reconnect / replace session", Modifier.fillMaxWidth()) {
-                editing = true
-                url = c.get("jellyfin_url")
-                tested = null
-            }
-            Text(
-                "A saved connection can expire or be revoked by Jellyfin. Reconnecting preserves your local lists and history.",
-                fontSize = 12.sp,
-                color = Muted,
-            )
-        } else {
-            if (editing)
-                MotionButton("Cancel · keep saved connection") {
-                    editing = false
-                    tested = null
-                    password = ""
-                    key = ""
-                }
-            OriginalField(
-                url,
-                {
-                    url = it
-                    tested = null
-                    password = ""
-                    key = ""
-                },
-                "http://192.168.1.50:8096",
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MotionButton("User login", primary = mode == 0) {
-                    mode = 0
-                    tested = null
-                }
-                MotionButton("API key", primary = mode == 1) {
-                    mode = 1
-                    tested = null
-                }
-            }
-            if (mode == 0) {
-                OriginalField(
-                    username,
-                    {
-                        username = it
-                        tested = null
-                    },
-                    "Username",
-                )
-                OriginalField(
-                    password,
-                    {
-                        password = it
-                        tested = null
-                    },
-                    "Password",
-                    secret = true,
-                )
-            } else
-                OriginalField(
-                    key,
-                    {
-                        key = it
-                        tested = null
-                    },
-                    "API key (Dashboard → API Keys)",
-                    secret = true,
-                )
-            MotionButton(
-                if (busy) "Connecting…" else "Connect",
-                Modifier.fillMaxWidth(),
-                primary = true,
-                enabled =
-                    !busy &&
-                        url.isNotBlank() &&
-                        (if (mode == 0) username.isNotBlank() else key.isNotBlank()),
-            ) {
-                vm.operation {
-                    busy = true
-                    error = ""
-                    try {
-                        tested = vm.repository.testJellyfin(url, username, password, key, mode == 0)
-                        password = ""
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        error = e.message.orEmpty()
-                    } finally {
-                        busy = false
+                    MotionButton("Disconnect", enabled = !busy) {
+                        listOf("jellyfin_url", "jellyfin_token", "jellyfin_user", "jellyfin_username")
+                            .forEach { c.set(it, "") }
+                        connected = false
                     }
                 }
+                MotionButton("Reconnect / replace session", Modifier.fillMaxWidth()) {
+                    editing = true
+                    url = c.get("jellyfin_url")
+                    tested = null
+                }
+                Text(
+                    "A saved connection can expire or be revoked by Jellyfin. Reconnecting preserves your local lists and history.",
+                    fontSize = 12.sp,
+                    color = Muted,
+                )
+
             }
-            Text(
-                "HTTP sends credentials and media without encryption. Use it only on a trusted local network; prefer HTTPS.",
-                fontSize = 12.sp,
-                color = Muted,
-            )
-            if (error.isNotBlank())
-                Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
-            tested?.let { session ->
-                Label("Pick your user")
-                session.users.forEach { user ->
-                    MotionButton(user.name, Modifier.fillMaxWidth()) {
-                        c.set("jellyfin_url", session.serverUrl.ifBlank { normalizeJellyfinAddress(url) })
-                        c.set("jellyfin_token", session.token)
-                        c.set("jellyfin_user", user.id)
-                        c.set("jellyfin_username", user.name)
-                        connected = true
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (editing)
+                    MotionButton("Cancel · keep saved connection") {
                         editing = false
                         tested = null
                         password = ""
                         key = ""
                     }
+                OriginalField(
+                    url,
+                    {
+                        url = it
+                        tested = null
+                        password = ""
+                        key = ""
+                    },
+                    "http://192.168.1.50:8096",
+                    enabled = !busy,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MotionButton("User login", tone = if (mode == 0) ButtonTone.Selection else ButtonTone.Chip, enabled = !busy) {
+                        mode = 0
+                        tested = null
+                    }
+                    MotionButton("API key", tone = if (mode == 1) ButtonTone.Selection else ButtonTone.Chip, enabled = !busy) {
+                        mode = 1
+                        tested = null
+                    }
                 }
+                if (mode == 0) {
+                    OriginalField(
+                        username,
+                        {
+                            username = it
+                            tested = null
+                        },
+                        "Username",
+                        enabled = !busy,
+                    )
+                    OriginalField(
+                        password,
+                        {
+                            password = it
+                            tested = null
+                        },
+                        "Password",
+                        secret = true,
+                        enabled = !busy,
+                    )
+                } else
+                    OriginalField(
+                        key,
+                        {
+                            key = it
+                            tested = null
+                        },
+                        "API key (Dashboard → API Keys)",
+                        secret = true,
+                        enabled = !busy,
+                    )
+                MotionButton(
+                    if (busy) "Connecting…" else "Connect",
+                    Modifier.fillMaxWidth(),
+                    tone = ButtonTone.Accent,
+                    enabled =
+                        !busy &&
+                            url.isNotBlank() &&
+                            (if (mode == 0) username.isNotBlank() else key.isNotBlank()),
+                ) {
+                    vm.operation {
+                        busy = true
+                        error = ""
+                        try {
+                            tested = vm.repository.testJellyfin(url, username, password, key, mode == 0)
+                            password = ""
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            error = e.message.orEmpty()
+                        } finally {
+                            busy = false
+                        }
+                    }
+                }
+                Text(
+                    "HTTP sends credentials and media without encryption. Use it only on a trusted local network; prefer HTTPS.",
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = Muted,
+                )
+                if (error.isNotBlank())
+                    Text(error, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                tested?.let { session ->
+                    Label("Pick your user")
+                    session.users.forEach { user ->
+                        MotionButton(user.name, Modifier.fillMaxWidth()) {
+                            c.set("jellyfin_url", session.serverUrl.ifBlank { normalizeJellyfinAddress(url) })
+                            c.set("jellyfin_token", session.token)
+                            c.set("jellyfin_user", user.id)
+                            c.set("jellyfin_username", user.name)
+                            connected = true
+                            editing = false
+                            tested = null
+                            password = ""
+                            key = ""
+                        }
+                    }
+                }
+
             }
         }
     }

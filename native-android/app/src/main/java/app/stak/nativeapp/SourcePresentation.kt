@@ -42,6 +42,31 @@ fun SourceStream.quality() = qualityTags("$name $title")
 fun SourceStream.resolution() =
     quality().firstOrNull { it in listOf("4K", "1080p", "720p") } ?: "Unknown"
 
+/** Same filename heuristic as the Capacitor seasonPack helper; contents are unverified. */
+fun SourceStream.isSeasonPackFor(season: Int): Boolean {
+    val release = "$title $name"
+    fun pattern(value: String) = Regex(value, RegexOption.IGNORE_CASE)
+    val single = pattern("\\bS\\d{1,2}[ ._-]?E\\d{1,3}\\b|\\b\\d{1,2}x\\d{2,3}\\b")
+    val episodeRange = pattern("\\bS?\\d{0,2}[ ._-]?E\\d{1,3}[ ._-]?(?:-|–|~|to)[ ._-]?E?\\d{1,3}\\b|\\b\\d{1,2}x\\d{2,3}[ ._-]?(?:-|–|to)[ ._-]?\\d{2,3}\\b")
+    val ranged = episodeRange.containsMatchIn(release)
+    if (single.containsMatchIn(release) && !ranged) return false
+    val episodeSeason = if (ranged) pattern("\\b(?:S(\\d{1,2})[ ._-]?E\\d|([0-9]{1,2})x\\d)").find(release) else null
+    val range = if (episodeSeason != null) {
+        val value = episodeSeason.groupValues[1].ifBlank { episodeSeason.groupValues[2] }.toInt()
+        value..value
+    } else {
+        val matched = pattern("\\bS(\\d{1,2})(?:[ ._-]?(?:-|–|to|&|\\+)[ ._-]?S?(\\d{1,2}))?\\b(?![ ._-]?E\\d)").find(release)
+            ?: pattern("\\b(?:seasons?|staffel|saison|temporadas?|stagione|[eé]vad)[ ._-]?(\\d{1,2})(?:[ ._-]?(?:-|–|to|&|\\+)[ ._-]?(\\d{1,2}))?\\b").find(release)
+        matched?.let {
+            val first = it.groupValues[1].toInt()
+            val last = it.groupValues[2].toIntOrNull() ?: first
+            minOf(first, last)..maxOf(first, last)
+        }
+    }
+    if (range != null) return season in range
+    return ranged || pattern("\\b(?:complete[ ._-]?(?:series|season|collection|edition)?|season[ ._-]?pack|full[ ._-]?(?:series|season)|batch|teljes)\\b").containsMatchIn(release)
+}
+
 private fun normalizedRelease(value: String) =
     Normalizer.normalize(value, Normalizer.Form.NFKD)
         .replace(Regex("\\p{M}+"), "")

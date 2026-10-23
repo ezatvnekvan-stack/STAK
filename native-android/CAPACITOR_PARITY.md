@@ -1,0 +1,57 @@
+# Capacitor design and native test build
+
+The current target is a usable native app that mostly follows the existing Capacitor interface. The user has explicitly relaxed pixel-perfect equality and will test the APK on their device. The separate premium redesign branch is not the implementation target. This branch continues the tested native implementation at `3921c27`, retaining search alias/numeric-title regressions, Discover filters, the normal-motion Find sources crash fix and Jellyfin password/API-key protocol fixes.
+
+## Reference and scope
+
+The unchanged frontend is the visual source of truth. `parity/reference-manifest.json` fingerprints its fonts, styles and assets. The 88 checked-in captures cover 22 routes at 360×880 and 412×880 in dark/light themes with fixture-only providers and reduced motion. Pixel comparison requires matching viewport, theme, font scale, data, scroll position and settled assets. Browser captures do not certify Android WebView, live-provider or physical-device behavior.
+
+`STAK_REFERENCE_METRICS=1` adds computed DOM rectangles and typography/color/spacing metadata to the production reference capture. `STAK_REFERENCE_OUTPUT` allows reproducing captures outside the checked-in reference directory. Neither option changes the frontend.
+
+## Native corrections in progress
+
+- Keep full CSS-style line boxes instead of trimming first/last-line leading.
+- Use the original light foreground and secondary-text colors.
+- Include CSS borders inside connection-row heights.
+- Match Home branding offsets, badge spacing, hero indicators and the navigation icon/label frames.
+- Let empty Home shelves contribute no spacing; visible sections own their original margins.
+- Let the Jellyfin connection paragraph wrap its action at narrow widths and remain inline when it fits.
+- Match the original settings panels, Doto section headings, field spacing and selection chips, including the Sources dashed form and Jellyfin authentication modes.
+- Restore Taskbar before Home Screen and the inline genre-shelf controls, keeping persisted order and visibility behavior.
+- Restore the Data & app toolkit, local-backup and About layout. Native encrypted-backup safeguards remain enabled; export/import dialogs and refreshed diagnostics still require further parity work.
+
+The settings pass at `549df5c` passed 55 unit tests, lint, 32 first-width emulator tests and five second-width tests in [Actions run 39962968841](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39962968841). The reports contain zero failures, errors or skips. All 88 captures have matching viewport dimensions and still contain differing pixels.
+
+Measured 360-pixel dark-theme average channel differences improved from the first layout pass to the settings pass: Home & browsing 11.593 → 3.970, Jellyfin 12.131 → 3.925, Sources 12.948 → 4.293. These figures help locate differences; they are not acceptance thresholds or a pixel-perfect result.
+
+The next pass restores the original artwork-only title header, title font sizing and wrapping action controls, the two-column account statistics, compact metadata checkboxes, select typography, CSS dot-gradient pixels and the wrapping remote-control buttons. Gallery images now open a dismissible viewer. Fresh emulator verification is required after these changes.
+
+## Acceptance and evidence
+
+`parity/compare.py` reports exact differing-pixel counts, maximum channel differences and comparison images. Missing captures and mismatched viewports fail comparison coverage. `--require-identical` fails when any pixel differs. A low average difference is not a pixel-perfect result.
+
+All native unit, lint and emulator gates remain enabled. Every correction requires the actual CI reports and screenshot review. The existing source-opening and Jellyfin login regressions remain enabled. Expanded overlay, keyboard, long-content, accessibility and normal-motion captures are still needed beyond the 22-route matrix. Complete functional parity and credentialed-provider/device behavior remain unverified.
+
+## Remaining gaps
+
+- All routes still need exact glyph, color, border, spacing and raster comparisons; browser screenshots cannot establish Android WebView equality.
+- Source/filter/episode dialogs, dropdown menus, keyboard, image failure/loading, animation frames, long content and large font/accessibility states are not covered by the complete original/native matrix.
+- Metadata credential controls still use the existing native Save & verify flow. A proposed additional stored-key Test connection action was rejected by automatic approval review because it would send stored TMDb/OMDb keys to their official APIs; that new request path was not added. Existing verification logic is unchanged.
+- Native encrypted-backup dialogs and refreshed toolkit diagnostics still differ from the original, including the absence of the server's MongoDB diagnostics. The app does not invent successful server statuses.
+- TorBox file/share/storage workflows, Jellyfin hierarchy and advanced remote behavior, Discover suggestions, credentialed providers and physical devices still require functional validation and further parity work.
+
+## Viewport and artwork follow-up
+
+The title/control pass at `a0d76c0` passed local build/unit/lint and hosted [native validation 39965744085](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39965744085): 55 unit tests, 32 first-width and five second-width emulator tests, zero failures/errors/skips. The hosted APK was downloaded and its checksum, package/version and signature independently checked. The tested PR merge tree is identical to that branch commit. Capacitor validation [39965744050](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39965744050) also passed.
+
+A strict `--require-identical` comparison executed against its 88 captures failed, with zero viewport-size mismatches. The 360-pixel dark title and movie differences improved to 4.199 and 2.933 average channel values. This remains a preview, not a pixel-perfect release.
+
+The follow-up replaces all production `Configuration.screenWidthDp` sizing with the Compose window's actual pixel width converted through the current density. Capture artifacts now include per-route viewport/configuration/density metadata for diagnosis. The original title artwork crop uses its 24% vertical position, and an image-load failure restores the compact header. This follow-up requires its own fresh hosted verification.
+
+## Movie and TV Find sources
+
+The current preview keeps the movie lookup and fixes TV lookup identifiers to include the selected season and episode (`imdb:season:episode`). The source sheet adds season/episode choices, season-pack mode and an explicit show-all fallback. Pack detection is an inferred filename heuristic ported from the Capacitor helper, with the original nine examples covered by a regression test. Normal-motion emulator coverage includes movie and TV opening, closing and reopening, plus TV season/episode request paths and pack filtering. Both source motion tests are included in the second viewport pass as well.
+
+The private external-files diagnostic folder did not survive test cleanup in run 39968345799. Viewport JSON is now written through MediaStore Downloads and collected from the public test-evidence folder. This fixes evidence export without requesting broad storage access.
+
+The last full hosted run before the source-selection follow-up passed 55 unit tests, 32 first-width and five second-width tests: https://github.com/ezatvnekvan-stack/STAK/actions/runs/39968345799 . The movie/TV follow-up requires its own hosted results. Exact pixel equality is not a release gate for the user testing preview; screenshot differences remain reported honestly.
