@@ -474,7 +474,7 @@ class Repository(
                 )
             else if (body != null)
                 builder.post(body.toString().toRequestBody("application/json".toMediaType()))
-            client.newCall(builder.build()).awaitResponse().use { response ->
+            client.newCall(builder.build()).readResponse { response ->
                 check(response.isSuccessful) {
                     when (response.code) {
                         401,
@@ -507,7 +507,7 @@ class Repository(
                     .header("Accept", "application/json, application/xml, text/xml")
                     .header("User-Agent", "STAK Native/0.1")
                     .build()
-            client.newCall(request).awaitResponse().use { response ->
+            client.newCall(request).readResponse { response ->
                 check(response.isSuccessful) {
                     when (response.code) {
                         401,
