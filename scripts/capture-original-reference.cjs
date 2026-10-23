@@ -7,7 +7,7 @@ const mime={'.js':'text/javascript','.css':'text/css','.json':'application/json'
 const server=http.createServer((req,res)=>{const target=path.resolve(base,'.'+decodeURIComponent(req.url.split('?')[0]));if(!target.startsWith(base+path.sep)&&target!==base){res.writeHead(403);return res.end();}let file=target;if(!fs.existsSync(file)||!fs.statSync(file).isFile())file=path.join(base,'index.html');res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));});
 if(process.env.STAK_UPDATE_REFERENCE!=='1')throw Error('Set STAK_UPDATE_REFERENCE=1 to replace references from the original app.');
 const captureMotion=process.env.STAK_REFERENCE_MODE==='motion';
-const referenceDirectory=path.resolve(__dirname,'../native-android/parity/reference');fs.mkdirSync(referenceDirectory,{recursive:true});
+const referenceDirectory=path.resolve(process.env.STAK_REFERENCE_OUTPUT || path.join(__dirname,'../native-android/parity/reference'));fs.mkdirSync(referenceDirectory,{recursive:true});
 const movie={id:603,title:'Test title',name:'Test title',overview:'A browser test title.',release_date:'2026-04-01',first_air_date:'2026-04-01',vote_average:8,vote_count:200,poster_path:'/p.jpg',backdrop_path:'/b.jpg',genre_ids:[18]};
 const imdbFor=(type,id)=>type==='movie' && Number(id)===603?'tt0133093':type==='tv' && Number(id)===1396?'tt0903747':`tt${type==='tv'?'1':'0'}${String(id).padStart(6,'0')}`;
 const calendarToday="2026-10-20";
@@ -38,6 +38,14 @@ if(process.env.STAK_REFERENCE_SCREENS && !process.env.STAK_REFERENCE_SCREENS.spl
 await page.goto('http://127.0.0.1:4173'+route);await page.waitForTimeout(1400);await page.evaluate(()=>document.fonts.ready);
 await page.screenshot({path:`${referenceDirectory}/${name}-${width}-${theme}.png`,fullPage:false});
 fs.writeFileSync(`${referenceDirectory}/${name}-${width}-${theme}.txt`,await page.locator('body').innerText());
+if(process.env.STAK_REFERENCE_METRICS==='1') {
+  const metrics=await page.evaluate(()=>Array.from(document.querySelectorAll('[data-screen],header,main,nav,h1,h2,h3,button,input,a,.n-label,.n-card,.settings-connections,.settings-row,.settings-row-icon,.settings-row-title,.settings-row-summary,.connection-row,.media-poster,.poster-art,.poster-info,.poster-title,.poster-meta,.poster-year,.poster-ratings,.home-poster-rail,.home-poster-slot,.compact-home-hero,.stak-hero-content,.hero-pagination,.home-feed,.section-gap,.stak-nav-icon,.stak-nav-label,.nothing-select-trigger,.tracking-summary,.appearance-preview')).map(el=>{
+    const r=el.getBoundingClientRect(),c=getComputedStyle(el);
+    return {tag:el.tagName,testId:el.getAttribute('data-testid'),class:typeof el.className==='string'?el.className:'',text:el.tagName==='INPUT'?el.getAttribute('placeholder'):(el.innerText||'').trim().slice(0,120),rect:{x:r.x,y:r.y,width:r.width,height:r.height},style:Object.fromEntries(['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','color','backgroundColor','backgroundImage','borderRadius','borderWidth','borderColor','padding','margin','gap','display','alignItems','justifyContent','opacity','boxShadow'].map(k=>[k,c[k]]))};
+  }).filter(el=>el.rect.width && el.rect.height));
+  fs.writeFileSync(`${referenceDirectory}/${name}-${width}-${theme}.json`,JSON.stringify(metrics,null,2));
+}
+
 }
 await context.close();
 }}finally{await browser.close();await new Promise(resolve=>server.close(resolve));}})().catch(error=>{console.error(error);process.exitCode=1;server.close();});

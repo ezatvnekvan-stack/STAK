@@ -548,18 +548,18 @@ fun HomeScreen(
     StakRefresh(loading && refresh > 0, { refresh++ }) {
         LazyColumn(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 112.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
-                        Modifier.fillMaxWidth().height(58.dp),
+                        Modifier.fillMaxWidth().height(58.dp).padding(bottom = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         StakBrand(Modifier.size(34.dp))
                         Text(
                             "STAK",
-                            Modifier.padding(start = 10.dp).weight(1f).height(25.dp),
+                            Modifier.padding(start = 14.dp).weight(1f).height(25.dp),
                             fontFamily = DotFont,
                             fontWeight = FontWeight.Black,
                             fontSize = 25.sp,
@@ -571,8 +571,8 @@ fun HomeScreen(
                                 .border(1.dp, Rule, CircleShape)
                                 .clickable { navigate("settings?section=account") }
                                 .semantics { contentDescription = accountDescription }
-                                .padding(horizontal = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                .padding(horizontal = 13.dp),
+                            horizontalArrangement = Arrangement.spacedBy(7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Box(
@@ -623,7 +623,7 @@ fun HomeScreen(
                             SearchPosterRow(searchItems.take(4), query, onOpen)
                     }
                 }
-                items(searchItems.chunked(4).drop(1)) { row -> SearchPosterRow(row, query, onOpen) }
+                items(searchItems.chunked(4).drop(1)) { row -> Box(Modifier.padding(top = 16.dp)) { SearchPosterRow(row, query, onOpen) } }
                 if (searchNext != null && searchItems.isNotEmpty())
                     item {
                         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -643,7 +643,7 @@ fun HomeScreen(
                         .zip(rows["trending_series"].orEmpty().take(3))
                         .flatMap { listOf(it.first, it.second) }
                         .ifEmpty { rows.values.flatten().take(6) }
-                if (heroes.isNotEmpty()) item { HomeHero(vm, heroes, onOpen) }
+                if (heroes.isNotEmpty()) item { Box(Modifier.padding(bottom = 32.dp)) { HomeHero(vm, heroes, onOpen) } }
                 if (loading && rows.isEmpty()) item { PosterSkeletons() }
                 if (error.isNotBlank()) item { EmptyState(error) { refresh++ } }
                 homeShelves(options, vm.repository.today.year)
@@ -851,7 +851,7 @@ fun HomeHero(vm: StakViewModel, media: List<Media>, onOpen: (Media, String) -> U
                             label = "Hero indicator ink",
                         )
                     Box(
-                        Modifier.size(36.dp, 44.dp).clickable {
+                        Modifier.size(32.dp, 44.dp).clickable {
                             scope.launch {
                                 val forward = (i - activeIndex + media.size) % media.size
                                 val delta =
@@ -889,7 +889,7 @@ fun MediaRail(
     seeAll: String? = "discover",
 ) {
     val navigate = LocalNavigate.current
-    Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 44.dp),
             verticalAlignment = Alignment.CenterVertically,

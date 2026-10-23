@@ -8,6 +8,7 @@ from PIL import Image, ImageChops, ImageEnhance, ImageDraw, ImageStat
 parser = argparse.ArgumentParser()
 parser.add_argument('--native', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--require-identical', action='store_true', help='Fail if any reference pixel differs')
 args = parser.parse_args()
 reference = Path(__file__).parent / 'reference'
 args.output.mkdir(parents=True, exist_ok=True)
@@ -24,6 +25,11 @@ for original in sorted(reference.glob('*.png')):
         else:
             delta = ImageChops.difference(a, b)
             row['meanAbsoluteChannelDifference'] = round(sum(ImageStat.Stat(delta).mean) / 3, 3)
+            channels = delta.split()
+            mask = ImageChops.lighter(ImageChops.lighter(channels[0], channels[1]), channels[2]).point(lambda value: 255 if value else 0)
+            row['differentPixels'] = mask.histogram()[255]
+            row['totalPixels'] = a.width * a.height
+            row['maximumChannelDifference'] = max(high for low, high in delta.getextrema())
             row['status'] = 'identical pixels' if delta.getbbox() is None else 'differences require review'
             canvas = Image.new('RGB', (a.width * 3, a.height + 30), '#222222')
             draw = ImageDraw.Draw(canvas)
@@ -35,3 +41,10 @@ for original in sorted(reference.glob('*.png')):
 result = {'status': 'UNVERIFIED: this report does not establish visual or functional parity', 'screens': rows}
 (args.output / 'report.json').write_text(json.dumps(result, indent=2) + '\n')
 print(json.dumps({'referenceScreens': len(rows), 'captured': sum('nativeSize' in r for r in rows), 'viewportMismatches': sum(r['status'].startswith('viewport mismatch') for r in rows), 'visuallyVerified': False}))
+
+missing = [r['screen'] for r in rows if 'nativeSize' not in r]
+invalid = [r['screen'] for r in rows if r['status'].startswith('viewport mismatch')]
+if not rows or missing or invalid:
+    raise SystemExit(f'Invalid comparison coverage: {len(missing)} missing, {len(invalid)} viewport mismatches')
+if args.require_identical and any(r.get('differentPixels', 0) for r in rows):
+    raise SystemExit('Pixel-perfect parity FAILED: reference pixels differ; see report.json')

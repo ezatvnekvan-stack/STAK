@@ -156,8 +156,8 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
     val baseColors =
         if (dark)
             darkColorScheme(
-                primary = Color(0xfff2f2f2),
-                onPrimary = Color(0xff111111),
+                primary = Color.White,
+                onPrimary = Color(0xff080808),
                 background = if (options["amoled"] == "true") Color.Black else Color(0xff080808),
                 surface = Color(0xff111111),
                 surfaceContainer = Color(0xff171717),
@@ -168,14 +168,14 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
             )
         else
             lightColorScheme(
-                primary = Color(0xff171717),
+                primary = Color(0xff0b0b0b),
                 onPrimary = Color.White,
                 background = Color(0xfff4f4f2),
                 surface = Color.White,
                 surfaceContainer = Color(0xffefefed),
                 surfaceContainerHighest = Color(0xffddddda),
-                onSurface = Color(0xff111111),
-                onSurfaceVariant = Color(0xff666666),
+                onSurface = Color(0xff0b0b0b),
+                onSurfaceVariant = Color(0xff5a5a5a),
                 outlineVariant = Color(0xffddddda),
             )
     val colors =
@@ -270,7 +270,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                 labelMedium =
                     TextStyle(fontFamily = MonoFont, fontSize = 10.sp, letterSpacing = 0.sp),
                 labelSmall = TextStyle(fontFamily = MonoFont, fontSize = 9.sp, letterSpacing = 0.sp),
-            ),
+            ).withCssLineBoxes(),
     ) {
         CompositionLocalProvider(LocalStakMotion provides policy, LocalOptions provides options) {
             val nav = rememberNavController()
@@ -481,11 +481,11 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                                 .padding(horizontal = 12.dp, vertical = 12.dp)
                                 .widthIn(max = 576.dp),
                             shape = RoundedCornerShape(22.dp),
-                            color = colors.surface.copy(alpha = .97f),
+                            color = colors.surface.copy(alpha = if (dark) .97f else .96f),
                             border =
                                 androidx.compose.foundation.BorderStroke(
                                     1.dp,
-                                    colors.onSurface.copy(alpha = .12f),
+                                    if (dark) colors.onSurface.copy(alpha = .12f) else Color(0xffcbcbc7),
                                 ),
                         ) {
                             MotionNavigation(tabs, selected) { index ->
@@ -589,7 +589,7 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
-                        Box(Modifier.size(36.dp, 28.dp), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(38.dp, 30.dp), contentAlignment = Alignment.Center) {
                             Icon(
                                 icons[index],
                                 label,

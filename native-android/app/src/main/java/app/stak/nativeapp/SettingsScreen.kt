@@ -230,9 +230,8 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
                     Triple("Indexers", "sources", indexers.any { it.enabled }),
                 )
                 .forEach { (label, id, configured) ->
-                    HorizontalDivider(color = Rule)
                     Row(
-                        Modifier.fillMaxWidth().height(48.dp).clickable { choose(id) },
+                        Modifier.fillMaxWidth().height(48.dp).cssTopBorder(Rule).clickable { choose(id) },
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {

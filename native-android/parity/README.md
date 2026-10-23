@@ -1,6 +1,6 @@
 # Original STAK references and native validation
 
-The current user direction allows UI and motion improvements with a beautiful Nothing-inspired style while retaining the original app's features. The React/Capacitor app remains the functional and visual reference. Exact screenshot equality is no longer a release gate. The native port remains unfinished; no pixel-perfect or full-feature claim is supported.
+The current user direction is exact visual parity with the Capacitor application in every detail. Original typography, colors, spacing, borders, controls, artwork, overlays and motion are the target. Earlier statements permitting custom redesigns below are historical checkpoints, not the current acceptance criteria. Native parity remains unfinished; no pixel-perfect or full-feature claim is supported.
 
 ## 0.3 Beta checkpoint (2026-10-21)
 
@@ -42,7 +42,7 @@ At `39d333a`, [CI run 39510808710](https://github.com/ezatvnekvan-stack/STAK/act
 
 ## Remaining feature and validation gaps
 
-The following original behaviors remain incomplete or unverified. Screenshot differences now inform design review rather than blocking every intentional UI improvement:
+The following original behaviors remain incomplete or unverified. Every remaining screenshot difference requires correction or explicit evidence explaining the rendering mismatch:
 
 - All Discover filters, provider-service tiles, directors, search suggestions and persistent browsing preferences.
 - Exact theme preview/Rive behavior; artwork palette sampling; ambient drift; every original transition and sheet geometry.
@@ -56,7 +56,7 @@ The following original behaviors remain incomplete or unverified. Screenshot dif
 - Live provider/device behavior, supported Android versions, accessibility font scales and animation timing recordings.
 - Public signing continuity: 0.3 Beta is debug signed for local evaluation; the permanent signing setup is still owner work.
 
-Keep release notes explicit about unfinished features. A complete native replacement still requires feature coverage, interaction checks and device validation; screenshot equality is not required by the latest user direction.
+Keep release notes explicit about unfinished features. A complete native replacement still requires feature coverage, interaction checks and device validation; screenshot equality is required by the latest user direction.
 
 At `5025b8e`, [CI run 39512211032](https://github.com/ezatvnekvan-stack/STAK/actions/runs/39512211032) passed build, 16 unit tests, lint and six first-pass Android checks, plus the second viewport capture. All 88 native captures had matching viewport dimensions; all 88 contained pixel differences. Retained dark/light motion crops were visually inspected: both render the original grayscale Rive illustration, and reduced motion renders the static icon. Continuous animation timing has not been visually verified. This checkpoint predates the latest account controls.
 

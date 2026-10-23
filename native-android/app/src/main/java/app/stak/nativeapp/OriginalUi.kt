@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
@@ -45,6 +46,12 @@ val Rule: Color
     @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = .12f)
 val Soft: Color
     @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = .045f)
+
+/** A CSS border belongs inside the row's declared height. */
+fun Modifier.cssTopBorder(color: Color) = drawBehind {
+    val stroke = 1.dp.toPx()
+    drawLine(color, Offset(0f, stroke / 2), Offset(size.width, stroke / 2), strokeWidth = stroke)
+}
 
 @Composable
 fun Ambient(

@@ -54,8 +54,12 @@ fun HomeFeedShelf(
     val navigate = LocalNavigate.current
     if (jellyfin && !connected) {
         if (shelf.id == "continue")
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Connect Jellyfin to resume watching.", fontSize = 12.sp, color = Muted)
+            FlowRow(
+                Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Connect Jellyfin to resume watching.", fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
                 MotionButton("Connect Jellyfin") { navigate("settings?section=jellyfin") }
             }
         return
@@ -119,7 +123,7 @@ fun HomeFeedShelf(
                 if (jellyfin) "library" else "browse/${android.net.Uri.encode(shelf.id)}",
             )
         loading ->
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Label(shelf.label)
                 PosterSkeletons()
             }
@@ -192,7 +196,7 @@ private fun HomeUpcoming(
         errors = outcomes.count { it.isFailure }
     }
     if (events.isNotEmpty())
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Label("New releases · next 7 days")
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(
