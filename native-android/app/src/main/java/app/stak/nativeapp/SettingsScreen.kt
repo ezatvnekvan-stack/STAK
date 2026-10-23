@@ -557,7 +557,7 @@ fun JellyfinSettings(vm: StakViewModel) {
                 Label("Pick your user")
                 session.users.forEach { user ->
                     MotionButton(user.name, Modifier.fillMaxWidth()) {
-                        c.set("jellyfin_url", url.trim().trimEnd('/'))
+                        c.set("jellyfin_url", session.serverUrl.ifBlank { normalizeJellyfinAddress(url) })
                         c.set("jellyfin_token", session.token)
                         c.set("jellyfin_user", user.id)
                         c.set("jellyfin_username", user.name)

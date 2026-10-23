@@ -84,3 +84,13 @@ Known fallback limitation, not fixed in this pass: without a TMDb key, filter-ba
 4. Add instrumentation coverage for cancellation and account switching during in-flight verification, beyond the current start-up error case.
 5. Complete the remaining TorBox file/share/storage actions and Jellyfin collection workflows, then expand failure/empty-state coverage.
 6. Only after the owner generates and stores a permanent signing key, produce a signed candidate through the documented `android-release` environment. Do not change signing configuration as part of a beta stabilization commit.
+
+## Discover and connection fixes (2026-10-23)
+
+The continuation from `native-search-parity-build` adds persisted Discover preferences and retained filter drafts, type-specific genres/US age ratings, decade ranges, searchable ISO language choices, removable filter chips, explicit year validation and retries that preserve the selected filters. Discover searches both movies and series, enforces loaded-page filters for search/Trending, checks regional provider availability and TV content ratings, maps series sort fields correctly and retains next-page navigation after an empty filtered page. Saved Discover preferences are included in portable backups.
+
+The source sheet uses a regular poster inside its separate modal window. A navigation shared element cannot be registered across that window boundary with normal motion; the prior reduced-motion source tests did not exercise this path. A new instrumented regression opens, closes and reopens Find sources with normal motion enabled.
+
+Jellyfin username/password login now sends standard `Authorization: MediaBrowser …` client identity before receiving a token, matching the Capacitor login flow. Authenticated calls send consistent modern and legacy headers. Pasted `/web/index.html` links normalize to the server root while preserving a reverse-proxy base path, and the saved session uses the tested address. Passwords are sent unchanged in the JSON body and never included in error messages. HTTP 400 errors provide protocol/port/base-path guidance. Tests cover password and API-key requests, rejected login and URL normalization; live-server success still requires verification against the user's server.
+
+Remaining Discover work includes suggestions, verified IMDb filtering, hide-watched/library controls and further provider-service grouping. Other remaining TorBox/Jellyfin workflows, full visual/motion/accessibility parity and live-provider/physical-device validation remain as listed above. Use the linked PR workflow reports for the actual validation results of this continuation.

@@ -966,27 +966,29 @@ fun DiscoverScreen(
     onOpen: (Media, String) -> Unit,
     initialShelf: HomeShelf? = null,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableIntStateOf(if (initialShelf?.type == "series") 1 else 0) }
-    var category by rememberSaveable {
-        mutableIntStateOf(
-            listOf("popular", "trending", "top", "new", "upcoming", "hidden")
-                .indexOf(
-                    initialShelf?.category?.let { if (it == "year") "new" else it } ?: "popular"
-                )
-                .coerceAtLeast(0)
-        )
+    val initialPreferences = remember(initialShelf?.id) {
+        val saved = DiscoveryPreferences.parse(vm.options.value["discover_state"])
+        initialShelf?.let { DiscoveryPreferences(it.type, if (it.category == "year") "new" else it.category, homeShelfFilters(it, vm.repository.today.year)) } ?: saved
     }
+    var query by rememberSaveable { mutableStateOf("") }
+    var type by rememberSaveable { mutableIntStateOf(if (initialPreferences.type == "series") 1 else 0) }
+    var category by rememberSaveable { mutableIntStateOf(discoveryCategories.indexOf(initialPreferences.category).coerceAtLeast(0)) }
     var results by remember { mutableStateOf(emptyList<Media>()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var page by remember { mutableIntStateOf(1) }
     var hasMore by remember { mutableStateOf(false) }
-    var filterSheet by remember { mutableStateOf(false) }
-    var filters by remember {
-        mutableStateOf(
-            initialShelf?.let { homeShelfFilters(it, vm.repository.today.year) } ?: emptyMap()
-        )
+    var filterSheet by rememberSaveable { mutableStateOf(false) }
+    var filtersJson by rememberSaveable { mutableStateOf(initialPreferences.json()) }
+    val filters = DiscoveryPreferences.parse(filtersJson).filters
+    var draftJson by rememberSaveable { mutableStateOf<String?>(null) }
+    var retry by remember { mutableIntStateOf(0) }
+    var providerRetry by remember { mutableIntStateOf(0) }
+    var filteredPage by remember { mutableStateOf(false) }
+    fun setFilters(value: Map<String, String>) {
+        filtersJson = DiscoveryPreferences(filters = value).json()
+        draftJson = null
+        page = 1
     }
     var providers by remember { mutableStateOf(emptyList<org.json.JSONObject>()) }
     var providerError by remember { mutableStateOf("") }
@@ -996,7 +998,12 @@ fun DiscoverScreen(
         listOf("Popular", "Trending", "Top rated", "New releases", "Upcoming", "Hidden gems")
     val ids = listOf("popular", "trending", "top", "new", "upcoming", "hidden")
     val kind = if (type == 0) "movie" else "series"
-    LaunchedEffect(type) {
+    LaunchedEffect(type, category, filters) {
+        if (initialShelf == null) vm.option("discover_state", DiscoveryPreferences(kind, ids[category], filters).json())
+    }
+    LaunchedEffect(type, providerRetry) {
+        providers = emptyList()
+        providerError = ""
         if (vm.repository.credentials.get("tmdb_key").isBlank()) return@LaunchedEffect
         try {
             providers =
@@ -1014,21 +1021,24 @@ fun DiscoverScreen(
             providerError = e.message.orEmpty()
         }
     }
-    LaunchedEffect(query, type, category, filters, page) {
+    LaunchedEffect(query, type, category, filters, page, retry) {
         loading = true
         error = ""
+        if (page == 1) results = emptyList()
         try {
             if (query.isNotBlank()) delay(350)
-            val titles = vm.repository.browse(kind, ids[category], query, page, filters)
-            results = if (page == 1) titles else (results + titles).distinctBy { it.key }
-            hasMore = titles.isNotEmpty()
+            val found = vm.repository.discoveryPage(kind, ids[category], query, page, filters)
+            results = if (page == 1) found.items else (results + found.items).distinctBy { it.key }
+            hasMore = found.next != null
+            filteredPage = found.filteredPage
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            error = e.message.orEmpty()
+            error = e.message ?: "Could not load discovery."
+            hasMore = false
             if (page == 1) results = emptyList()
         } finally {
-            loading = false
+            if (currentCoroutineContext().isActive) loading = false
         }
     }
     val brands = listOf("Apple TV", "Netflix", "Max", "Disney", "Hulu", "Prime Video", "Paramount")
@@ -1056,6 +1066,7 @@ fun DiscoverScreen(
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 PageHeading("Discover", "Find your next watch") {
                     MotionButton("Filters", icon = StakIcons.SlidersHorizontal) {
+                        if (draftJson == null) draftJson = DiscoveryPreferences(filters = filters).json()
                         filterSheet = true
                     }
                 }
@@ -1069,8 +1080,18 @@ fun DiscoverScreen(
                 if (query.isBlank())
                     MotionTabs(listOf("Movies", "Series"), type) {
                         type = it
-                        page = 1
+                        setFilters(filters - "genre" - "certification")
                     }
+                if (filters.values.any { it.isNotBlank() }) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        discoveryChips(filters, kind).forEach { (key, label) ->
+                            MotionButton("$label ×", Modifier.semantics { contentDescription = "Remove $label filter" }) {
+                                setFilters(removeDiscoveryFilter(filters, key))
+                            }
+                        }
+                        MotionButton("Reset all") { setFilters(emptyMap()); category = 0 }
+                    }
+                }
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1117,11 +1138,7 @@ fun DiscoverScreen(
                                     RoundedCornerShape(13.dp),
                                 )
                                 .clickable {
-                                    filters =
-                                        filters +
-                                            ("provider" to
-                                                if (filters["provider"] == id) "" else id)
-                                    page = 1
+                                    setFilters(filters + ("provider" to if (filters["provider"] == id) "" else id))
                                 },
                             contentAlignment = Alignment.Center,
                         ) {
@@ -1141,8 +1158,10 @@ fun DiscoverScreen(
                         }
                     }
                 }
-                if (providerError.isNotBlank())
+                if (providerError.isNotBlank()) {
                     Text(providerError, fontSize = 12.sp, lineHeight = 18.sp, color = Muted)
+                    MotionButton("Retry services") { providerRetry++ }
+                }
                 if (query.isBlank())
                     Column {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -1200,21 +1219,23 @@ fun DiscoverScreen(
                             "title.asc" to "Title A–Z",
                         ),
                         {
-                            filters = filters + ("sort" to it)
-                            page = 1
+                            setFilters(filters + ("sort" to it))
                         },
                         Modifier.width(190.dp),
                     )
                 }
+                if (filteredPage) Text(
+                    "Filters apply to the loaded provider page. Load more to keep exploring.",
+                    Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    fontSize = 12.sp, color = Muted,
+                )
             }
             Spacer(Modifier.height(14.dp))
         }
         if (error.isNotBlank())
             item {
-                EmptyState(error) {
-                    page = 1
-                    filters = emptyMap()
-                    category = 0
+                Column(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                    EmptyState(error) { retry++ }
                 }
             }
         if (loading && results.isEmpty())
@@ -1222,6 +1243,10 @@ fun DiscoverScreen(
                 PosterSkeletons()
                 DotStatus(label = "Loading discovery")
             }
+        if (!loading && error.isBlank() && results.isEmpty()) item {
+            EmptyState("No matching titles in the loaded results. Try fewer filters or load the next page.")
+            MotionButton("Clear filters", Modifier.fillMaxWidth()) { setFilters(emptyMap()); category = 0 }
+        }
         items(results.chunked(3), key = { it.first().key }) { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { PosterCard(it, "discover", Modifier.weight(1f), onOpen) }
@@ -1251,9 +1276,13 @@ fun DiscoverScreen(
         }
     }
     if (filterSheet)
-        DiscoveryFilterSheet(filters, { filterSheet = false }) {
-            filters = it
-            page = 1
+        DiscoveryFilterSheet(
+            DiscoveryPreferences.parse(draftJson).filters,
+            kind,
+            { draftJson = DiscoveryPreferences(filters = it).json() },
+            { filterSheet = false },
+        ) {
+            setFilters(it)
             filterSheet = false
         }
     if (serviceSheet)
@@ -1275,8 +1304,7 @@ fun DiscoverScreen(
                 item { OriginalField(serviceQuery, { serviceQuery = it }, "Find a service") }
                 item {
                     MotionButton("All services", Modifier.fillMaxWidth()) {
-                        filters = filters + ("provider" to "")
-                        page = 1
+                        setFilters(filters - "provider")
                         serviceSheet = false
                         serviceQuery = ""
                     }
@@ -1287,9 +1315,7 @@ fun DiscoverScreen(
                 ) { provider ->
                     Row(
                         Modifier.fillMaxWidth().height(56.dp).clickable {
-                            filters =
-                                filters + ("provider" to provider.optInt("provider_id").toString())
-                            page = 1
+                            setFilters(filters + ("provider" to provider.optInt("provider_id").toString()))
                             serviceSheet = false
                             serviceQuery = ""
                         },
@@ -1314,87 +1340,44 @@ fun DiscoverScreen(
 
 @Composable
 fun DiscoveryFilterSheet(
-    filters: Map<String, String>,
+    draft: Map<String, String>,
+    type: String,
+    onDraft: (Map<String, String>) -> Unit,
     onDismiss: () -> Unit,
     apply: (Map<String, String>) -> Unit,
 ) {
-    var draft by remember { mutableStateOf(filters) }
+    var languageQuery by rememberSaveable { mutableStateOf("") }
+    val yearError = discoveryYearError(draft)
     StakBottomSheet(onDismiss) {
         Column(
-            Modifier.fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp)
-                .navigationBarsPadding(),
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("Filters", style = MaterialTheme.typography.headlineSmall)
-            Label("Genre")
-            Choice(
-                "Genre",
-                draft["genre"].orEmpty(),
-                listOf(
-                    "" to "All genres",
-                    "28" to "Action",
-                    "12" to "Adventure",
-                    "16" to "Animation",
-                    "35" to "Comedy",
-                    "80" to "Crime",
-                    "99" to "Documentary",
-                    "18" to "Drama",
-                    "10751" to "Family",
-                    "14" to "Fantasy",
-                    "27" to "Horror",
-                    "9648" to "Mystery",
-                    "10749" to "Romance",
-                    "878" to "Science Fiction",
-                    "53" to "Thriller",
-                ),
-                { draft = draft + ("genre" to it) },
-            )
+            Label("Content")
+            Choice("Genre", draft["genre"].orEmpty(), listOf("" to "All genres") + homeGenres(type).map { it.first.toString() to it.second },
+                { onDraft(draft + ("genre" to it)) })
+            Choice("US age rating", draft["certification"].orEmpty(), discoveryCertifications(type).map { it to it.ifBlank { "Any age rating" } },
+                { onDraft(draft + ("certification" to it)) })
+            Label("Release")
+            val decade = draft["year_from"]?.takeIf { it.toIntOrNull()?.plus(9)?.toString() == draft["year_to"] }.orEmpty()
+            Choice("Decade", decade, listOf("" to "Any / custom range") + (0..12).map { val year = 2020 - it * 10; year.toString() to "${year}s" },
+                { onDraft(draft + mapOf("year_from" to it, "year_to" to (it.toIntOrNull()?.plus(9)?.toString().orEmpty()))) })
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OriginalField(
-                    draft["year_from"].orEmpty(),
-                    { draft = draft + ("year_from" to it) },
-                    "From year",
-                    Modifier.weight(1f),
-                )
-                OriginalField(
-                    draft["year_to"].orEmpty(),
-                    { draft = draft + ("year_to" to it) },
-                    "To year",
-                    Modifier.weight(1f),
-                )
+                OriginalField(draft["year_from"].orEmpty(), { onDraft(draft + ("year_from" to it)) }, "From year", Modifier.weight(1f))
+                OriginalField(draft["year_to"].orEmpty(), { onDraft(draft + ("year_to" to it)) }, "To year", Modifier.weight(1f))
             }
+            if (yearError != null) Text(yearError, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
             Label("Original language")
-            Choice(
-                "Original language",
-                draft["language"].orEmpty(),
-                listOf(
-                    "" to "Any language",
-                    "en" to "English",
-                    "es" to "Spanish",
-                    "fr" to "French",
-                    "de" to "German",
-                    "ja" to "Japanese",
-                    "ko" to "Korean",
-                ),
-                { draft = draft + ("language" to it) },
-            )
+            OriginalField(languageQuery, { languageQuery = it }, "Find a language")
+            val languages = discoveryLanguages(languageQuery, draft["language"].orEmpty())
+            Choice("Original language", draft["language"].orEmpty(), listOf("" to "Any language") + languages.map { it.first to "${it.second} · ${it.first.uppercase()}" },
+                { onDraft(draft + ("language" to it)) })
+            if (languages.isEmpty()) Text("No matching language. Try a name or two-letter code.", fontSize = 12.sp, color = Muted)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MotionButton("Reset filters", Modifier.weight(1f)) { draft = emptyMap() }
-                MotionButton(
-                    "Show results",
-                    Modifier.weight(1f),
-                    primary = true,
-                    enabled =
-                        listOf("year_from", "year_to").all {
-                            draft[it].isNullOrBlank() || draft[it]?.toIntOrNull() in 1880..2100
-                        } &&
-                            (draft["year_from"].isNullOrBlank() ||
-                                draft["year_to"].isNullOrBlank() ||
-                                draft.getValue("year_from") <= draft.getValue("year_to")),
-                ) {
-                    apply(draft)
+                MotionButton("Reset filters", Modifier.weight(1f)) { onDraft(emptyMap()) }
+                MotionButton("Show results", Modifier.weight(1f), primary = true, enabled = yearError == null) {
+                    if (discoveryYearError(draft) == null) apply(draft)
                 }
             }
         }

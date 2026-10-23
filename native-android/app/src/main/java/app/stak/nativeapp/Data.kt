@@ -453,23 +453,16 @@ class Repository(
                     .url(parsed)
                     .header("Accept", "application/json")
                     .header("User-Agent", "STAK Native/0.1")
-            if (jellyfin)
-                builder.header(
-                    "X-Emby-Authorization",
-                    "MediaBrowser Client=\"STAK\", Device=\"Android\", DeviceId=\"stak-native\", Version=\"0.1.0\"",
-                )
-            if (token.isNotBlank()) {
+            if (jellyfin) {
+                val authorization = jellyfinAuthorization(token)
+                builder.header("Authorization", authorization)
+                    .header("X-Emby-Authorization", authorization)
+                if (token.isNotBlank()) builder.header("X-Emby-Token", token)
+            } else if (token.isNotBlank()) {
                 require(!token.contains('\r') && !token.contains('\n') && token.length <= 4096) {
                     "Invalid API credential."
                 }
-                if (jellyfin)
-                    builder
-                        .header("X-Emby-Token", token)
-                        .header(
-                            "Authorization",
-                            "MediaBrowser Client=\"STAK Native\", Device=\"Android\", DeviceId=\"stak-native\", Version=\"0.1.0\", Token=\"${token.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
-                        )
-                else builder.header("Authorization", "Bearer $token")
+                builder.header("Authorization", "Bearer $token")
             }
             if (delete) builder.delete()
             else if (form != null)
@@ -487,6 +480,9 @@ class Repository(
                         403 -> "Connection rejected. Check your credentials and permissions."
                         in 300..399 ->
                             "Server redirected the request. Enter its final address in Settings."
+                        400 -> if (jellyfin)
+                            "Jellyfin returned HTTP 400. Check the server's http/https protocol, port and base path. A reverse proxy must forward Authorization headers."
+                            else "Service returned HTTP 400. Try again."
                         else -> "Service returned HTTP ${response.code}. Try again."
                     }
                 }
