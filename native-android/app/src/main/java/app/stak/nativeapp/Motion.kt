@@ -99,6 +99,7 @@ enum class ButtonTone {
     Default,
     Chip,
     Selection,
+    Link,
     Accent,
     Destructive,
 }
@@ -111,6 +112,7 @@ fun MotionButton(
     enabled: Boolean = true,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     tone: ButtonTone = ButtonTone.Default,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 17.dp,
     onClick: () -> Unit,
 ) {
     val interactions = remember { MutableInteractionSource() }
@@ -155,6 +157,7 @@ fun MotionButton(
         contentColor =
             (when (tone) {
                     ButtonTone.Selection -> AccentInk
+                    ButtonTone.Link -> Muted
                     ButtonTone.Chip -> if (MaterialTheme.colorScheme.background.red < .5f) Color(0xffe5e5e5) else Color(0xff2e2e2e)
                     ButtonTone.Accent -> AccentForeground
                     ButtonTone.Destructive -> Color(0xffff636b)
@@ -168,6 +171,7 @@ fun MotionButton(
                 1.dp,
                 when (tone) {
                     ButtonTone.Selection -> Accent.copy(alpha = if (enabled) .6f else .24f)
+                    ButtonTone.Link -> Color.Transparent
                     ButtonTone.Accent -> AccentInk.copy(alpha = if (enabled) 1f else .4f)
                     ButtonTone.Destructive ->
                         Color(0xffd71921).copy(alpha = if (enabled) .4f else .16f)
@@ -176,7 +180,7 @@ fun MotionButton(
             ),
     ) {
         Row(
-            Modifier.padding(horizontal = 17.dp, vertical = 10.dp),
+            Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         ) {
@@ -317,7 +321,7 @@ fun DotStatus(modifier: Modifier = Modifier, label: String = "Loading", progress
 }
 
 @Composable
-fun SegmentedProgress(progress: Float, modifier: Modifier = Modifier) {
+fun SegmentedProgress(progress: Float, modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 5.dp) {
     val target = progress.coerceIn(0f, 1f)
     val fill by
         animateFloatAsState(
@@ -327,7 +331,7 @@ fun SegmentedProgress(progress: Float, modifier: Modifier = Modifier) {
         )
     val color = MaterialTheme.colorScheme.onSurface
     Canvas(
-        modifier.fillMaxWidth().height(5.dp).semantics {
+        modifier.fillMaxWidth().height(height).semantics {
             progressBarRangeInfo = ProgressBarRangeInfo(target, 0f..1f)
         }
     ) {

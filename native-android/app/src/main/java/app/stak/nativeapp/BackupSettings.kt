@@ -110,10 +110,7 @@ fun BackupSettings(vm: StakViewModel) {
                     fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
                 Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).toggleable(connections, enabled = !busy, role = Role.Checkbox, onValueChange = { connections = it }),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.size(13.dp).background(if (connections) Accent else Color.White, RoundedCornerShape(2.dp))
-                        .border(1.dp, if (connections) Accent else Color(0xff767676), RoundedCornerShape(2.dp)), contentAlignment = Alignment.Center) {
-                        if (connections) Icon(StakIcons.Check, null, Modifier.size(11.dp), tint = AccentForeground)
-                    }
+                    CompactCheckbox(connections)
                     Text("Include credentials (encrypted)", fontSize = 14.sp, lineHeight = 20.sp)
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

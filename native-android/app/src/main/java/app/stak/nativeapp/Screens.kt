@@ -563,7 +563,7 @@ fun HomeScreen(
                             fontFamily = DotFont,
                             fontWeight = FontWeight.Black,
                             fontSize = 25.sp,
-                            lineHeight = 25.sp,
+                            lineHeight = 25.2.sp,
                             letterSpacing = (-.06).em,
                         )
                         Row(
@@ -1587,6 +1587,7 @@ fun DetailScreen(
     }
     var selected by remember { mutableStateOf<Episode?>(null) }
     var sources by remember { mutableStateOf(false) }
+    var artwork by rememberSaveable { mutableStateOf<String?>(null) }
     var sourceEpisode by remember { mutableStateOf<Episode?>(null) }
     val episodes by vm.watchedEpisodes.collectAsStateWithLifecycle()
     val watched =
@@ -1634,90 +1635,13 @@ fun DetailScreen(
             Modifier.testTag("title-scroll"),
             contentPadding = PaddingValues(bottom = 112.dp),
         ) {
-            item {
-                Box(
-                    Modifier.fillMaxWidth()
-                        .height(if (media.background.isBlank()) 220.dp else 380.dp)
-                ) {
-                    if (media.background.isNotBlank()) {
-                        Artwork(
-                            media,
-                            Modifier.fillMaxSize()
-                                .graphicsLayer {
-                                    compositingStrategy = CompositingStrategy.Offscreen
-                                }
-                                .drawWithContent {
-                                    drawContent()
-                                    drawRect(
-                                        Brush.verticalGradient(
-                                            0f to Color.Transparent,
-                                            .08f to Color.Black,
-                                            .38f to Color.Black,
-                                            .58f to Color.Black.copy(alpha = .73f),
-                                            .82f to Color.Black.copy(alpha = .2f),
-                                            1f to Color.Transparent,
-                                        ),
-                                        blendMode = BlendMode.DstIn,
-                                    )
-                                },
-                            backdrop = true,
-                        )
-                    }
-                    StakIconButton(
-                        StakIcons.ArrowLeft,
-                        "Back",
-                        Modifier.align(Alignment.TopStart)
-                            .padding(start = 16.dp, top = 12.dp)
-                            .background(
-                                MaterialTheme.colorScheme.background.copy(alpha = .85f),
-                                CircleShape,
-                            ),
-                        onClick = onBack,
-                    )
-                    Row(
-                        Modifier.align(Alignment.BottomStart)
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 28.dp),
-                        horizontalArrangement = Arrangement.spacedBy(18.dp),
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        Column(
-                            Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Text(
-                                media.name,
-                                fontFamily = DotFont,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 32.sp,
-                                lineHeight = 38.sp,
-                            )
-                            Text(
-                                listOf(media.year, media.runtime)
-                                    .filter { it.isNotBlank() }
-                                    .joinToString(" · "),
-                                fontFamily = MonoFont,
-                                fontSize = 10.sp,
-                                color = Muted,
-                            )
-                            RatingBadge(media, quiet = true)
-                            if (media.genres.isNotEmpty())
-                                Text(
-                                    media.genres.joinToString(" · "),
-                                    fontSize = 10.sp,
-                                    color = Muted,
-                                )
-                        }
-                        SharedPoster(media, source, Modifier.width(88.dp).aspectRatio(2f / 3f))
-                    }
-                }
-            }
+            item { CapacitorTitleHeader(media, onBack) }
             item {
                 Row(
-                    Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    Modifier.padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    MotionButton("Watch trailer", icon = StakIcons.Play) {
+                    MotionButton("Watch trailer", icon = StakIcons.Play, tone = ButtonTone.Chip, horizontalPadding = 15.dp) {
                         openExternal(
                             context,
                             if (media.trailer.isNotBlank())
@@ -1729,6 +1653,8 @@ fun DetailScreen(
                     }
                     MotionButton(
                         "Watchlist",
+                        tone = ButtonTone.Chip,
+                        horizontalPadding = 15.dp,
                         icon = if (watchlisted) StakIcons.Check else StakIcons.Bookmark,
                     ) {
                         vm.toggle(media, "watchlist")
@@ -1738,7 +1664,7 @@ fun DetailScreen(
             item {
                 Row(
                     Modifier.fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .padding(horizontal = 16.dp).padding(top = 10.dp)
                         .heightIn(min = 36.dp)
                         .clickable {
                             if (media.jellyfinId.isBlank()) navigate("settings?section=jellyfin")
@@ -1764,28 +1690,34 @@ fun DetailScreen(
             }
             item {
                 Column(
-                    Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(9.dp),
+                    Modifier.padding(horizontal = 16.dp).padding(top = 14.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
                 ) {
                     if (titleEpisodes.isNotEmpty()) {
                         Text(
                             "$count of ${titleEpisodes.size} watched",
                             fontFamily = MonoFont,
                             fontSize = 11.sp,
+                            lineHeight = 17.6.sp,
                             color = Muted,
                         )
-                        SegmentedProgress(count.toFloat() / titleEpisodes.size)
+                        Spacer(Modifier.height(9.dp))
+                        SegmentedProgress(count.toFloat() / titleEpisodes.size, height = 6.dp)
+                        Spacer(Modifier.height(6.dp))
                         Text(
                             "${count * 100 / titleEpisodes.size}% complete · ${titleEpisodes.size - count} remaining",
                             fontFamily = MonoFont,
                             fontSize = 11.sp,
+                            lineHeight = 17.6.sp,
                             color = Muted,
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Spacer(Modifier.height(12.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             MotionButton(
-                                if (next == null) "Mark unwatched"
-                                else "Mark watched · S%02d E%02d".format(next.season, next.number),
-                                icon = StakIcons.Check,
+                                if (next == null) "✓ Watched · undo"
+                                else "✓ Mark watched · S%02d E%02d".format(next.season, next.number),
+                                tone = ButtonTone.Chip,
+                                horizontalPadding = 15.dp,
                             ) {
                                 vm.operation {
                                     if (next != null) {
@@ -1794,7 +1726,7 @@ fun DetailScreen(
                                     } else vm.changeEpisodesWatched(media, titleEpisodes, false)
                                 }
                             }
-                            MotionButton("Mark S%02d watched".format(season)) {
+                            MotionButton("Mark S%02d watched".format(season), tone = ButtonTone.Link, horizontalPadding = 15.dp) {
                                 vm.operation {
                                     vm.changeEpisodesWatched(
                                         media,
@@ -1806,8 +1738,9 @@ fun DetailScreen(
                         }
                     } else
                         MotionButton(
-                            if (watched) "Watched" else "Mark watched",
-                            icon = StakIcons.Check,
+                            if (watched) "✓ Watched · undo" else "✓ Mark watched",
+                            tone = ButtonTone.Chip,
+                            horizontalPadding = 15.dp,
                         ) {
                             vm.operation {
                                 val previous = vm.changeWatched(media, !watched)
@@ -1820,6 +1753,7 @@ fun DetailScreen(
                                     vm.restoreWatched(media, previous)
                             }
                         }
+                    Spacer(Modifier.height(20.dp))
                     HorizontalDivider(color = Rule)
                 }
             }
@@ -1828,8 +1762,8 @@ fun DetailScreen(
             if (media.description.isNotBlank())
                 item {
                     Column(
-                        Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        Modifier.padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 36.dp),
+                        verticalArrangement = Arrangement.spacedBy(9.dp),
                     ) {
                         Label("Synopsis")
                         Text(
@@ -1936,6 +1870,27 @@ fun DetailScreen(
                         }
                     }
                 }
+            if (media.gallery.isNotEmpty())
+                item {
+                    Column(Modifier.padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 28.dp)) {
+                        HorizontalDivider(color = Rule)
+                        Spacer(Modifier.height(18.dp))
+                        Text("GALLERY", fontFamily = SectionFont, fontWeight = FontWeight.ExtraBold,
+                            fontSize = 14.sp, lineHeight = 20.3.sp, letterSpacing = 1.4.sp)
+                        Spacer(Modifier.height(12.dp))
+                        BoxWithConstraints(Modifier.fillMaxWidth()) {
+                            val width = (maxWidth - 24.dp) / 3
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                items(media.gallery.distinct()) { image ->
+                                    AsyncImage(image, "View artwork for ${media.name}",
+                                        Modifier.width(width).aspectRatio(16f / 9f)
+                                            .clip(RoundedCornerShape(12.dp)).clickable { artwork = image },
+                                        contentScale = ContentScale.Crop)
+                                }
+                            }
+                        }
+                    }
+                }
             if (media.cast.isNotEmpty())
                 item {
                     Column(
@@ -1965,36 +1920,14 @@ fun DetailScreen(
                         }
                     }
                 }
-            if (media.gallery.isNotEmpty())
-                item {
-                    Column(
-                        Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp),
-                    ) {
-                        HorizontalDivider(color = Rule)
-                        Text("GALLERY", fontFamily = DotFont, fontSize = 14.sp)
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(media.gallery) {
-                                AsyncImage(
-                                    it,
-                                    null,
-                                    Modifier.width(118.dp)
-                                        .aspectRatio(16f / 9f)
-                                        .clip(RoundedCornerShape(9.dp)),
-                                    contentScale = ContentScale.Crop,
-                                )
-                            }
-                        }
-                    }
-                }
         }
         Surface(
-            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp),
-            shape = RoundedCornerShape(18.dp),
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 12.dp),
+            shape = RoundedCornerShape(16.dp),
             border = BorderStroke(1.dp, Rule),
             color = MaterialTheme.colorScheme.surface,
         ) {
-            Box(Modifier.padding(4.dp)) {
+            Box(Modifier.padding(6.dp)) {
                 Surface(
                     onClick = {
                         sourceEpisode = null
@@ -2002,22 +1935,37 @@ fun DetailScreen(
                     },
                     shape = RoundedCornerShape(11.dp),
                     color = Accent,
+                    border = BorderStroke(1.dp, AccentInk),
                 ) {
                     Row(
-                        Modifier.padding(horizontal = 20.dp).height(44.dp),
+                        Modifier.padding(horizontal = 22.dp).height(44.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
                     ) {
-                        Icon(StakIcons.Plus, null, Modifier.size(16.dp), tint = Color.White)
+                        Icon(StakIcons.Plus, null, Modifier.size(15.dp), tint = Color.White)
                         Text(
                             "FIND SOURCES",
                             fontFamily = MonoFont,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp,
+                            letterSpacing = .6.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = Color.White,
                         )
                     }
                 }
+            }
+        }
+    }
+    artwork?.let { image ->
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { artwork = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(Modifier.fillMaxWidth().padding(16.dp)) {
+                AsyncImage(image, "${media.name} artwork", Modifier.fillMaxWidth().heightIn(max = 680.dp), contentScale = ContentScale.Fit)
+                StakIconButton(StakIcons.X, "Close artwork", Modifier.align(Alignment.TopEnd)
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = .85f), CircleShape)) { artwork = null }
             }
         }
     }

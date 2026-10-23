@@ -3,6 +3,8 @@ package app.stak.nativeapp
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -169,7 +171,7 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
             when (section) {
                 "appearance" -> CapacitorSettingsPanel(verticalPadding = 0.dp) { AppearanceSettings(vm) }
                 "account" -> TorBoxSettings(vm)
-                "metadata" -> CapacitorSettingsPanel { MetadataSettings(vm) }
+                "metadata" -> MetadataSettings(vm)
                 "jellyfin" -> JellyfinSettings(vm)
                 "sources" -> SourcesSettings(vm)
                 "home" -> HomeSettings(vm)
@@ -268,34 +270,39 @@ fun ConnectionStatus(vm: StakViewModel, choose: (String) -> Unit) {
 @Composable
 fun MetadataSettings(vm: StakViewModel) {
     val o = LocalOptions.current
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        listOf(
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf(
                 "search" to "Search source",
                 "movie" to "Movie metadata source",
                 "series" to "Series metadata source",
             )
-            .forEach { (key, label) ->
-                Text(label, fontSize = 13.sp)
-                Choice(
-                    label,
-                    o["metadata_$key"] ?: "tmdb",
-                    if (key == "search") listOf("tmdb" to "TMDb")
-                    else listOf("tmdb" to "TMDb", "cinemeta" to "Cinemeta"),
-                    {
-                        vm.option("metadata_$key", it)
-                        vm.catalogs.clear()
-                    },
-                )
-            }
-        OriginalToggle("Ratings: IMDb/RT/Metacritic via OMDb", o["ratings"] != "false") {
+                .forEach { (key, label) ->
+                    Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(label, fontSize = 11.sp, lineHeight = 16.5.sp, color = Muted)
+                        Choice(
+                            label,
+                            o["metadata_$key"] ?: "tmdb",
+                            if (key == "search") listOf("tmdb" to "TMDb")
+                            else listOf("tmdb" to "TMDb", "cinemeta" to "Cinemeta"),
+                            {
+                                vm.option("metadata_$key", it)
+                                vm.catalogs.clear()
+                            },
+                        )
+                    }
+                }
+        }
+        MetadataCheckbox("Ratings: IMDb/RT/Metacritic via OMDb", o["ratings"] != "false") {
             vm.option("ratings", it.toString())
         }
-        OriginalToggle("Show IMDb rating on lists", o["imdbOnLists"] == "true") {
+        MetadataCheckbox("Show IMDb rating on lists", o["imdbOnLists"] == "true") {
             vm.option("imdbOnLists", it.toString())
         }
         Text(
             "IMDb list ratings and IMDb filters use your daily OMDb quota. Cached ratings are reused for at least 24 hours.",
             fontSize = 12.sp,
+            lineHeight = 16.sp,
             color = Muted,
         )
         listOf("tmdb", "omdb").forEach { provider ->
@@ -312,9 +319,9 @@ fun MetadataSettings(vm: StakViewModel) {
                 color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
                 border = BorderStroke(1.dp, Rule),
             ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row {
-                        Label(provider, Modifier.weight(1f))
+                        SectionHeading(provider, Modifier.weight(1f))
                         Label(status)
                     }
                     OriginalField(
@@ -383,6 +390,15 @@ fun MetadataSettings(vm: StakViewModel) {
             fontSize = 12.sp,
             color = Muted,
         )
+    }
+}
+
+@Composable
+private fun MetadataCheckbox(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).toggleable(checked, role = Role.Checkbox, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(label, Modifier.weight(1f), fontSize = 14.sp, lineHeight = 20.sp)
+        CompactCheckbox(checked)
     }
 }
 

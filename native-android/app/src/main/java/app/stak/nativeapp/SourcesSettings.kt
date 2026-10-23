@@ -8,6 +8,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
@@ -81,9 +84,12 @@ fun SourcesSettings(vm: StakViewModel) {
                 enabled = busy.isBlank(), accessibilityLabel = "Source name")
             OriginalField(url, { url = it; feedback = "" }, "URL", Modifier.testTag("indexer-url-input"),
                 enabled = busy.isBlank(), accessibilityLabel = "Endpoint URL")
-            Text(if (kind == "torznab") "Jackett: http://IP:9117/api/v2.0/indexers/all/results/torznab · Prowlarr: http://IP:9696/1/api"
-                else "Stremio addon URL, e.g. https://torrentio.strem.fun/providers=yts,eztv/manifest.json",
-                Modifier.padding(horizontal = 8.dp), fontFamily = MonoFont, fontSize = 10.sp, lineHeight = 16.25.sp, color = Muted)
+            val hint = if (kind == "torznab") "Jackett: http://IP:9117/api/v2.0/indexers/all/results/torznab · Prowlarr: http://IP:9696/1/api"
+                else "Stremio addon URL, e.g. https://torrentio.strem.fun/providers=yts,eztv/manifest.json"
+            // CSS break-all permits a wrap between any two characters in these examples.
+            Text(hint.toList().joinToString("\u200b"),
+                Modifier.padding(horizontal = 8.dp).clearAndSetSemantics { text = AnnotatedString(hint) },
+                fontFamily = MonoFont, fontSize = 10.sp, lineHeight = 16.25.sp, color = Muted)
             AnimatedVisibility(kind == "torznab", enter = fadeIn(motionSpec(motion.reduced, 160)) + expandVertically(motionSpec(motion.reduced, 220)),
                 exit = fadeOut(motionSpec(motion.reduced, 100)) + shrinkVertically(motionSpec(motion.reduced, 180))) {
                 OriginalField(apiKey, { apiKey = it }, "API key", Modifier.testTag("indexer-apikey-input"),

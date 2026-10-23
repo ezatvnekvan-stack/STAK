@@ -164,7 +164,13 @@ fun Ambient(
                     val mask =
                         if (fraction < .3f) .6f + .4f * fraction / .3f
                         else 1f - (1f - 2f / 3f) * (fraction - .3f) / .7f
-                    drawCircle(color.copy(alpha = dot * mask), .7.dp.toPx(), Offset(x, y))
+                    // CSS paints a radial-gradient tile; a tiny antialiased circle halves
+                    // the four center pixels at density 1 and makes the pattern too faint.
+                    val radius = 1.dp.toPx()
+                    val ink = color.copy(alpha = dot * mask)
+                    drawRect(Brush.radialGradient(0f to ink, .7f to ink, 1f to Color.Transparent,
+                        center = Offset(x, y), radius = radius),
+                        topLeft = Offset(x - radius, y - radius), size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2))
                     y += step
                 }
                 x += step
@@ -399,6 +405,7 @@ fun Choice(
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     plain: Boolean = false,
+    enabled: Boolean = true,
 ) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
@@ -411,15 +418,20 @@ fun Choice(
                     if (plain) Color.Transparent
                     else MaterialTheme.colorScheme.surface.copy(alpha = .74f)
                 )
-                .clickable(role = Role.Button) { open = true }
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .graphicsLayer { alpha = if (enabled) 1f else .4f }
+                .clickable(enabled = enabled, role = Role.Button) { open = true }
+                .padding(horizontal = 15.dp, vertical = 11.dp)
                 .semantics { contentDescription = label },
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 options.firstOrNull { it.first == value }?.second ?: value,
                 Modifier.weight(1f),
-                fontSize = 13.sp,
+                fontSize = 14.sp,
+                lineHeight = 19.6.sp,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             Icon(StakIcons.ChevronDown, null, Modifier.size(14.dp), tint = Muted)
         }
@@ -434,6 +446,18 @@ fun Choice(
                 )
             }
         }
+    }
+}
+
+/** Paint the compact HTML checkbox while the enclosing 44 dp row owns interaction. */
+@Composable
+fun CompactCheckbox(checked: Boolean) {
+    val light = MaterialTheme.colorScheme.background.red > .5f
+    Box(Modifier.size(13.dp)
+        .background(if (checked) Accent else if (light) Color.White else Color(0xff3b3b3b), RoundedCornerShape(2.dp))
+        .border(1.dp, if (checked) Accent else if (light) Color(0xff767676) else Color(0xff858585), RoundedCornerShape(2.dp)),
+        contentAlignment = Alignment.Center) {
+        if (checked) Icon(StakIcons.Check, null, Modifier.size(11.dp), tint = AccentForeground)
     }
 }
 
