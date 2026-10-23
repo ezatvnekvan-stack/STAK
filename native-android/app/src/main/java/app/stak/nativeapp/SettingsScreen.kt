@@ -95,13 +95,15 @@ fun SettingsScreen(vm: StakViewModel, section: String = "") {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     row.forEach { destination ->
+                        val interactions = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                         Surface(
                             modifier =
-                                Modifier.weight(1f)
+                                Modifier.weight(1f).stakPressMotion(interactions)
                                     .fillMaxHeight()
                                     .heightIn(min = 126.dp)
                                     .testTag("settings-${destination.id}"),
                             onClick = { navigate("settings?section=${destination.id}") },
+                            interactionSource = interactions,
                             shape = RoundedCornerShape(14.dp),
                             color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
                             border = BorderStroke(1.dp, Rule),

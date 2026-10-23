@@ -103,6 +103,31 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent { StakApp() }
     }
+
+    override fun onResume() {
+        super.onResume()
+        preferMotionRefreshRate()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        preferMotionRefreshRate()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun preferMotionRefreshRate() {
+        val display = window.decorView.display ?: return
+        val current = display.mode
+        val rates = display.supportedModes.filter {
+            it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight
+        }.map { it.refreshRate }
+        window.attributes = window.attributes.apply { preferredRefreshRate = preferredMotionRefreshRate(rates) }
+    }
+
+    override fun onPause() {
+        window.attributes = window.attributes.apply { preferredRefreshRate = 0f }
+        super.onPause()
+    }
 }
 
 @Composable
@@ -115,7 +140,8 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
 private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, scope: String) {
     val context = LocalContext.current
     val allSaved by vm.saved.collectAsStateWithLifecycle()
-    val saved = allSaved.filter { it.accountScope == scope }
+    val saved = remember(allSaved, scope) { allSaved.filter { it.accountScope == scope } }
+    val posters = remember(saved) { posterState(saved) }
     val savedDark by vm.dark.collectAsStateWithLifecycle()
     val options by vm.options.collectAsStateWithLifecycle()
     val tone by vm.artworkTone.collectAsStateWithLifecycle()
@@ -272,13 +298,14 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                 labelSmall = TextStyle(fontFamily = MonoFont, fontSize = 9.sp, letterSpacing = 0.sp),
             ).withCssLineBoxes(),
     ) {
-        CompositionLocalProvider(LocalStakMotion provides policy, LocalOptions provides options) {
+        CompositionLocalProvider(LocalStakMotion provides policy, LocalOptions provides options,
+            LocalPosterState provides posters, LocalStakViewModel provides vm) {
             val nav = rememberNavController()
             val snackbar = remember { SnackbarHostState() }
             val entry by nav.currentBackStackEntryAsState()
             val route = entry?.destination?.route ?: "home"
             val bare = route.startsWith("title/")
-            val duration = if (policy.reduced) 0 else 280
+            val duration = if (policy.reduced) 0 else 230
             LaunchedEffect(vm) { vm.messages.collect { snackbar.showSnackbar(it) } }
             LaunchedEffect(requestedDestination) {
                 if (!requestedDestination.isNullOrBlank())

@@ -95,6 +95,11 @@ class SourcesMotionTest {
                 val episodeCount = "2 of 2 releases · tags and title matches are inferred from filenames."
                 compose.onNodeWithTag("sources-results").performScrollToNode(hasText(episodeCount))
                 compose.onNodeWithText(episodeCount).assertIsDisplayed()
+                compose.onNodeWithTag("sources-results").performScrollToNode(hasText("RELEASE DETAILS"))
+                compose.onAllNodesWithText("RELEASE DETAILS").onFirst().performClick()
+                compose.onNodeWithText("HIDE DETAILS").assertExists()
+                compose.onNodeWithText("HIDE DETAILS").performClick()
+                compose.onNodeWithText("HIDE DETAILS").assertDoesNotExist()
             }
             assertFalse(vm.reduced.value)
             val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()

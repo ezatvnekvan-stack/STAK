@@ -93,7 +93,7 @@ fun Ambient(
     val reduced = LocalStakMotion.current.reduced
     val lifecycle by
         androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    var elapsed by remember { mutableLongStateOf(0L) }
+    val elapsed = remember { mutableLongStateOf(0L) }
     LaunchedEffect(options["ambientAnimation"], reduced, lifecycle) {
         if (
             options["ambientAnimation"] != "true" ||
@@ -103,20 +103,19 @@ fun Ambient(
             return@LaunchedEffect
         var previous = 0L
         while (true) withFrameNanos { time ->
-            if (previous > 0) elapsed += time - previous
+            if (previous > 0) elapsed.longValue += time - previous
             previous = time
         }
     }
-    val progress =
-        if (reduced || options["ambientAnimation"] != "true") 0f
-        else {
-            val phase = (elapsed / 1_000_000_000.0 / 100.0) % 2
-            val linear = (if (phase <= 1) phase else 2 - phase).toFloat()
-            androidx.compose.animation.core.CubicBezierEasing(.42f, 0f, .58f, 1f).transform(linear)
-        }
+    val easing = remember { androidx.compose.animation.core.CubicBezierEasing(.42f, 0f, .58f, 1f) }
     Box(modifier.fillMaxSize()) {
         Canvas(
             Modifier.matchParentSize().graphicsLayer {
+                // Read the clock in the layer phase: drifting does not recompose or redraw
+                // the gradient/dot canvases at 90/120 Hz.
+                val phase = (elapsed.longValue / 1_000_000_000.0 / 100.0) % 2
+                val linear = (if (phase <= 1) phase else 2 - phase).toFloat()
+                val progress = if (reduced || options["ambientAnimation"] != "true") 0f else easing.transform(linear)
                 alpha = opacity
                 translationX = size.width * .02f * progress
                 translationY = size.height * .01f * progress

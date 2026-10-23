@@ -6,8 +6,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONObject
 
 /** Same filename tags as the original mediaQuality.js. These are inferred, never verified. */
-fun qualityTags(release: String): List<String> {
-    val rules =
+private val qualityRules =
         listOf(
             "\\b(?:2160p|4k|uhd)\\b" to "4K",
             "\\b(?:1080p|fhd)\\b" to "1080p",
@@ -32,9 +31,12 @@ fun qualityTags(release: String): List<String> {
             "\\b(?:avc|h264|x264)\\b" to "H.264",
             "\\b(?:hun|hungarian|magyar)\\b" to "HU",
         )
-    return rules
-        .filter { Regex(it.first, RegexOption.IGNORE_CASE).containsMatchIn(release) }
-        .map { it.second }
+        .map { Regex(it.first, RegexOption.IGNORE_CASE) to it.second }
+
+fun qualityTags(release: String): List<String> {
+    // An underscore is a filename separator, but regex word boundaries treat it as a letter.
+    val normalized = release.replace('_', '.')
+    return qualityRules.filter { it.first.containsMatchIn(normalized) }.map { it.second }
 }
 
 fun SourceStream.quality() = qualityTags("$name $title")
