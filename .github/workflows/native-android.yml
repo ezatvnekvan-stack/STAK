@@ -66,12 +66,15 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
+          # Official archived stable 36.6.11; keep the VM version reproducible.
+          emulator-build: 15507667
           arch: x86_64
           profile: pixel_2
           disable-animations: false
           # Use the stable GLES renderer for backdrop/window blur. Tests and
           # animations remain enabled; experimental emulator Vulkan is unused.
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          pre-emulator-launch-script: bash native-android/scripts/trace_emulator.sh
           script: |
             bash native-android/ci-emulator.sh debug
             bash native-android/ci-emulator.sh preview

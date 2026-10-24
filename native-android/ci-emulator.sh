@@ -3,11 +3,16 @@ set -euo pipefail
 stak_root="$(cd "$(dirname "$0")/.." && pwd)"
 variant="${1:-debug}"
 variant_cap="${variant^}"
-collect_evidence() {
+pull_evidence() {
   mkdir -p "$stak_root/native-evidence/$variant"
   adb pull /sdcard/Pictures/STAK-native-evidence "$stak_root/native-evidence/$variant/" || true
   adb pull /sdcard/Download/STAK-native-metrics "$stak_root/native-evidence/$variant/" || true
-  if [[ -n "${stak_logcat_pid:-}" ]]; then kill "$stak_logcat_pid" 2>/dev/null || true; fi
+}
+collect_evidence() {
+  pull_evidence
+  for stak_pid in "${stak_logcat_pid:-}" "${stak_snapshot_pid:-}"; do
+    if [[ -n "$stak_pid" ]]; then kill "$stak_pid" 2>/dev/null || true; fi
+  done
 }
 trap collect_evidence EXIT
 cd "$stak_root/native-android"
@@ -19,6 +24,14 @@ adb shell rm -rf /sdcard/Pictures/STAK-native-evidence /sdcard/Download/STAK-nat
 mkdir -p "$stak_root/native-evidence/$variant"
 adb logcat -v threadtime > "$stak_root/native-evidence/$variant/full-logcat.txt" 2>&1 &
 stak_logcat_pid=$!
+# Retain completed captures/metrics even if the VM later disconnects.
+(
+  trap - EXIT
+  while sleep 20 && adb get-state >/dev/null 2>&1; do
+    pull_evidence > "$stak_root/native-evidence/$variant/periodic-pull.log" 2>&1
+  done
+) &
+stak_snapshot_pid=$!
 rm -rf app/build/outputs/androidTest-results app/build/reports/androidTests
 stak_test_status=0
 ./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8" -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" || stak_test_status=$?
