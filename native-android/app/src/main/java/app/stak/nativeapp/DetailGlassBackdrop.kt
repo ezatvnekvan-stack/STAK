@@ -75,9 +75,9 @@ fun DetailGlassBackdrop(media: Media) {
     }
     val background = MaterialTheme.colorScheme.background
     Box(Modifier.fillMaxSize().testTag("detail-glass-backdrop")) {
-        AsyncImage(request, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = .55f)
+        AsyncImage(request, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = .35f)
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
             background.copy(alpha = .12f), background.copy(alpha = .5f), background.copy(alpha = .9f)))))
-        Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Accent.copy(alpha = .08f), Color.Transparent))))
+        Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Accent.copy(alpha = .035f), Color.Transparent))))
     }
 }

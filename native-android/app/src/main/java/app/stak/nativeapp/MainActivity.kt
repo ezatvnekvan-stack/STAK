@@ -560,7 +560,7 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                 Box(
                     Modifier.offset { IntOffset(x.value.roundToPx(), 6.dp.roundToPx()) }
                         .size(36.dp, 30.dp)
-                        .liquidGlass(12.dp, highlighted = true)
+                        .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp))
                 )
             Row(Modifier.fillMaxSize()) {
                 labels.forEachIndexed { index, label ->
@@ -575,7 +575,7 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                         )
                     val iconColor by
                         animateColorAsState(
-                            if (index == selected) AccentInk
+                            if (index == selected) MaterialTheme.colorScheme.background
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                             motionSpec(policy.reduced, 180),
                             label = "Navigation ink",

@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -19,32 +18,21 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-/** Cached glass paint, without a render target or blur pass for each control. */
+/** Quiet translucent controls; reserve a reflection for the floating dock. */
 @Composable
 fun Modifier.liquidGlass(radius: Dp = 16.dp, highlighted: Boolean = false,
-    strength: Float = .72f): Modifier = liquidGlassShape(RoundedCornerShape(radius), highlighted, strength)
-
-@Composable
-private fun Modifier.liquidGlassShape(shape: Shape, highlighted: Boolean = false,
     strength: Float = .72f): Modifier {
     val dark = MaterialTheme.colorScheme.background.red < .5f
-    val tint = if (highlighted) Accent else if (dark) Color(0xff18212b) else Color(0xfff6f9ff)
-    val edge = if (highlighted) AccentInk else if (dark) Color.White else Color(0xff64748b)
-    return clip(shape).drawWithCache {
-        val outline = shape.createOutline(size, layoutDirection, this)
-        val fill = Brush.linearGradient(listOf(
-            tint.copy(alpha = strength * if (highlighted) .42f else .9f),
-            tint.copy(alpha = strength * .5f)))
-        val shine = Brush.linearGradient(listOf(Color.White.copy(alpha = if (dark) .13f else .7f),
-            Color.White.copy(alpha = .015f), Color.Transparent), end = Offset(size.width * .65f, size.height))
-        val rim = Brush.linearGradient(listOf(edge.copy(alpha = if (highlighted) .65f else .32f),
-            edge.copy(alpha = .06f), edge.copy(alpha = .2f)))
-        val stroke = 1.dp.toPx()
+    val fill = if (highlighted) Accent.copy(alpha = .09f)
+        else MaterialTheme.colorScheme.surface.copy(alpha = strength * .7f)
+    val edge = if (highlighted) Accent.copy(alpha = .35f)
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = if (dark) .12f else .14f)
+    return clip(RoundedCornerShape(radius)).drawWithCache {
+        val outline = RoundedCornerShape(radius).createOutline(size, layoutDirection, this)
         onDrawWithContent {
             drawOutline(outline, fill)
-            drawOutline(outline, shine)
             drawContent()
-            drawOutline(outline, rim, style = Stroke(stroke * 2))
+            drawOutline(outline, edge, style = Stroke(1.dp.toPx()))
         }
     }
 }
@@ -59,28 +47,28 @@ fun LiquidSurface(modifier: Modifier = Modifier, shape: Shape = RoundedCornerSha
     shadowElevation: Dp = 0.dp, highlighted: Boolean = false, content: @Composable () -> Unit) {
     val surface = MaterialTheme.colorScheme.surface
     val neutral = color == surface || color == surface.copy(alpha = .74f) || color == surface.copy(alpha = .94f)
-    val translucent = neutral || color == Color.Transparent
-    val base = if (translucent) modifier else modifier.background(color, shape)
-    val paint = base.liquidGlassShape(shape, highlighted = highlighted || color == Accent,
-        strength = if (translucent) .72f else 0f)
-    if (onClick == null) Surface(paint, shape, Color.Transparent, contentColor,
-        tonalElevation, shadowElevation, border, content = content)
-    else Surface(onClick, paint, enabled, shape, Color.Transparent, contentColor,
-        tonalElevation, shadowElevation, border, interactionSource, content)
+    val fill = if (highlighted && color == Color.Transparent) Accent.copy(alpha = .08f)
+        else if (neutral) surface.copy(alpha = .88f) else color
+    val rim = border ?: if (highlighted) BorderStroke(1.dp, Accent.copy(alpha = .35f))
+        else if (neutral) BorderStroke(1.dp, Rule) else null
+    if (onClick == null) Surface(modifier, shape, fill, contentColor,
+        tonalElevation, shadowElevation, rim, content = content)
+    else Surface(onClick, modifier, enabled, shape, fill, contentColor,
+        tonalElevation, shadowElevation, rim, interactionSource, content)
 }
 
 @Composable
 fun GlassIconButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
     content: @Composable () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
-    androidx.compose.material3.IconButton(onClick, modifier.stakPressMotion(interaction).liquidGlass(100.dp),
+    androidx.compose.material3.IconButton(onClick, modifier.stakPressMotion(interaction),
         enabled = enabled, interactionSource = interaction, content = content)
 }
 
 @Composable
 fun GlassTextButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit) {
-    androidx.compose.material3.TextButton(onClick, modifier.liquidGlass(14.dp, highlighted = enabled), enabled = enabled,
+    androidx.compose.material3.TextButton(onClick, modifier, enabled = enabled,
         colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = AccentInk), content = content)
 }
 @Composable
@@ -88,20 +76,22 @@ fun GlassAlertDialog(onDismissRequest: () -> Unit, confirmButton: @Composable ()
     dismissButton: (@Composable () -> Unit)? = null, title: (@Composable () -> Unit)? = null,
     text: (@Composable () -> Unit)? = null) {
     androidx.compose.material3.AlertDialog(onDismissRequest, confirmButton,
-        modifier = Modifier.liquidGlass(28.dp, strength = .95f),
-        dismissButton = dismissButton, title = title, text = text, containerColor = Color.Transparent)
+
+        dismissButton = dismissButton, title = title, text = text, containerColor = MaterialTheme.colorScheme.surface)
 }
 
-/** Cached frosted chrome; no live capture/render effect beneath scrolling content. */
+/** Low-contrast dock reflection; artwork cards keep the reference's quiet surfaces. */
 @Composable
 fun GlassPanel(modifier: Modifier = Modifier, radius: Dp = 20.dp, backdrop: Boolean = false,
     emphasized: Boolean = false, content: @Composable () -> Unit) {
     val dark = MaterialTheme.colorScheme.background.red < .5f
-    val base = if (dark) Color(0xff101318) else Color(0xfff7f8fa)
+    val base = if (dark) Color(0xff101010) else Color(0xfffafafa)
     val shape = RoundedCornerShape(radius)
-    val chrome = if (backdrop) Modifier.background(base.copy(alpha = .92f), shape) else Modifier
-    Surface(modifier.clip(shape).then(chrome).liquidGlass(radius, emphasized, if (backdrop) .35f else .72f),
-        shape = shape, color = Color.Transparent) {
-        content()
-    }
+    val ink = MaterialTheme.colorScheme.onSurface
+    val material = if (backdrop) modifier.background(Brush.verticalGradient(listOf(
+        base.copy(alpha = .96f), base.copy(alpha = .91f))), shape) else modifier
+    Surface(material, shape = shape,
+        color = if (backdrop) Color.Transparent else base.copy(alpha = .9f),
+        border = BorderStroke(1.dp, ink.copy(alpha = if (emphasized) .32f else .12f)),
+        content = content)
 }

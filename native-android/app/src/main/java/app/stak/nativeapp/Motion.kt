@@ -153,18 +153,25 @@ fun MotionButton(
                 if (policy.haptics) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 onClick()
             },
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         highlighted = enabled && (primary || tone in listOf(ButtonTone.Accent, ButtonTone.Selection, ButtonTone.Destructive)),
-        color = Color.Transparent,
+        color = when {
+            primary || tone == ButtonTone.Accent -> Accent.copy(alpha = if (enabled) 1f else .4f)
+            tone == ButtonTone.Link -> Color.Transparent
+            tone == ButtonTone.Selection -> Accent.copy(alpha = .08f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = .8f)
+        },
+        border = if (tone == ButtonTone.Link) null else androidx.compose.foundation.BorderStroke(1.dp,
+            if (primary || tone in listOf(ButtonTone.Accent, ButtonTone.Selection)) Accent.copy(alpha = .4f) else Rule),
         contentColor =
             (when (tone) {
                     ButtonTone.Selection -> AccentInk
                     ButtonTone.Link -> Muted
                     ButtonTone.Chip -> if (MaterialTheme.colorScheme.background.red < .5f) Color(0xffe5e5e5) else Color(0xff2e2e2e)
-                    ButtonTone.Accent -> MaterialTheme.colorScheme.onSurface
+                    ButtonTone.Accent -> AccentForeground
                     ButtonTone.Destructive -> Color(0xffff636b)
                     else ->
-                        if (primary) AccentInk
+                        if (primary) AccentForeground
                         else MaterialTheme.colorScheme.onSurface
                 })
                 .copy(alpha = if (enabled) 1f else .4f),
@@ -180,8 +187,8 @@ fun MotionButton(
                 text.uppercase(java.util.Locale.ROOT),
                 style =
                     MaterialTheme.typography.labelLarge.copy(
-                        fontSize = if (tone == ButtonTone.Destructive) 11.sp else 10.sp,
-                        lineHeight = if (tone == ButtonTone.Destructive) 15.4.sp else 14.sp,
+                        fontSize = if (tone == ButtonTone.Destructive) 11.sp else 11.sp,
+                        lineHeight = if (tone == ButtonTone.Destructive) 15.4.sp else 16.sp,
                         letterSpacing = if (tone == ButtonTone.Destructive) .66.sp else .4.sp,
                         fontWeight =
                             if (tone == ButtonTone.Accent)
