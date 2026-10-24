@@ -1,4 +1,3 @@
-@file:OptIn(dev.chrisbanes.haze.ExperimentalHazeApi::class)
 package app.stak.nativeapp
 
 import androidx.compose.foundation.BorderStroke
@@ -20,10 +19,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.*
-
-val LocalGlassBackdrop = staticCompositionLocalOf<HazeState?> { null }
-
 /** Cached glass paint, without a render target or blur pass for each control. */
 @Composable
 fun Modifier.liquidGlass(radius: Dp = 16.dp, highlighted: Boolean = false,
@@ -97,19 +92,15 @@ fun GlassAlertDialog(onDismissRequest: () -> Unit, confirmButton: @Composable ()
         dismissButton = dismissButton, title = title, text = text, containerColor = Color.Transparent)
 }
 
-/** One downsampled backdrop for floating chrome; scrolling cards use a cheap glass tint. */
+/** Cached frosted chrome; no live capture/render effect beneath scrolling content. */
 @Composable
 fun GlassPanel(modifier: Modifier = Modifier, radius: Dp = 20.dp, backdrop: Boolean = false,
     emphasized: Boolean = false, content: @Composable () -> Unit) {
     val dark = MaterialTheme.colorScheme.background.red < .5f
     val base = if (dark) Color(0xff101318) else Color(0xfff7f8fa)
-    val haze = LocalGlassBackdrop.current
-    val style = remember(dark) { HazeStyle(backgroundColor = if (dark) Color.Black else Color.White,
-        tints = listOf(HazeTint(base.copy(alpha = if (dark) .55f else .65f))), blurRadius = 22.dp,
-        noiseFactor = 0f, fallbackTint = HazeTint(base.copy(alpha = .94f))) }
     val shape = RoundedCornerShape(radius)
-    val glass = if (backdrop && haze != null) Modifier.hazeEffect(haze, style) { inputScale = HazeInputScale.Fixed(.25f) } else Modifier
-    Surface(modifier.clip(shape).then(glass).liquidGlass(radius, emphasized, if (backdrop) .35f else .72f),
+    val chrome = if (backdrop) Modifier.background(base.copy(alpha = .92f), shape) else Modifier
+    Surface(modifier.clip(shape).then(chrome).liquidGlass(radius, emphasized, if (backdrop) .35f else .72f),
         shape = shape, color = Color.Transparent) {
         content()
     }

@@ -6,8 +6,6 @@
 
 package app.stak.nativeapp
 
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import android.database.ContentObserver
 import android.os.Bundle
 import android.os.Handler
@@ -144,7 +142,6 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
 @Composable
 private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, scope: String) {
     val context = LocalContext.current
-    val glass = remember { HazeState() }
     val allSaved by vm.saved.collectAsStateWithLifecycle()
     val saved = remember(allSaved, scope) { allSaved.filter { it.accountScope == scope } }
     val posters = remember(saved) { posterState(saved) }
@@ -305,7 +302,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
             ).withCssLineBoxes(),
     ) {
         CompositionLocalProvider(LocalStakMotion provides policy, LocalOptions provides options,
-            LocalPosterState provides posters, LocalStakViewModel provides vm, LocalGlassBackdrop provides glass) {
+            LocalPosterState provides posters, LocalStakViewModel provides vm) {
             val nav = rememberNavController()
             val snackbar = remember { SnackbarHostState() }
             val entry by nav.currentBackStackEntryAsState()
@@ -337,9 +334,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                     }
             ) {
                 Box(Modifier.fillMaxSize().background(colors.background)) {
-                    Box(Modifier.fillMaxSize().hazeSource(glass)) {
-                        Ambient(Modifier.systemBarsPadding(), cinematic = bare, tone = Color(tone))
-                    }
+                    Ambient(Modifier.systemBarsPadding(), cinematic = bare, tone = Color(tone))
                     Scaffold(
                         containerColor = Color.Transparent,
                         contentColor = colors.onSurface,

@@ -2,7 +2,7 @@
 
 Continues the glass preview with an app-wide glass treatment and a lighter scroll path.
 
-- The dock samples the ambient background at quarter resolution. Scrolling lists are outside its capture layer, so every fling no longer records the whole navigation tree into an offscreen buffer.
+- The dock uses cached frosted paint with translucent highlights and rims. Live backdrop capture and the Haze dependency are removed, so flings need no glass capture or blur render target. Details retains actual blurred artwork through its cached image transformation.
 - Ambient glow modulates paint alpha directly, avoiding a fullscreen opacity buffer beneath scrolling content.
 - Android 15/16 receives both window and view-level refresh hints, using a supported display rate. Both hints are released when the activity pauses. The user's current device is a Nothing Phone (3a) on Android 16; sustained device performance still needs measurement.
 - Poster grids and rails use ordinary lazy layout instead of global shared-element lookahead. Route fade/slide transitions and layer-only press feedback remain. Poster image crossfades are removed, and repeating row data is remembered with explicit recycling content types.

@@ -34,8 +34,7 @@ stak_logcat_pid=$!
 stak_snapshot_pid=$!
 rm -rf app/build/outputs/androidTest-results app/build/reports/androidTests
 stak_test_status=0
-# Keep video capture on the guest software codec; the host encoder path crashed
-# the emulator's ColorBuffer after the recording test. No UI checks are omitted.
+# Run interaction/capture checks before the separately verified recording pass.
 ./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8" -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" -Pandroid.testInstrumentationRunnerArguments.notClass=app.stak.nativeapp.NativeMotionTest || stak_test_status=$?
 # Gradle replaces these reports on the second invocation; retain the functional run.
 mkdir -p "$stak_root/native-evidence/$variant/first-pass"
