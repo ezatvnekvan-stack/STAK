@@ -2,6 +2,7 @@
 package app.stak.nativeapp
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,8 +47,8 @@ private fun Modifier.liquidGlassShape(shape: Shape, highlighted: Boolean = false
         val stroke = 1.dp.toPx()
         onDrawWithContent {
             drawOutline(outline, fill)
-            drawContent()
             drawOutline(outline, shine)
+            drawContent()
             drawOutline(outline, rim, style = Stroke(stroke * 2))
         }
     }
@@ -63,10 +64,13 @@ fun LiquidSurface(modifier: Modifier = Modifier, shape: Shape = RoundedCornerSha
     shadowElevation: Dp = 0.dp, highlighted: Boolean = false, content: @Composable () -> Unit) {
     val surface = MaterialTheme.colorScheme.surface
     val neutral = color == surface || color == surface.copy(alpha = .74f) || color == surface.copy(alpha = .94f)
-    val paint = modifier.liquidGlassShape(shape, highlighted = highlighted || color == Accent)
-    if (onClick == null) Surface(paint, shape, if (neutral) Color.Transparent else color, contentColor,
+    val translucent = neutral || color == Color.Transparent
+    val base = if (translucent) modifier else modifier.background(color, shape)
+    val paint = base.liquidGlassShape(shape, highlighted = highlighted || color == Accent,
+        strength = if (translucent) .72f else 0f)
+    if (onClick == null) Surface(paint, shape, Color.Transparent, contentColor,
         tonalElevation, shadowElevation, border, content = content)
-    else Surface(onClick, paint, enabled, shape, if (neutral) Color.Transparent else color, contentColor,
+    else Surface(onClick, paint, enabled, shape, Color.Transparent, contentColor,
         tonalElevation, shadowElevation, border, interactionSource, content)
 }
 

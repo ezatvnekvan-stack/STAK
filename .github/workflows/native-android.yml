@@ -35,8 +35,9 @@ jobs:
       - name: Build, unit tests and lint
         working-directory: native-android
         run: |
-          ./gradlew --no-daemon --max-workers=2 assembleDebug testDebugUnitTest lintDebug assembleDebugAndroidTest assemblePreview
-          ./gradlew --no-daemon --max-workers=2 -PstakTestBuildType=preview assemblePreviewAndroidTest
+          ./gradlew --no-daemon --max-workers=2 --build-cache assembleDebug assembleDebugAndroidTest assemblePreview
+          ./gradlew --no-daemon --max-workers=2 --build-cache -PstakTestBuildType=preview assemblePreviewAndroidTest
+          ./gradlew --no-daemon --max-workers=2 --no-build-cache testDebugUnitTest lintDebug
       - name: Verify APK identity, signature and search regressions
         run: |
           python3 native-android/scripts/verify_debug_artifact.py
@@ -71,9 +72,9 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: false
-          # Use the stable GLES renderer for backdrop/window blur. Tests and
-          # animations remain enabled; experimental emulator Vulkan is unused.
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          # Let the emulator choose its supported software graphics backend.
+          # The deprecated swiftshader_indirect backend segfaulted in ColorBuffer.
+          emulator-options: -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none
           pre-emulator-launch-script: bash native-android/scripts/trace_emulator.sh
           script: |
             bash native-android/ci-emulator.sh debug

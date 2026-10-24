@@ -2,8 +2,14 @@ package app.stak.nativeapp
 
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -84,7 +90,11 @@ class GlassUiTest {
     @Test fun continueWatchingUsesLandscapeResumeAndNextUpCards() {
         val resume = Media("tt7654322", "movie", "Resume fixture", runtime = "100m", progress = 41f, playbackTicks = 41 * 600_000_000L)
         val next = Media("jf:nextfixture", "series", "Episode", seriesName = "Next-up fixture", episodeSeason = 1, episodeNumber = 4)
-        compose.runOnUiThread { compose.activity.setContent { MaterialTheme { ContinueWatchingRail(listOf(resume, next)) { _, _ -> } } } }
+        compose.runOnUiThread { compose.activity.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding().padding(16.dp)) {
+                ContinueWatchingRail(listOf(resume, next)) { _, _ -> }
+            }
+        } } }
         compose.onNodeWithText("RESUME").assertIsDisplayed()
         compose.onNodeWithText("NEXT UP").assertIsDisplayed()
         compose.onNodeWithText("59 min left").assertIsDisplayed()
