@@ -63,8 +63,10 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Native emulator smoke tests
+      - name: Native debug emulator checks
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          STAK_EMULATOR_DIAGNOSTICS: ${{ github.workspace }}/native-runner-diagnostics/debug
         with:
           api-level: 36
           # Official archived stable 36.6.11; keep the VM version reproducible.
@@ -78,7 +80,22 @@ jobs:
           pre-emulator-launch-script: bash native-android/scripts/trace_emulator.sh
           script: |
             bash native-android/ci-emulator.sh debug
+      - name: Native optimized emulator checks
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          STAK_EMULATOR_DIAGNOSTICS: ${{ github.workspace }}/native-runner-diagnostics/preview
+        with:
+          api-level: 36
+          emulator-build: 15507667
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: false
+          emulator-options: -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none
+          pre-emulator-launch-script: bash native-android/scripts/trace_emulator.sh
+          script: |
             bash native-android/ci-emulator.sh preview
+      - name: Verify complete emulator coverage
+        run: python3 native-android/scripts/verify_emulator_coverage.py
       - name: Retain runner diagnostics
         if: always()
         run: |

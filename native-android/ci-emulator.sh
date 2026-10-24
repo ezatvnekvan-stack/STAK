@@ -36,13 +36,23 @@ rm -rf app/build/outputs/androidTest-results app/build/reports/androidTests
 stak_test_status=0
 # Keep video capture on the guest software codec; the host encoder path crashed
 # the emulator's ColorBuffer after the recording test. No UI checks are omitted.
-./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8" -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" -Pandroid.testInstrumentationRunnerArguments.stakRecordingCodec=c2.android.avc.encoder || stak_test_status=$?
+./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8" -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" -Pandroid.testInstrumentationRunnerArguments.notClass=app.stak.nativeapp.NativeMotionTest || stak_test_status=$?
 # Gradle replaces these reports on the second invocation; retain the functional run.
 mkdir -p "$stak_root/native-evidence/$variant/first-pass"
 cp -R app/build/reports/androidTests "$stak_root/native-evidence/$variant/first-pass/reports"
 cp -R app/build/outputs/androidTest-results "$stak_root/native-evidence/$variant/first-pass/results"
+rm -rf app/build/outputs/androidTest-results app/build/reports/androidTests
 adb shell wm size 360x928
 ./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8" -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.OriginalReferenceTest,app.stak.nativeapp.BetaUiTest,app.stak.nativeapp.SourceFlowTest,app.stak.nativeapp.SourcesMotionTest,app.stak.nativeapp.GlassUiTest || stak_test_status=$?
 mkdir -p "$stak_root/native-evidence/$variant/second-pass"
 cp -R app/build/outputs/androidTest-results "$stak_root/native-evidence/$variant/second-pass/results"
+cp -R app/build/reports/androidTests "$stak_root/native-evidence/$variant/second-pass/reports"
+# Recording is exercised after normal interaction/capture checks, on each
+# variant's own VM. This prevents recording cleanup from corrupting later runs.
+rm -rf app/build/outputs/androidTest-results app/build/reports/androidTests
+adb shell wm size 412x928
+./gradlew --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m -Dfile.encoding=UTF-8" -PstakTestBuildType="$variant" "connected${variant_cap}AndroidTest" -Pandroid.testInstrumentationRunnerArguments.class=app.stak.nativeapp.NativeMotionTest -Pandroid.testInstrumentationRunnerArguments.stakRecordingCodec=c2.android.avc.encoder || stak_test_status=$?
+mkdir -p "$stak_root/native-evidence/$variant/motion-pass"
+cp -R app/build/outputs/androidTest-results "$stak_root/native-evidence/$variant/motion-pass/results"
+cp -R app/build/reports/androidTests "$stak_root/native-evidence/$variant/motion-pass/reports"
 exit "$stak_test_status"
