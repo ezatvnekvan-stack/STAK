@@ -336,7 +336,7 @@ fun StakSwitch(
     val view = androidx.compose.ui.platform.LocalView.current
     val thumb by
         androidx.compose.animation.animateColorAsState(
-            if (checked) AccentForeground else MaterialTheme.colorScheme.onSurface,
+            if (checked) Accent else MaterialTheme.colorScheme.onSurface,
             motionSpec(policy.reduced, 160),
             label = "Switch thumb",
         )
@@ -401,7 +401,7 @@ fun Choice(
             )
             Icon(StakIcons.ChevronDown, null, Modifier.size(14.dp), tint = Muted)
         }
-        DropdownMenu(open, { open = false }, modifier = Modifier.liquidGlass(18.dp), containerColor = Color.Transparent) {
+        DropdownMenu(open, { open = false }, containerColor = MaterialTheme.colorScheme.surface) {
             options.forEach { (id, title) ->
                 DropdownMenuItem(
                     text = { Text(title, fontSize = 13.sp) },

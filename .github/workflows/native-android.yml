@@ -63,6 +63,25 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Capture native design preview
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          STAK_EMULATOR_DIAGNOSTICS: ${{ github.workspace }}/native-runner-diagnostics/design
+        with:
+          api-level: 35
+          emulator-build: 13610412
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          pre-emulator-launch-script: bash native-android/scripts/trace_emulator.sh
+          script: bash native-android/ci-design-preview.sh
+      - name: Upload native design preview
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: STAK-native-design-preview
+          path: native-design-preview/
       - name: Native debug emulator checks
         uses: reactivecircus/android-emulator-runner@v2
         env:
@@ -118,6 +137,7 @@ jobs:
             native-android/app/build/outputs/androidTest-results/
             native-android/app/build/outputs/mapping/preview/mapping.txt
             native-evidence/
+            native-design-preview/
             native-runner-diagnostics/
             native-comparisons/
             native-android/parity/reference-manifest.json

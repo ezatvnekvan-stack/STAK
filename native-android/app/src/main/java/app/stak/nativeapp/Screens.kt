@@ -277,7 +277,7 @@ fun PosterCard(
     val watchlisted = media.key in collections.watchlisted
     val watched = media.key in collections.watched
     Box(
-        modifier.liquidGlass(14.dp, strength = .4f)
+        modifier
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
@@ -378,8 +378,8 @@ fun PosterCard(
         }
     }
       DropdownMenu(expanded = menu, onDismissRequest = { menu = false },
-          modifier = Modifier.width(224.dp).testTag("poster-actions").liquidGlass(18.dp),
-          shape = RoundedCornerShape(18.dp), containerColor = Color.Transparent,
+          modifier = Modifier.width(224.dp).testTag("poster-actions"),
+          shape = RoundedCornerShape(18.dp), containerColor = MaterialTheme.colorScheme.surface,
           border = BorderStroke(1.dp, Rule)) {
           DropdownMenuItem(text = { Text("Open details", fontSize = 13.sp) }, leadingIcon = { Icon(StakIcons.Eye, null, Modifier.size(16.dp)) },
               onClick = { menu = false; onOpen(media, source) })

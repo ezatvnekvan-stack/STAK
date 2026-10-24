@@ -81,11 +81,11 @@ fun ContinueWatchingRail(media: List<Media>, onOpen: (Media, String) -> Unit) {
                                     .padding(horizontal = 9.dp, vertical = 5.dp), color = Color.White, fontFamily = MonoFont, fontSize = 8.sp)
                             }
                             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                Text(title.seriesName.ifBlank { title.name }, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                                Text(title.seriesName.ifBlank { title.name }, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(if (resume) continueRemainingMinutes(title)?.let { "$it min left" } ?: "Resume watching"
                                     else if (title.episodeSeason > 0) "S${title.episodeSeason} E${title.episodeNumber}" else "Next up",
-                                    fontFamily = MonoFont, fontSize = 10.sp, color = Muted)
+                                    fontFamily = MonoFont, fontSize = 11.sp, color = Muted)
                                 if (resume) {
                                     Spacer(Modifier.height(4.dp))
                                     Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(4.dp)).background(Rule)) {
