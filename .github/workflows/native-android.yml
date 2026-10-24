@@ -68,15 +68,14 @@ jobs:
         env:
           STAK_EMULATOR_DIAGNOSTICS: ${{ github.workspace }}/native-runner-diagnostics/debug
         with:
-          api-level: 36
-          # Official archived stable 36.6.11; keep the VM version reproducible.
-          emulator-build: 15507667
+          api-level: 35
+          # Official archived stable 35.6.11 for the project API 35 baseline.
+          emulator-build: 13610412
           arch: x86_64
           profile: pixel_2
           disable-animations: false
-          # Let the emulator choose its supported software graphics backend.
-          # The deprecated swiftshader_indirect backend segfaulted in ColorBuffer.
-          emulator-options: -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none
+          # Software GLES on the supported project/emulator baseline.
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           pre-emulator-launch-script: bash native-android/scripts/trace_emulator.sh
           script: |
             bash native-android/ci-emulator.sh debug
@@ -85,12 +84,12 @@ jobs:
         env:
           STAK_EMULATOR_DIAGNOSTICS: ${{ github.workspace }}/native-runner-diagnostics/preview
         with:
-          api-level: 36
-          emulator-build: 15507667
+          api-level: 35
+          emulator-build: 13610412
           arch: x86_64
           profile: pixel_2
           disable-animations: false
-          emulator-options: -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           pre-emulator-launch-script: bash native-android/scripts/trace_emulator.sh
           script: |
             bash native-android/ci-emulator.sh preview
