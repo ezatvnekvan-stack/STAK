@@ -111,6 +111,8 @@ fun Ambient(
     Box(modifier.fillMaxSize()) {
         Canvas(
             Modifier.matchParentSize().graphicsLayer {
+                // Avoid a fullscreen opacity buffer underneath every scrolling frame.
+                compositingStrategy = CompositingStrategy.ModulateAlpha
                 // Read the clock in the layer phase: drifting does not recompose or redraw
                 // the gradient/dot canvases at 90/120 Hz.
                 val phase = (elapsed.longValue / 1_000_000_000.0 / 100.0) % 2
@@ -173,7 +175,7 @@ fun StakIconButton(
     val pressed by interactions.collectIsPressedAsState()
     val policy = LocalStakMotion.current
     val view = androidx.compose.ui.platform.LocalView.current
-    val scale by
+    val scale =
         androidx.compose.animation.core.animateFloatAsState(
             if (pressed && enabled && !policy.reduced) .92f else 1f,
             if (policy.reduced) androidx.compose.animation.core.snap()
@@ -184,13 +186,12 @@ fun StakIconButton(
         modifier
             .size(44.dp)
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                scaleX = scale.value
+                scaleY = scale.value
                 alpha = if (enabled) 1f else .4f
             }
             .clip(CircleShape)
-            .background(if (primary) MaterialTheme.colorScheme.onSurface else Color.Transparent)
-            .border(1.dp, if (primary) MaterialTheme.colorScheme.onSurface else Rule, CircleShape)
+            .liquidGlass(100.dp, highlighted = primary)
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
@@ -207,7 +208,7 @@ fun StakIconButton(
             icon,
             label,
             Modifier.size(iconSize),
-            tint = if (primary) MaterialTheme.colorScheme.background else Muted,
+            tint = if (primary) AccentInk else MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -253,8 +254,8 @@ fun OriginalField(
             .fillMaxWidth()
             .heightIn(min = 44.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = .74f))
-            .border(1.dp, border, RoundedCornerShape(12.dp))
+            .liquidGlass(16.dp)
+            .border(1.dp, border, RoundedCornerShape(16.dp))
             .padding(horizontal = horizontalInset),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -302,7 +303,7 @@ fun OriginalField(
             },
         )
         if (secret && reveal)
-            IconButton({ visible = !visible }, Modifier.size(44.dp), enabled = enabled) {
+            GlassIconButton({ visible = !visible }, Modifier.size(44.dp), enabled = enabled) {
                 Icon(
                     if (visible) StakIcons.EyeOff else StakIcons.Eye,
                     visibilityLabel ?: if (visible) "Hide key" else "Show key",
@@ -333,21 +334,13 @@ fun StakSwitch(
 ) {
     val policy = LocalStakMotion.current
     val view = androidx.compose.ui.platform.LocalView.current
-    val track by
-        androidx.compose.animation.animateColorAsState(
-            if (checked) Accent
-            else if (MaterialTheme.colorScheme.background.red < .5f) Color(0xff222222)
-            else Color(0xffd9d9d5),
-            motionSpec(policy.reduced, 180),
-            label = "Switch track",
-        )
     val thumb by
         androidx.compose.animation.animateColorAsState(
             if (checked) AccentForeground else MaterialTheme.colorScheme.onSurface,
             motionSpec(policy.reduced, 160),
             label = "Switch thumb",
         )
-    val x by
+    val x =
         androidx.compose.animation.core.animateDpAsState(
             if (checked) 11.dp else (-11).dp,
             if (policy.reduced) androidx.compose.animation.core.snap()
@@ -368,10 +361,9 @@ fun StakSwitch(
     ) {
         Box(
             Modifier.size(48.dp, 24.dp)
-                .background(track, CircleShape)
-                .border(1.dp, Rule, CircleShape)
+                .liquidGlass(100.dp, highlighted = checked)
         )
-        Box(Modifier.offset(x = x).size(18.dp).background(thumb, CircleShape))
+        Box(Modifier.offset { IntOffset(x.value.roundToPx(), 0) }.size(18.dp).background(thumb, CircleShape))
     }
 }
 
@@ -391,11 +383,7 @@ fun Choice(
             Modifier.fillMaxWidth()
                 .heightIn(min = 44.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, if (plain) Color.Transparent else Rule, RoundedCornerShape(12.dp))
-                .background(
-                    if (plain) Color.Transparent
-                    else MaterialTheme.colorScheme.surface.copy(alpha = .74f)
-                )
+                .liquidGlass(16.dp, strength = if (plain) .35f else .72f)
                 .graphicsLayer { alpha = if (enabled) 1f else .4f }
                 .clickable(enabled = enabled, role = Role.Button) { open = true }
                 .padding(horizontal = 15.dp, vertical = 11.dp)
@@ -413,7 +401,7 @@ fun Choice(
             )
             Icon(StakIcons.ChevronDown, null, Modifier.size(14.dp), tint = Muted)
         }
-        DropdownMenu(open, { open = false }) {
+        DropdownMenu(open, { open = false }, modifier = Modifier.liquidGlass(18.dp), containerColor = Color.Transparent) {
             options.forEach { (id, title) ->
                 DropdownMenuItem(
                     text = { Text(title, fontSize = 13.sp) },

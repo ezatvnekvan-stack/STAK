@@ -6,8 +6,6 @@
 
 package app.stak.nativeapp
 
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import android.database.ContentObserver
 import android.os.Bundle
 import android.os.Handler
@@ -96,7 +94,6 @@ val BodyFont =
             .toTypedArray()
     )
 val MonoFont = FontFamily(Font(R.font.space_mono), Font(R.font.space_mono_bold, FontWeight.Bold))
-val LocalShared = staticCompositionLocalOf<SharedTransitionScope?> { null }
 val LocalDestination = staticCompositionLocalOf<AnimatedVisibilityScope?> { null }
 
 class MainActivity : ComponentActivity() {
@@ -123,11 +120,15 @@ class MainActivity : ComponentActivity() {
         val rates = display.supportedModes.filter {
             it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight
         }.map { it.refreshRate }
-        window.attributes = window.attributes.apply { preferredRefreshRate = preferredMotionRefreshRate(rates) }
+        val rate = preferredMotionRefreshRate(rates)
+        window.attributes = window.attributes.apply { preferredRefreshRate = rate }
+        // Android 15/16 also accepts a view-level hint for adaptive frame pacing.
+        if (android.os.Build.VERSION.SDK_INT >= 35) window.decorView.requestedFrameRate = rate
     }
 
     override fun onPause() {
         window.attributes = window.attributes.apply { preferredRefreshRate = 0f }
+        if (android.os.Build.VERSION.SDK_INT >= 35) window.decorView.requestedFrameRate = 0f
         super.onPause()
     }
 }
@@ -141,7 +142,6 @@ fun StakApp(vm: StakViewModel = viewModel(), requestedDestination: String? = nul
 @Composable
 private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, scope: String) {
     val context = LocalContext.current
-    val glass = remember { HazeState() }
     val allSaved by vm.saved.collectAsStateWithLifecycle()
     val saved = remember(allSaved, scope) { allSaved.filter { it.accountScope == scope } }
     val posters = remember(saved) { posterState(saved) }
@@ -302,7 +302,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
             ).withCssLineBoxes(),
     ) {
         CompositionLocalProvider(LocalStakMotion provides policy, LocalOptions provides options,
-            LocalPosterState provides posters, LocalStakViewModel provides vm, LocalGlassBackdrop provides glass) {
+            LocalPosterState provides posters, LocalStakViewModel provides vm) {
             val nav = rememberNavController()
             val snackbar = remember { SnackbarHostState() }
             val entry by nav.currentBackStackEntryAsState()
@@ -334,7 +334,6 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                     }
             ) {
                 Box(Modifier.fillMaxSize().background(colors.background)) {
-                    Box(Modifier.fillMaxSize().hazeSource(glass)) {
                     Ambient(Modifier.systemBarsPadding(), cinematic = bare, tone = Color(tone))
                     Scaffold(
                         containerColor = Color.Transparent,
@@ -345,8 +344,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                                 WindowInsetsSides.Top + WindowInsetsSides.Horizontal
                             ),
                     ) { padding ->
-                        SharedTransitionLayout(Modifier.fillMaxSize().padding(padding)) {
-                            CompositionLocalProvider(LocalShared provides this) {
+                        Box(Modifier.fillMaxSize().padding(padding)) {
                                 NavHost(
                                     nav,
                                     "home",
@@ -494,9 +492,7 @@ private fun StakAccountApp(vm: StakViewModel, requestedDestination: String?, sco
                                         }
                                     }
                                 }
-                            }
                         }
-                    }
                     }
                     if (!bare) {
                         val tabs = navigationOrder(options)
@@ -564,7 +560,7 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                 Box(
                     Modifier.offset { IntOffset(x.value.roundToPx(), 6.dp.roundToPx()) }
                         .size(36.dp, 30.dp)
-                        .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(12.dp))
+                        .liquidGlass(12.dp, highlighted = true)
                 )
             Row(Modifier.fillMaxSize()) {
                 labels.forEachIndexed { index, label ->
@@ -579,7 +575,7 @@ private fun MotionNavigation(tabs: List<String>, selected: Int, onSelect: (Int) 
                         )
                     val iconColor by
                         animateColorAsState(
-                            if (index == selected) MaterialTheme.colorScheme.background
+                            if (index == selected) AccentInk
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                             motionSpec(policy.reduced, 180),
                             label = "Navigation ink",

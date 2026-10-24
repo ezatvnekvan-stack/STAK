@@ -9,6 +9,24 @@ import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/** Reuse a decrypted value only while its scoped storage key AND ciphertext match. */
+class SnapshotReadCache {
+    private data class Snapshot(val ciphertext: String, val value: String)
+    private val entries = object : LinkedHashMap<String, Snapshot>(16, .75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Snapshot>?) = size > 16
+    }
+    fun clear() = synchronized(entries) { entries.clear() }
+    fun read(key: String, ciphertext: String?, decode: () -> String): String {
+        synchronized(entries) {
+            if (ciphertext == null) { entries.remove(key); return "" }
+            entries[key]?.takeIf { it.ciphertext == ciphertext }?.let { return it.value }
+        }
+        val value = decode() // Never retain a failed decryption.
+        synchronized(entries) { entries[key] = Snapshot(requireNotNull(ciphertext), value) }
+        return value
+    }
+}
+
 /** Fixed-size lock striping coalesces matching reads without retaining unbounded URL keys. */
 class ReadLocks {
     private val locks = Array(32) { Mutex() }

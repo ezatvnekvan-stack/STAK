@@ -65,7 +65,7 @@ fun RemoteScreen(vm: StakViewModel) {
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         PageHeading("Jellyfin Remote")
-        Surface(
+        LiquidSurface(
             shape = RoundedCornerShape(16.dp),
             border = BorderStroke(1.dp, Rule),
             color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),

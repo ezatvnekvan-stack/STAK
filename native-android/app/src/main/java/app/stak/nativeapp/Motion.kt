@@ -60,9 +60,8 @@ fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnSco
     if (LocalStakMotion.current.reduced) {
         Dialog(onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-                GlassSheetBlur()
                 Box(Modifier.matchParentSize().clickable(onClick = onDismissRequest))
-                Surface(
+                LiquidSurface(
                     Modifier.fillMaxWidth(),
                     shape =
                         androidx.compose.foundation.shape.RoundedCornerShape(
@@ -82,9 +81,10 @@ fun StakBottomSheet(onDismissRequest: () -> Unit, content: @Composable ColumnSco
         ModalBottomSheet(
             onDismissRequest,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .94f),
+            containerColor = Color.Transparent,
+            modifier = Modifier.liquidGlass(24.dp),
             dragHandle = { StakSheetHandle() },
-            content = { GlassSheetBlur(); content() },
+            content = { content() },
         )
 }
 
@@ -130,18 +130,18 @@ fun MotionButton(
     val pressed by interactions.collectIsPressedAsState()
     val policy = LocalStakMotion.current
     val view = LocalView.current
-    val scale by
+    val scale =
         animateFloatAsState(
             if (pressed && enabled && !policy.reduced) .98f else 1f,
             if (policy.reduced) snap()
             else tween(120, easing = CubicBezierEasing(.2f, .7f, .2f, 1f)),
             label = "Tactile press",
         )
-    Surface(
+    LiquidSurface(
         modifier
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                scaleX = scale.value
+                scaleY = scale.value
             }
             .heightIn(min = if (tone == ButtonTone.Accent) 46.dp else 44.dp)
             .clickable(
@@ -153,42 +153,22 @@ fun MotionButton(
                 if (policy.haptics) view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 onClick()
             },
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-        color =
-            when (tone) {
-                ButtonTone.Selection -> Accent.copy(alpha = if (enabled) .1f else .04f)
-                ButtonTone.Accent -> Accent.copy(alpha = if (enabled) 1f else .4f)
-                ButtonTone.Destructive ->
-                    Color(0xffd71921).copy(alpha = if (enabled) .08f else .032f)
-                else ->
-                    if (primary)
-                        MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else .4f)
-                    else Color.Transparent
-            },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        highlighted = enabled && (primary || tone in listOf(ButtonTone.Accent, ButtonTone.Selection, ButtonTone.Destructive)),
+        color = Color.Transparent,
         contentColor =
             (when (tone) {
                     ButtonTone.Selection -> AccentInk
                     ButtonTone.Link -> Muted
                     ButtonTone.Chip -> if (MaterialTheme.colorScheme.background.red < .5f) Color(0xffe5e5e5) else Color(0xff2e2e2e)
-                    ButtonTone.Accent -> AccentForeground
+                    ButtonTone.Accent -> MaterialTheme.colorScheme.onSurface
                     ButtonTone.Destructive -> Color(0xffff636b)
                     else ->
-                        if (primary) MaterialTheme.colorScheme.onPrimary
+                        if (primary) AccentInk
                         else MaterialTheme.colorScheme.onSurface
                 })
                 .copy(alpha = if (enabled) 1f else .4f),
-        border =
-            androidx.compose.foundation.BorderStroke(
-                1.dp,
-                when (tone) {
-                    ButtonTone.Selection -> Accent.copy(alpha = if (enabled) .6f else .24f)
-                    ButtonTone.Link -> Color.Transparent
-                    ButtonTone.Accent -> AccentInk.copy(alpha = if (enabled) 1f else .4f)
-                    ButtonTone.Destructive ->
-                        Color(0xffd71921).copy(alpha = if (enabled) .4f else .16f)
-                    else -> MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) .13f else .052f)
-                },
-            ),
+
     ) {
         Row(
             Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
@@ -228,10 +208,7 @@ fun MotionTabs(
         modifier
             .fillMaxWidth()
             .height(height)
-            .background(
-                MaterialTheme.colorScheme.onSurface.copy(alpha = .045f),
-                androidx.compose.foundation.shape.RoundedCornerShape(13.dp),
-            )
+            .liquidGlass(18.dp)
             .selectableGroup()
     ) {
         val width = (maxWidth - 8.dp - 4.dp * (labels.size - 1)) / labels.size
@@ -245,10 +222,7 @@ fun MotionTabs(
             Modifier.offset { IntOffset(x.value.roundToPx(), 4.dp.roundToPx()) }
                 .width(width)
                 .height(height - 8.dp)
-                .background(
-                    MaterialTheme.colorScheme.onSurface,
-                    androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-                )
+                .liquidGlass(14.dp, highlighted = true)
         )
         Row(
             Modifier.fillMaxSize().padding(4.dp),
@@ -257,7 +231,7 @@ fun MotionTabs(
             labels.forEachIndexed { index, text ->
                 val ink by
                     androidx.compose.animation.animateColorAsState(
-                        if (index == selected) MaterialTheme.colorScheme.background
+                        if (index == selected) AccentInk
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         motionSpec(reduced, 180),
                         label = "Segment ink",

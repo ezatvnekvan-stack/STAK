@@ -75,7 +75,7 @@ fun TorBoxScreen(vm: StakViewModel, openJellyfin: () -> Unit) {
                     StakIconButton(StakIcons.RefreshCw, "Refresh library", enabled = !loading) {
                         refresh++
                     }
-                    Surface(onClick = { add = true }, shape = CircleShape, color = Accent) {
+                    LiquidSurface(onClick = { add = true }, shape = CircleShape, color = Accent) {
                         Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
                             Icon(
                                 StakIcons.Plus,
@@ -375,7 +375,7 @@ fun TorrentFilesSheet(vm: StakViewModel, torrent: Torrent, dismiss: () -> Unit) 
                         Modifier.weight(1f),
                         style = MaterialTheme.typography.titleLarge,
                     )
-                    IconButton(dismiss) { Icon(StakIcons.X, "Close dialog", Modifier.size(18.dp)) }
+                    GlassIconButton(dismiss) { Icon(StakIcons.X, "Close dialog", Modifier.size(18.dp)) }
                 }
             }
             item {
@@ -435,12 +435,12 @@ fun TorrentFilesSheet(vm: StakViewModel, torrent: Torrent, dismiss: () -> Unit) 
         }
     }
     if (confirmDelete)
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete torrent?") },
             text = { Text(torrent.name) },
             confirmButton = {
-                TextButton({
+                GlassTextButton({
                     vm.operation {
                         busy = true
                         try {
@@ -455,6 +455,6 @@ fun TorrentFilesSheet(vm: StakViewModel, torrent: Torrent, dismiss: () -> Unit) 
                     Text("Delete")
                 }
             },
-            dismissButton = { TextButton({ confirmDelete = false }) { Text("Cancel") } },
+            dismissButton = { GlassTextButton({ confirmDelete = false }) { Text("Cancel") } },
         )
 }

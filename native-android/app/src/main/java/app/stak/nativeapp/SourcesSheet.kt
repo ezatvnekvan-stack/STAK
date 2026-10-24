@@ -270,7 +270,7 @@ fun SourcesSheet(vm: StakViewModel, media: Media, episode: Episode?, dismiss: ()
                     listOf(libraryNotice).filter { it.isNotBlank() }
             if (notices.isNotEmpty())
                 item {
-                    Surface(
+                    LiquidSurface(
                         shape = RoundedCornerShape(12.dp),
                         color = Soft,
                         border = BorderStroke(1.dp, Rule),

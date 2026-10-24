@@ -99,8 +99,11 @@ class NativeMotionTest {
         }
         shell("mkdir -p /sdcard/Pictures/STAK-native-evidence")
         val path = "/sdcard/Pictures/STAK-native-evidence/native-motion.mp4"
+        val codec = InstrumentationRegistry.getArguments().getString("stakRecordingCodec").orEmpty()
+        require(codec.isEmpty() || Regex("[A-Za-z0-9_.]+").matches(codec)) { "Invalid recording codec name" }
+        val codecOption = if (codec.isEmpty()) "" else " --codec-name $codec"
         val recorder =
-            automation.executeShellCommand("screenrecord --time-limit 20 --bit-rate 2000000 $path")
+            automation.executeShellCommand("screenrecord --time-limit 20 --bit-rate 2000000$codecOption $path")
         try {
             Thread.sleep(700)
             compose.mainClock.autoAdvance = false

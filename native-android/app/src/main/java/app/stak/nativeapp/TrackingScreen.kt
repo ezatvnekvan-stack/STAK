@@ -129,7 +129,7 @@ private fun ActivityScreen(
                         .toString() == selectedDay)
         }
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Surface(
+        LiquidSurface(
             shape = RoundedCornerShape(14.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
             border = BorderStroke(1.dp, Rule),
@@ -156,7 +156,7 @@ private fun ActivityScreen(
                         plain = true,
                     )
                     Spacer(Modifier.weight(1f))
-                    IconButton({ details = true }, Modifier.size(48.dp)) {
+                    GlassIconButton({ details = true }, Modifier.size(48.dp)) {
                         Icon(StakIcons.Info, "About activity", Modifier.size(17.dp))
                     }
                 }
@@ -306,7 +306,7 @@ private fun ActivityScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         rows.forEach { row ->
                             val title = vm.media(row.mediaKey) ?: row.media()
-                            Surface(
+                            LiquidSurface(
                                 onClick = { onOpen(title, "tracking") },
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.surface.copy(alpha = .74f),
@@ -437,7 +437,7 @@ private fun ActivityScreen(
         }
     }
     if (details)
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { details = false },
             title = { Text("About activity") },
             text = {
@@ -445,7 +445,7 @@ private fun ActivityScreen(
                     "Manual history stored on this device.\n\nAll time includes saved history and explicitly synced Jellyfin watch state; it is not a playback-event audit. Missing server watch dates are shown as unknown.\n\nRuntime estimates use known title lengths. They are not measured viewing duration. Repeated viewings may not be represented."
                 )
             },
-            confirmButton = { TextButton({ details = false }) { Text("Close") } },
+            confirmButton = { GlassTextButton({ details = false }) { Text("Close") } },
         )
 }
 
@@ -583,7 +583,7 @@ fun CalendarScreen(
                 Modifier.fillMaxWidth().height(44.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(
+                GlassIconButton(
                     { selected = date.minusMonths(1).toString() },
                     Modifier.size(44.dp),
                     enabled = month > YearMonth.of(1900, 1),
@@ -603,7 +603,7 @@ fun CalendarScreen(
                     lineHeight = 29.9.sp,
                     textAlign = TextAlign.Center,
                 )
-                IconButton(
+                GlassIconButton(
                     { selected = date.plusMonths(1).toString() },
                     Modifier.size(44.dp),
                     enabled = month < YearMonth.of(2100, 12),

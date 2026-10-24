@@ -204,7 +204,7 @@ private fun HomeUpcoming(
                     events,
                     key = { "${it.first.key}:${it.second.season}:${it.second.number}" },
                 ) { (media, episode) ->
-                    Surface(
+                    LiquidSurface(
                         Modifier.width(240.dp).clickable { onOpen(media, "home-upcoming") },
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, Rule),
@@ -309,7 +309,7 @@ private fun HomeTonight(
             loading = false
         }
     }
-    Surface(
+    LiquidSurface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, Rule),

@@ -44,17 +44,14 @@ fun SourceBadge(feature: SourceFeature, modifier: Modifier = Modifier, selected:
     val reduced = LocalStakMotion.current.reduced
     val interactions = remember { MutableInteractionSource() }
     val ink by animateColorAsState(
-        if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
+        if (selected) AccentInk else MaterialTheme.colorScheme.onSurface,
         motionSpec(reduced, 140), label = "Badge ink")
-    val fill by animateColorAsState(
-        if (selected) MaterialTheme.colorScheme.onSurface else Soft,
-        motionSpec(reduced, 140), label = "Badge fill")
-    Surface(
+    LiquidSurface(
         modifier.then(if (interactive) Modifier.stakPressMotion(interactions).toggleable(value = selected, role = Role.Checkbox,
             interactionSource = interactions, indication = null,
             onValueChange = { onToggle?.invoke() }).semantics { contentDescription = "Filter ${feature.accessibilityLabel}" } else Modifier),
-        shape = RoundedCornerShape(if (interactive) 12.dp else 6.dp),
-        color = fill, contentColor = ink,
+        shape = RoundedCornerShape(if (interactive) 14.dp else 8.dp), highlighted = selected,
+        color = androidx.compose.ui.graphics.Color.Transparent, contentColor = ink,
         border = BorderStroke(1.dp, if (selected) ink.copy(alpha = .15f) else Rule),
     ) {
         Row(Modifier.heightIn(min = if (interactive) 44.dp else 26.dp)

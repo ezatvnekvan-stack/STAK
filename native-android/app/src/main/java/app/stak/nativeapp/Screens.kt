@@ -116,9 +116,8 @@ fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = fal
                 Headers.headersOf("X-Emby-Token", repo.credentials.get("jellyfin_token"))
             else Headers.headersOf()
         }
-    val reduced = LocalStakMotion.current.reduced
-    val request = remember(context, url, headers, reduced) {
-        ImageRequest.Builder(context).data(url).headers(headers).crossfade(if (reduced) 0 else 150).build()
+    val request = remember(context, url, headers) {
+        ImageRequest.Builder(context).data(url).headers(headers).crossfade(false).build()
     }
     Box(modifier.background(Color(0xff111111))) {
         AsyncImage(
@@ -134,19 +133,8 @@ fun Artwork(media: Media, modifier: Modifier = Modifier, backdrop: Boolean = fal
 
 @Composable
 fun SharedPoster(media: Media, source: String, modifier: Modifier = Modifier) {
-    val shared = LocalShared.current
-    val destination = LocalDestination.current
-    val moving =
-        if (shared != null && destination != null && !LocalStakMotion.current.reduced) {
-            with(shared) {
-                modifier.sharedElement(
-                    rememberSharedContentState("poster:${media.key}:$source"),
-                    animatedVisibilityScope = destination,
-                    boundsTransform = { _, _ -> tween(360, easing = StakEase) },
-                )
-            }
-        } else modifier
-    Artwork(media, moving.clip(RoundedCornerShape(9.dp)))
+    // Route transitions supply motion; scrolling posters avoid shared-layout lookahead.
+    Artwork(media, modifier.clip(RoundedCornerShape(9.dp)))
 }
 
 /** The cell paths and SVG view box are copied from the original RatingLogo. */
@@ -289,7 +277,7 @@ fun PosterCard(
     val watchlisted = media.key in collections.watchlisted
     val watched = media.key in collections.watched
     Box(
-        modifier
+        modifier.liquidGlass(14.dp, strength = .4f)
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
@@ -390,8 +378,8 @@ fun PosterCard(
         }
     }
       DropdownMenu(expanded = menu, onDismissRequest = { menu = false },
-          modifier = Modifier.width(224.dp).testTag("poster-actions"),
-          shape = RoundedCornerShape(18.dp), containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .96f),
+          modifier = Modifier.width(224.dp).testTag("poster-actions").liquidGlass(18.dp),
+          shape = RoundedCornerShape(18.dp), containerColor = Color.Transparent,
           border = BorderStroke(1.dp, Rule)) {
           DropdownMenuItem(text = { Text("Open details", fontSize = 13.sp) }, leadingIcon = { Icon(StakIcons.Eye, null, Modifier.size(16.dp)) },
               onClick = { menu = false; onOpen(media, source) })
@@ -554,7 +542,7 @@ fun HomeScreen(
                         )
                         Row(
                             Modifier.height(34.dp)
-                                .border(1.dp, Rule, CircleShape)
+                                .liquidGlass(100.dp)
                                 .clickable { navigate("settings?section=account") }
                                 .semantics { contentDescription = accountDescription }
                                 .padding(horizontal = 13.dp),
@@ -861,6 +849,7 @@ fun MediaRail(
     onOpen: (Media, String) -> Unit,
     seeAll: String? = "discover",
 ) {
+    val tiles = remember(media) { media.distinctBy { it.key } }
     val navigate = LocalNavigate.current
     Column(Modifier.padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -888,7 +877,7 @@ fun MediaRail(
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val width = (maxWidth - 20.dp) / 3
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(media.distinctBy { it.key }, key = { it.key }) {
+                items(tiles, key = { it.key }, contentType = { "poster" }) {
                     PosterCard(it, source, Modifier.width(width), onOpen)
                 }
             }
@@ -918,7 +907,7 @@ fun StakRefresh(refreshing: Boolean, onRefresh: () -> Unit, content: @Composable
         state = state,
         indicator = {
             if (refreshing || state.distanceFraction > 0f)
-                Surface(
+                LiquidSurface(
                     Modifier.align(Alignment.TopCenter).padding(top = 8.dp),
                     shape = CircleShape,
                 ) {
@@ -947,6 +936,7 @@ fun DiscoverScreen(
     var type by rememberSaveable { mutableIntStateOf(if (initialPreferences.type == "series") 1 else 0) }
     var category by rememberSaveable { mutableIntStateOf(discoveryCategories.indexOf(initialPreferences.category).coerceAtLeast(0)) }
     var results by remember { mutableStateOf(emptyList<Media>()) }
+    val posterRows = remember(results) { results.chunked(3) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf("") }
     var page by remember { mutableIntStateOf(1) }
@@ -1069,7 +1059,7 @@ fun DiscoverScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     item {
-                        Surface(
+                        LiquidSurface(
                             onClick = { serviceSheet = true },
                             shape = RoundedCornerShape(13.dp),
                             color = Color.Transparent,
@@ -1219,7 +1209,7 @@ fun DiscoverScreen(
             EmptyState("No matching titles in the loaded results. Try fewer filters or load the next page.")
             MotionButton("Clear filters", Modifier.fillMaxWidth()) { setFilters(emptyMap()); category = 0 }
         }
-        items(results.chunked(3), key = { it.first().key }) { row ->
+        items(posterRows, key = { it.first().key }, contentType = { "poster-row" }) { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { PosterCard(it, "discover", Modifier.weight(1f), onOpen) }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -1430,31 +1420,11 @@ fun WatchlistScreen(vm: StakViewModel, saved: List<SavedMedia>, onOpen: (Media, 
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                listOf("All", "Movies", "Series").forEachIndexed { index, label ->
-                    Box(
-                        Modifier.height(44.dp)
-                            .background(
-                                if (index == type) Soft else Color.Transparent,
-                                RoundedCornerShape(10.dp),
-                            )
-                            .clickable { type = index }
-                            .padding(horizontal = 13.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            label.uppercase(),
-                            fontFamily = MonoFont,
-                            fontSize = 10.sp,
-                            color =
-                                if (index == type) MaterialTheme.colorScheme.onSurface else Muted,
-                        )
-                    }
-                }
-                Spacer(Modifier.weight(1f))
-                IconButton({ layout = 0 }) {
+                MotionTabs(listOf("All", "Movies", "Series"), type, Modifier.weight(1f), height = 44.dp) { type = it }
+                GlassIconButton({ layout = 0 }) {
                     Icon(StakIcons.LayoutGrid, "Grid view", Modifier.size(18.dp))
                 }
-                IconButton({ layout = 1 }) {
+                GlassIconButton({ layout = 1 }) {
                     Icon(StakIcons.List, "List view", Modifier.size(18.dp))
                 }
             }
@@ -1481,7 +1451,7 @@ fun WatchlistScreen(vm: StakViewModel, saved: List<SavedMedia>, onOpen: (Media, 
                     hideWatched = false
                 }
             }
-        items(media, key = { it.key }) {
+        items(media, key = { it.key }, contentType = { "poster" }) {
             if (layout == 0) PosterCard(it, "watchlist", onOpen = onOpen)
             else MediaListRow(it, "watchlist", onOpen)
         }
@@ -1604,6 +1574,7 @@ fun DetailScreen(
         }
     }
     Box(Modifier.fillMaxSize()) {
+        DetailGlassBackdrop(media)
         LazyColumn(
             Modifier.testTag("title-scroll"),
             contentPadding = PaddingValues(bottom = 112.dp),
@@ -1894,14 +1865,14 @@ fun DetailScreen(
                     }
                 }
         }
-        Surface(
+        LiquidSurface(
             Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 12.dp),
             shape = RoundedCornerShape(16.dp),
             border = BorderStroke(1.dp, Rule),
             color = MaterialTheme.colorScheme.surface,
         ) {
             Box(Modifier.padding(6.dp)) {
-                Surface(
+                LiquidSurface(
                     onClick = {
                         sourceEpisode = null
                         sources = true
@@ -1976,7 +1947,7 @@ fun EpisodeDetails(
         ) {
             Row {
                 Text(episode.name, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                IconButton(dismiss) { Icon(StakIcons.X, "Close dialog", Modifier.size(18.dp)) }
+                GlassIconButton(dismiss) { Icon(StakIcons.X, "Close dialog", Modifier.size(18.dp)) }
             }
             Label(
                 "S%02d E%02d · %s".format(episode.season, episode.number, episode.released.take(10))

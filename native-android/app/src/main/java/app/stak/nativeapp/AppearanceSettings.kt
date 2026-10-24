@@ -279,7 +279,7 @@ fun AppearanceSettings(vm: StakViewModel) {
     }
     if (customOpen) {
         var custom by remember { mutableStateOf(resolvedAccentHex(rawAccent)) }
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { customOpen = false },
             title = { Text("Custom colour") },
             text = {
@@ -296,7 +296,7 @@ fun AppearanceSettings(vm: StakViewModel) {
                 }
             },
             confirmButton = {
-                TextButton(
+                GlassTextButton(
                     onClick = {
                         vm.option("accent", custom)
                         customOpen = false
@@ -306,7 +306,7 @@ fun AppearanceSettings(vm: StakViewModel) {
                     Text("Save")
                 }
             },
-            dismissButton = { TextButton(onClick = { customOpen = false }) { Text("Cancel") } },
+            dismissButton = { GlassTextButton(onClick = { customOpen = false }) { Text("Cancel") } },
         )
     }
 }
