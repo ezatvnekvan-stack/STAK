@@ -1,5 +1,0 @@
-
-> frontend@4.0.0 build:android
-> REACT_APP_CAPACITOR_OFFLINE=true craco build
-
-sh: 1: craco: not found

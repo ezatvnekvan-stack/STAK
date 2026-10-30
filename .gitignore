@@ -1,21 +1,31 @@
-node_modules/
-**/node_modules/
+# Local Android/IDE state
+.gradle/
+.kotlin/
+.idea/
 **/build/
-**/dist/
-**/.gradle/
-**/.cache/
-**/__pycache__/
-**/*.pyc
-coverage/
-**/coverage/
-.env*
-**/.env*
-**/local.properties
-*.jks
+local.properties
+*.iml
+# Private signing and runtime configuration
+signing/
 *.keystore
+*.jks
 *.p12
-*.pfx
 *.pem
+*.key
+.env
+.env.*
+!.env.example
+keystore.properties
+secrets.properties
+# Generated distributions, media and local verification
+*.apk
+*.aab
 artifacts/
-export/
-*.zip
+verification/
+outputs/
+*.log
+*.db
+*.db-shm
+*.db-wal
+__pycache__/
+.DS_Store

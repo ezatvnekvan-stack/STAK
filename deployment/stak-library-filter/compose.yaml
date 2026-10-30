@@ -1,0 +1,34 @@
+services:
+  stak-library-filter:
+    build: .
+    container_name: stak-library-filter
+    user: "${STAK_UID:-1000}:${STAK_GID:-1000}"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 192m
+    tmpfs: [/tmp]
+    ports:
+      - "${FILTER_BIND:-127.0.0.1}:8787:8787"
+    env_file: .env
+    environment:
+      BIND_ADDRESS: 0.0.0.0
+      SOURCE_ROOT: /source
+      OUTPUT_ROOT: /library
+      STATE_DB: /state/filter.db
+      JELLYFIN_ZURG_ROOT: /media/zurg/__all__
+      JELLYFIN_ZURG_BASE: /media/zurg
+      JELLYFIN_MOVIES_PATH: /media/movies
+      JELLYFIN_SHOWS_PATH: /media/shows
+    volumes:
+      - type: bind
+        source: "${ZURG_SOURCE_DIR:?Set ZURG_SOURCE_DIR in .env}"
+        target: /source
+        read_only: true
+        bind:
+          propagation: rslave
+          create_host_path: false
+      - "${STAK_LIBRARY_DIR:?Set STAK_LIBRARY_DIR in .env}:/library"
+      - "${STAK_STATE_DIR:?Set STAK_STATE_DIR in .env}:/state"
