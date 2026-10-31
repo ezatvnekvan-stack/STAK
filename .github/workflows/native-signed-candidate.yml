@@ -1,0 +1,64 @@
+name: Native signed candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-signed-candidate
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    environment: android-release
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare owner-managed signing key
+        shell: bash
+        env:
+          STAK_KEYSTORE_BASE64: ${{ secrets.STAK_SIGNING_KEYSTORE_BASE64 }}
+          STAK_STORE_PASSWORD: ${{ secrets.STAK_SIGNING_STORE_PASSWORD }}
+          STAK_KEY_ALIAS: ${{ secrets.STAK_SIGNING_KEY_ALIAS }}
+          STAK_KEY_PASSWORD: ${{ secrets.STAK_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$STAK_KEYSTORE_BASE64" || -z "$STAK_STORE_PASSWORD" || -z "$STAK_KEY_ALIAS" || -z "$STAK_KEY_PASSWORD" ]]; then
+            echo 'Owner-managed signing secrets are missing. See native-android/SIGNING.md.' >&2
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$STAK_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/stak-release.jks"
+      - name: Build signed candidate, unit tests and lint
+        working-directory: native-android
+        env:
+          STAK_SIGNING_STORE_FILE: ${{ runner.temp }}/stak-release.jks
+          STAK_SIGNING_STORE_PASSWORD: ${{ secrets.STAK_SIGNING_STORE_PASSWORD }}
+          STAK_SIGNING_KEY_ALIAS: ${{ secrets.STAK_SIGNING_KEY_ALIAS }}
+          STAK_SIGNING_KEY_PASSWORD: ${{ secrets.STAK_SIGNING_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleRelease testReleaseUnitTest lintRelease
+      - name: Verify signature and retain certificate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p signed-candidate
+          cp native-android/app/build/outputs/apk/release/app-release.apk signed-candidate/STAK-Native-candidate.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs signed-candidate/STAK-Native-candidate.apk > signed-candidate/CERTIFICATE.txt
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 signed-candidate/STAK-Native-candidate.apk
+          printf '%s\n' "$GITHUB_SHA" > signed-candidate/SOURCE_COMMIT.txt
+          (cd signed-candidate && sha256sum STAK-Native-candidate.apk > SHA256SUMS.txt)
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/stak-release.jks"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: STAK-native-signed-candidate
+          retention-days: 14
+          path: signed-candidate/
