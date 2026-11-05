@@ -1,6 +1,0 @@
-# Template only. Set these variables privately in the Jellyfin Compose environment.
-# Replace old direct source-library mappings after checking every path/link.
-# Never apply this file without supplying your own directories and permissions.
-- ${STAK_LIBRARY_DIR}/movies:/media/movies:ro
-- ${STAK_LIBRARY_DIR}/shows:/media/shows:ro
-- ${ZURG_MOUNT_DIR}:/media/zurg:ro,rslave

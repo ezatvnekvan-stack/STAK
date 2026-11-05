@@ -4,6 +4,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
+val stakCloudUrl = providers.environmentVariable("STAK_CLOUD_URL").orElse("").get()
+val stakCloudKey = providers.environmentVariable("STAK_CLOUD_PUBLIC_KEY").orElse("").get()
+require(stakCloudKey.isEmpty() || stakCloudKey.startsWith("sb_publishable_")) { "Use a Supabase publishable key, never an admin/service key." }
+fun configString(value:String)="\""+value.replace("\\","\\\\").replace("\"","\\\"").replace("\n","").replace("\r","")+"\""
 android {
     namespace = "app.stak.nativeapp"
     compileSdk = 35
@@ -32,8 +36,10 @@ android {
         applicationId = "app.stak.nativeapp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 47
-        versionName = "1.0.0"
+        versionCode = 70
+        versionName = "1.4.0"
+        buildConfigField("String", "STAK_CLOUD_URL", configString(stakCloudUrl))
+        buildConfigField("String", "STAK_CLOUD_PUBLIC_KEY", configString(stakCloudKey))
         manifestPlaceholders["appLabel"] = "STAK"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -61,7 +67,7 @@ android {
         }
 
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
 }

@@ -27,7 +27,7 @@ import app.stak.nativeapp.ui.theme.*
     LaunchedEffect(identities,torboxKey,effective.cachedOnly){viewModel.checkCache(all,torboxKey,effective.cachedOnly)}
     LaunchedEffect(identities,prefs.sort){if(prefs.sort=="rating")viewModel.loadRatings(all)}
     val shown=remember(all,effective,watchedIds,cached){filterSavedTitles(all,effective,watchedIds,cached)}
-    val grid=rememberLazyGridState();LaunchedEffect(prefs){grid.scrollToItem(0)}
+    val grid=rememberLazyGridState()
     LazyVerticalGrid(columns=GridCells.Fixed(if(prefs.layout=="list")1 else 3),state=grid,modifier=Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp,22.dp,16.dp,120.dp),horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(18.dp)) {
         item(span={GridItemSpan(maxLineSpan)}) {
             Column {
@@ -42,11 +42,11 @@ import app.stak.nativeapp.ui.theme.*
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment=Alignment.CenterVertically){Text("${shown.size} titles · ${when(prefs.sort){"year"->"Newest year";"rating"->"IMDb rating";"name"->"Title A–Z";else->"Date added"}}",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted,modifier=Modifier.weight(1f));listOf("grid" to Lucide.Grid,"list" to Lucide.List).forEach{(layout,icon)->IconButton(onClick={viewModel.preferences(prefs.copy(layout=layout))}){Icon(icon,if(layout=="grid")"Poster grid" else "List view",tint=if(prefs.layout==layout)StakText else StakTextMuted,modifier=Modifier.size(18.dp))}}}
                 if(prefs.hideWatched)Text("Unwatched only",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
-                if(effective.cachedOnly)Text("Cached sources only · Series check S1 E1",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
+                if(effective.cachedOnly)Text("Cache filter active",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
                 if(checking)Text("Checking cached sources…",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
                 if(ratingsLoading)Text("Loading IMDb ratings…",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
                 if(failures>0){Text("Some cache checks failed. Unknown titles are excluded.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted);StakButton("Retry cache checks",{viewModel.checkCache(all,torboxKey,effective.cachedOnly)})}
-                error?.let{Text(it,fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)}
+                error?.let{InlineRetry(it){viewModel.refresh()}}
             }
         }
         if(shown.isEmpty()&&!checking)item(span={GridItemSpan(maxLineSpan)}) {
@@ -56,14 +56,14 @@ import app.stak.nativeapp.ui.theme.*
             val key="watchlist-${item.type}-${item.mediaKey}";val display=item.copy(watched=item.mediaKey in watchedIds)
             Box(stakItemMotion()) {
                 if(prefs.layout=="list")LibraryMediaRow(display,{onOpenTitle(item,key)})
-                else StakPosterCard(display,{onOpenTitle(item,key)},compactTitle=true,modifier=Modifier.stakSharedElement(sharedScope,animatedScope,key))
+                else StakPosterCard(display,{onOpenTitle(item,key)},compactTitle=true,artworkModifier=Modifier.stakSharedElement(sharedScope,animatedScope,key))
             }
         }
     }
     if(filters)GlassAlertDialog(onDismissRequest={filters=false},containerColor=StakSurface,title={Text("Watchlist filters",fontFamily=DotoFont)},text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
         DiscoverySelect("Sort by",prefs.sort,listOf("added" to "Date added","year" to "Year","rating" to "IMDb rating","name" to "Name"),{viewModel.preferences(prefs.copy(sort=it))})
-        Row(Modifier.fillMaxWidth().clickable{viewModel.preferences(prefs.copy(hideWatched=!prefs.hideWatched))},verticalAlignment=Alignment.CenterVertically){Text("Hide watched",modifier=Modifier.weight(1f));Switch(prefs.hideWatched,{viewModel.preferences(prefs.copy(hideWatched=it))})}
-        Row(verticalAlignment=Alignment.CenterVertically){Text("Cached sources only",modifier=Modifier.weight(1f));Switch(effective.cachedOnly,{viewModel.preferences(prefs.copy(cachedOnly=it))},enabled=torboxKey.isNotBlank())}
+        Row(Modifier.fillMaxWidth().clickable{viewModel.preferences(prefs.copy(hideWatched=!prefs.hideWatched))},verticalAlignment=Alignment.CenterVertically){Text("Hide watched",fontFamily=HankenFont,fontSize=14.sp,modifier=Modifier.weight(1f));Switch(prefs.hideWatched,{viewModel.preferences(prefs.copy(hideWatched=it))})}
+        Row(verticalAlignment=Alignment.CenterVertically){Text("Has a cached source",fontFamily=HankenFont,fontSize=14.sp,modifier=Modifier.weight(1f));Switch(effective.cachedOnly,{viewModel.preferences(prefs.copy(cachedOnly=it))},enabled=torboxKey.isNotBlank())}
         Text(if(torboxKey.isBlank())"Connect TorBox to check cached sources." else "Series checks sample season 1, episode 1. They do not confirm that the whole series is cached.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)
         if(prefs.sort=="rating"&&NativeRuntime.settings.omdbKey.isNullOrBlank())Text("Configure OMDb for verified IMDb ratings.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)
     }},confirmButton={StakButton("Done",{filters=false})},dismissButton={StakButton("Reset",{viewModel.preferences(WatchlistPreferences())})})

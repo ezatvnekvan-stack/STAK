@@ -1,0 +1,9 @@
+.env
+torznab.json
+migration.json
+migration.json.new
+data/
+*.partial
+__pycache__/
+*.pyc
+*.log

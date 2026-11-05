@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
     val key=NativeRuntime.settings.torboxKey.orEmpty()
     val shown=remember(all,cached,filters,season,packs,showAll,media.isSeries){filteredSources(all,cached,filters,season,packs&&media.isSeries,showAll)}
     LaunchedEffect(media.mediaKey,season,episode?.episode,packs){viewModel.loadSources(media.type,media.mediaKey)}
-    fun refresh(){viewModel.loadSources(media.type,media.mediaKey)}
+    fun refresh(){viewModel.loadSources(media.type,media.mediaKey,force=true)}
     val sourceWarnings by viewModel.sourceWarnings.collectAsState()
     var manageSources by remember{mutableStateOf(false)}
     val activeAddons=remember(manageSources){(StreamAddonStore(NativeRuntime.settings).all().filter{it.enabled}.map{it.name}+TorznabStore(NativeRuntime.settings).all().filter{it.enabled}.map{it.name}).joinToString(" · ")}
@@ -81,8 +81,8 @@ import kotlinx.coroutines.launch
                     AsyncImage(media.poster,null,contentScale=ContentScale.Crop,modifier=Modifier.width(44.dp).height(64.dp).clip(RoundedCornerShape(7.dp)).background(StakSurface))
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)) {
                         Text(media.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=19.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
-                        Text(listOfNotNull(media.year,if(media.isSeries)"Series" else "Movie",media.runtime).joinToString(" · "),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextMuted)
-                        Text(if(media.isSeries)"S$season · ${if(packs)"Season pack" else "E${episode?.episode ?: 1}"}" else media.genres.take(2).joinToString(" · "),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextMuted)
+                        Text(listOfNotNull(media.year,if(media.isSeries)"Series" else "Movie",media.runtime).joinToString(" · "),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
+                        Text(if(media.isSeries)"S$season · ${if(packs)"Season pack" else "E${episode?.episode ?: 1}"}" else media.genres.take(2).joinToString(" · "),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
                     }
                     Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
                         SourceCircle(Lucide.X,"Close",onDismiss)
@@ -98,7 +98,7 @@ import kotlinx.coroutines.launch
             if(media.isSeries)item {
                 val seasons=(viewModel.detail.value?.seasons.orEmpty()+episodes.map{it.season}+season).distinct().sorted()
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                    Text("SEASON",fontFamily=SpaceMonoFont,fontSize=10.sp,letterSpacing=1.sp,color=StakTextMuted)
+                    Text("SEASON",fontFamily=SpaceMonoFont,fontSize=11.sp,letterSpacing=1.sp,color=StakTextMuted)
                     SourceSelect("Season $season",seasons.map{it.toString() to "Season $it"},{viewModel.selectSeason(it.toInt())},Modifier.weight(1f),true)
                 }
                 Spacer(Modifier.height(8.dp));Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -133,7 +133,7 @@ import kotlinx.coroutines.launch
             if(key.isBlank())item {Text("Set your TorBox API key in Settings to check cache and add torrents.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted);StakButton("Configure TorBox",{onDismiss();onOpenSettings()})}
             if(loading||checking)item {Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){StakLottie(StakAnimation.Search,Modifier.size(30.dp),loop=true);Text(if(loading)"Searching torrent sources…" else "Checking TorBox cache…",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=16.sp,color=StakTextMuted)}}
             (error ?: cacheError)?.let{message->item {Text(message,fontFamily=HankenFont,fontSize=12.sp,color=Color(0xFFFFB86B));StakButton("Retry search",::refresh,enabled=!loading&&!checking)}}
-            if(remaining>0&&!loading)item{StakButton("Check next ${minOf(8,remaining)} ${if(remaining==1)"release"else "releases"}",{viewModel.checkMoreSources()},enabled=!checking,compact=true);Text("$remaining ${if(remaining==1)"release needs"else "releases need"} metadata checks",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)}
+            if(remaining>0&&!loading)item{StakButton("Check next ${minOf(8,remaining)} ${if(remaining==1)"release"else "releases"}",{viewModel.checkMoreSources()},enabled=!checking,compact=true);Text("$remaining ${if(remaining==1)"release needs"else "releases need"} metadata checks",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)}
             sourceWarnings.forEach{warning->item{Text(warning,fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=Color(0xFFFFB86B))}}
             addError?.let{message->item{Text(message,fontFamily=HankenFont,fontSize=12.sp,color=Color(0xFFFF7A80))}}
             if(!loading&&!checking&&shown.isEmpty())item {
@@ -187,34 +187,34 @@ import kotlinx.coroutines.launch
 }
 
 @Composable private fun SourceTag(label:String) {
-    Text(label,fontFamily=SpaceMonoFont,fontSize=9.sp,lineHeight=13.sp,color=StakTextMuted,modifier=Modifier.border(1.dp,Color(0x24FFFFFF),RoundedCornerShape(7.dp)).padding(horizontal=7.dp,vertical=4.dp))
+    Text(label,fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=13.sp,color=StakTextMuted,modifier=Modifier.border(1.dp,Color(0x24FFFFFF),RoundedCornerShape(7.dp)).padding(horizontal=7.dp,vertical=4.dp))
 }
 
 @Composable private fun SourceReleaseCard(source:SourceRelease,cached:Boolean,added:Boolean,adding:Boolean,onAdd:()->Unit,onFiles:()->Unit,canAdd:Boolean,suggested:Boolean,season:Int?,episodeCount:Int,onInspect:()->Unit) {
     val pack=season!=null&&seasonPackMatches(source.name,season)
     Column(Modifier.fillMaxWidth().background(Color(0xFF111111),RoundedCornerShape(12.dp)).border(1.dp,if(suggested)Color(0xFFAAAAAA) else Color(0x30FFFFFF),RoundedCornerShape(12.dp)).padding(15.dp)) {
-        if(suggested) {Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){Icon(Lucide.Sparkles,null,tint=StakTextMuted,modifier=Modifier.size(13.dp));Text("Best quality",fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakText)};Spacer(Modifier.height(10.dp))}
+        if(suggested) {Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){Icon(Lucide.Sparkles,null,tint=StakTextMuted,modifier=Modifier.size(13.dp));Text("Best quality",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakText)};Spacer(Modifier.height(10.dp))}
         if(suggested)Text(sourceQualitySummary(source),fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted,modifier=Modifier.padding(bottom=8.dp))
         Text(source.name.replace('.', ' ').replace('_',' '),fontFamily=HankenFont,fontWeight=FontWeight.Bold,fontSize=14.sp,lineHeight=21.sp,color=StakText,maxLines=3,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         Spacer(Modifier.height(10.dp))
         FlowRow(horizontalArrangement=Arrangement.spacedBy(7.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
             SourceTag(if(source.resolution=="2160p")"4K" else source.resolution.uppercase())
             if(source.hdr)SourceTag("HDR");if(source.dolbyVision)SourceTag("DOLBY VISION");if(source.webdl)SourceTag("WEB-DL");if(source.atmos)SourceTag("ATMOS");if(source.remux)SourceTag("REMUX")
-            (if(pack)source.torrentSizeBytes else source.sizeBytes)?.let{Text("%.2f GB".format(java.util.Locale.US,it/1073741824.0),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextMuted)}
-            if(pack&&source.torrentSizeBytes==null)Text("Pack size unavailable",fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextMuted)
+            (if(pack)source.torrentSizeBytes else source.sizeBytes)?.let{Text("%.2f GB".format(java.util.Locale.US,it/1073741824.0),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)}
+            if(pack&&source.torrentSizeBytes==null)Text("Pack size unavailable",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
             if(season!=null&&seasonPackMatches(source.name,season)) {SourceTag("S%02d PACK".format(season))}
         }
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(Modifier.weight(1f).padding(vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 Icon(Lucide.Zap,null,modifier=Modifier.size(15.dp),tint=if(cached)Color(0xFF8BE0B9) else StakTextMuted)
-                Text(if(cached)"Cached on TorBox" else "Cache unconfirmed",fontFamily=SpaceMonoFont,fontWeight=FontWeight.Medium,fontSize=10.sp,lineHeight=15.sp,color=if(cached)Color(0xFFB9D3C6) else StakTextMuted)
+                Text(if(cached)"Cached on TorBox" else "Cache unconfirmed",fontFamily=SpaceMonoFont,fontWeight=FontWeight.Medium,fontSize=11.sp,lineHeight=15.sp,color=if(cached)Color(0xFFB9D3C6) else StakTextMuted)
             }
             SourceCircle(Lucide.Film,"Inspect release",onInspect)
             if(added)StakIconButton(onFiles,Modifier.semantics{contentDescription="View files"}){StakLottie(StakAnimation.Success,Modifier.size(32.dp))}
             else if(adding)Box(Modifier.size(44.dp),contentAlignment=Alignment.Center){StakLottie(StakAnimation.Search,Modifier.size(28.dp),loop=true)}
             else SourceCircle(Lucide.Plus,"Add to TorBox",onAdd,canAdd)
         }
-        source.indexer?.let{Text(it,fontFamily=SpaceMonoFont,fontSize=9.sp,lineHeight=13.sp,color=StakTextMuted,modifier=Modifier.padding(top=7.dp))}
+        source.indexer?.let{Text(it,fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=13.sp,color=StakTextMuted,modifier=Modifier.padding(top=7.dp))}
     }
 }

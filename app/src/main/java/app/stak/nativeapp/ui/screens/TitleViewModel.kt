@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class TitleViewModel(private val repository: MediaRepository = MediaRepository(), private val detailsLoader: suspend (String, String) -> TitleDetails = repository::details, private val sourceLoader: (suspend (String, String, Episode?) -> List<app.stak.nativeapp.data.SourceRelease>)? = null, private val cacheLoader:suspend(List<String>,String)->Set<String> = app.stak.nativeapp.data.SourceRepository::cached, private val addLoader:suspend(app.stak.nativeapp.data.SourceRelease,String)->String = app.stak.nativeapp.data.SourceRepository::add,private val packSizeLoader:suspend(List<String>,String)->Map<String,Long> = app.stak.nativeapp.data.SourceRepository::torrentSizes,private val materialLoader:suspend(app.stak.nativeapp.data.SourceRelease,String)->app.stak.nativeapp.data.PreparedSource=app.stak.nativeapp.data.SourceMaterials::prepare) : ViewModel() {
+class TitleViewModel(private val repository: MediaRepository = MediaRepository(), private val detailsLoader: suspend (String, String) -> TitleDetails = repository::fastDetails, private val sourceLoader: (suspend (String, String, Episode?) -> List<app.stak.nativeapp.data.SourceRelease>)? = null, private val cacheLoader:suspend(List<String>,String)->Set<String> = app.stak.nativeapp.data.SourceRepository::cached, private val addLoader:suspend(app.stak.nativeapp.data.SourceRelease,String)->String = app.stak.nativeapp.data.SourceRepository::add,private val packSizeLoader:suspend(List<String>,String)->Map<String,Long> = app.stak.nativeapp.data.SourceRepository::torrentSizes,private val materialLoader:suspend(app.stak.nativeapp.data.SourceRelease,String)->app.stak.nativeapp.data.PreparedSource=app.stak.nativeapp.data.SourceMaterials::prepare,private val seasonLoader:suspend(String,Int)->List<Episode> = repository::seasonDetails,private val progressiveSearch:(suspend(app.stak.nativeapp.data.NabQuery,suspend(app.stak.nativeapp.data.AddonSearchResult)->Unit)->app.stak.nativeapp.data.AddonSearchResult)?=null) : ViewModel() {
     private val _detail = MutableStateFlow<TitleDetails?>(null)
     val detail: StateFlow<TitleDetails?> = _detail
     private val _loading = MutableStateFlow(false)
@@ -26,13 +26,31 @@ class TitleViewModel(private val repository: MediaRepository = MediaRepository()
     private val _episode = MutableStateFlow<Episode?>(null)
     val episode: StateFlow<Episode?> = _episode
 
+    private var ratingsJob:kotlinx.coroutines.Job?=null
+    private var seasonGeneration=0
+    private var seasonJob: kotlinx.coroutines.Job? = null
+    private val loadedSeasons = mutableSetOf<Int>()
+    private var preferredEpisode:Pair<Int,Int>?=null
+    private val _seasonLoading = MutableStateFlow(false)
+    val seasonLoading:StateFlow<Boolean> = _seasonLoading
+    private val _seasonError = MutableStateFlow<String?>(null)
+    val seasonError:StateFlow<String?> = _seasonError
     private var detailToken = 0
     private var detailJob: kotlinx.coroutines.Job? = null
     private var sourceToken = 0
     private var sourceJob: kotlinx.coroutines.Job? = null
     private var addedScope:String?=null
+    private var requestedIdentity:String?=null
+    fun ensureLoaded(type:String,id:String,source:app.stak.nativeapp.data.MediaItem?=null){
+        val identity="$type:$id:${source?.jellyfinId.orEmpty()}"
+        if(requestedIdentity!=identity)load(type,id,source)
+    }
     fun load(type: String, id: String, source:app.stak.nativeapp.data.MediaItem?=null) {
+        requestedIdentity="$type:$id:${source?.jellyfinId.orEmpty()}"
+        preferredEpisode=source?.season?.let { season -> source.episode?.let { season to it } }
         val token = ++detailToken
+        searchFinishedAt=0L;searchFingerprint=""
+        seasonGeneration++;ratingsJob?.cancel();seasonJob?.cancel();loadedSeasons.clear();_seasonLoading.value=false;_seasonError.value=null
         remoteJob?.cancel();_remoteWatched.value=emptyMap()
         sourceToken++
         sourceJob?.cancel()
@@ -44,13 +62,21 @@ class TitleViewModel(private val repository: MediaRepository = MediaRepository()
         detailJob = viewModelScope.launch {
             _loading.value = true
             _error.value = null
-            _detail.value = null
+            _detail.value = source?.let { TitleDetails(it, it.genres, logo=it.logo) }
             runCatching { detailsLoader(type, id) }
                 .onSuccess {
                     if (token != detailToken) return@onSuccess
-                    _detail.value = it
-                    _season.value = it.seasons.firstOrNull() ?: 1
-                    _episode.value = it.episodes.firstOrNull { ep -> ep.season == _season.value }
+                    _detail.value = it.copy(item=it.item.copy(poster=it.item.poster ?: source?.poster,background=it.item.background ?: source?.background),logo=it.logo ?: source?.logo)
+                    loadedSeasons.addAll(it.episodes.map { ep -> ep.season })
+                    _season.value = source?.season?.takeIf{season->season in it.seasons} ?: it.seasons.firstOrNull() ?: 1
+                    _episode.value = it.episodes.firstOrNull { ep -> preferredEpisode==(ep.season to ep.episode) } ?: it.episodes.firstOrNull { ep -> ep.season == _season.value }
+                    if(it.item.isSeries && it.seasons.isNotEmpty() && _episode.value==null) selectSeason(_season.value)
+                    ratingsJob=viewModelScope.launch {
+                        try {
+                            val enriched=repository.enrichRatings(it)
+                            if(token==detailToken)_detail.value=_detail.value?.copy(imdbRating=enriched.imdbRating,rottenTomatoes=enriched.rottenTomatoes,metacritic=enriched.metacritic)
+                        }catch(c:kotlinx.coroutines.CancellationException){throw c}catch(_:Exception){}
+                    }
                     if(runCatching{app.stak.nativeapp.data.NativeRuntime.settings.jellyfinConnected}.getOrDefault(false)) {
                         val sourceId=if(source?.isSeries==true&&source.episode!=null)source.jellyfinSeriesId else source?.jellyfinId
                         val media=it.item.copy(jellyfinId=sourceId ?: it.item.jellyfinId,jellyfinSeriesId=source?.jellyfinSeriesId ?: it.item.jellyfinSeriesId)
@@ -123,9 +149,17 @@ class TitleViewModel(private val repository: MediaRepository = MediaRepository()
         val sizes=try{packSizeLoader(hashes,sessionKey)}catch(c:kotlinx.coroutines.CancellationException){throw c}catch(_:Exception){emptyMap()}
         if(token==sourceToken){packSizes=packSizes+sizes;cacheSession?.snapshot()?.let{publishSources(it,token)}}
     }
-    fun loadSources(type:String,id:String){
+    private var searchFingerprint=""
+    private var searchFinishedAt=0L
+    fun loadSources(type:String,id:String,force:Boolean=false){
+        val account=app.stak.nativeapp.data.torboxScope();val settings=app.stak.nativeapp.data.NativeRuntime.settings;val key=settings.torboxKey.orEmpty()
+        val config=app.stak.nativeapp.data.credentialScope(com.google.gson.Gson().toJson(app.stak.nativeapp.data.StreamAddonStore(settings).all())+com.google.gson.Gson().toJson(app.stak.nativeapp.data.TorznabStore(settings).all()))
+        val fingerprint="$account:$config:$type:$id:${_season.value}:${_episode.value?.episode}:${_packMode.value}"
+        if(searchFingerprint!=fingerprint&&(_sourceLoading.value||_cacheLoading.value))invalidateSources()
         if(_sourceLoading.value||_cacheLoading.value)return
-        val account=app.stak.nativeapp.data.torboxScope();val key=app.stak.nativeapp.data.NativeRuntime.settings.torboxKey.orEmpty()
+        if(!force&&searchFingerprint==fingerprint&&System.currentTimeMillis()-searchFinishedAt<30_000&&_cacheError.value==null&&_sourceError.value==null)return
+        if(force)cacheMemo.clear()
+        searchFingerprint=fingerprint;searchFinishedAt=0L
         if(addedScope!=account){_added.value=emptyMap();addedScope=account}
         val token=++sourceToken;sourceAccount=account;sessionKey=key
         sourceJob?.cancel()
@@ -137,24 +171,36 @@ class TitleViewModel(private val repository: MediaRepository = MediaRepository()
             val episode=if(type=="series"&&_packMode.value)_detail.value?.episodes?.firstOrNull{it.season==_season.value}else _episode.value
             val session=app.stak.nativeapp.data.CachedSourceSession(key,::memoCheck,materialLoader);cacheSession=session
             val batches=kotlinx.coroutines.channels.Channel<app.stak.nativeapp.data.AddonSearchResult>(16)
+            val metadata=kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
+            val verifier=launch{
+                var budget=8
+                for(signal in metadata){
+                    if(budget<=0)continue
+                    try{budget-=session.more(budget){publishSources(it,token)}}
+                    catch(c:kotlinx.coroutines.CancellationException){throw c}
+                    catch(_:Exception){budget=0;if(token==sourceToken){publishSources(session.snapshot(),token);_cacheError.value="Some releases could not be verified. Only confirmed releases are shown."}}
+                }
+            }
             val producer=launch{
                 try{
                     val result=if(sourceLoader!=null)app.stak.nativeapp.data.AddonSearchResult(sourceLoader.invoke(type,id,episode))
-                    else app.stak.nativeapp.data.SourceSearch.search(app.stak.nativeapp.data.NabQuery(type,id,_detail.value?.item?.name,_detail.value?.item?.year,episode?.season,episode?.episode,_packMode.value)){batches.send(it)}
+                    else (progressiveSearch?:app.stak.nativeapp.data.SourceSearch::search)(app.stak.nativeapp.data.NabQuery(type,id,_detail.value?.item?.name,_detail.value?.item?.year,episode?.season,episode?.episode,_packMode.value)){batches.send(it)}
                     batches.send(result)
                 }catch(c:kotlinx.coroutines.CancellationException){throw c}catch(e:Exception){batches.close(e)}finally{batches.close()}
             }
             try{
                 for(batch in batches){
                     providerWarnings=(providerWarnings+batch.warnings).distinct().take(12)
-                    session.accept(batch.releases);session.known{publishSources(it,token)}
+                    session.accept(batch.releases);metadata.trySend(Unit)
+                    session.known{publishSources(it,token)}
                 }
                 if(token==sourceToken)_sourceLoading.value=false
-                session.more{publishSources(it,token)}
+                metadata.close();verifier.join()
                 packSizes(token,type)
+                if(token==sourceToken&&_cacheError.value==null)searchFinishedAt=System.currentTimeMillis()
             }catch(c:kotlinx.coroutines.CancellationException){throw c}
             catch(_:Exception){if(token==sourceToken){publishSources(session.snapshot(),token);_cacheError.value="Source or TorBox cache verification could not finish. Only confirmed releases are shown. Retry search."}}
-            finally{producer.cancel();if(token==sourceToken){_sourceLoading.value=false;_cacheLoading.value=false}}
+            finally{producer.cancel();metadata.cancel();verifier.cancel();if(token==sourceToken){_sourceLoading.value=false;_cacheLoading.value=false}}
         }
     }
     fun checkMoreSources(){
@@ -178,6 +224,24 @@ class TitleViewModel(private val repository: MediaRepository = MediaRepository()
         invalidateSources()
         _season.value = season
         _episode.value = _detail.value?.episodes?.firstOrNull { it.season == season }
+        val request=++seasonGeneration
+        seasonJob?.cancel();_seasonLoading.value=false;_seasonError.value=null
+        val current=_detail.value ?: return
+        if(season in loadedSeasons || !current.item.isSeries) return
+        val token=detailToken
+        _seasonLoading.value=true
+        seasonJob=viewModelScope.launch {
+            try {
+                val rows=seasonLoader(current.item.id,season)
+                if(token==detailToken && request==seasonGeneration && _season.value==season){
+                    loadedSeasons+=season
+                    _detail.value=_detail.value?.let { it.copy(episodes=(it.episodes.filterNot { ep -> ep.season==season }+rows).sortedWith(compareBy({ep->ep.season},{ep->ep.episode}))) }
+                    _episode.value=rows.firstOrNull{ep->preferredEpisode==(ep.season to ep.episode)} ?: rows.firstOrNull()
+                }
+            } catch(c:kotlinx.coroutines.CancellationException){throw c}
+            catch(_:Exception){if(token==detailToken && request==seasonGeneration)_seasonError.value="This season could not load. Tap to retry."}
+            finally{if(token==detailToken && request==seasonGeneration && _season.value==season)_seasonLoading.value=false}
+        }
     }
 
     fun selectEpisode(episode: Episode) {
@@ -186,6 +250,7 @@ class TitleViewModel(private val repository: MediaRepository = MediaRepository()
         _episode.value = episode
     }
     private fun invalidateSources() {
+        searchFinishedAt=0L;searchFingerprint=""
         sourceToken++
         sourceJob?.cancel();cacheSession=null;_remainingSources.value=0;_cacheProgress.value=0
         _sources.value = emptyList()

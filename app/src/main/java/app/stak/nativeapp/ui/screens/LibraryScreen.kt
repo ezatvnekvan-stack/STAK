@@ -28,7 +28,7 @@ import coil.compose.AsyncImage
 
 @Composable fun LibraryScreen(
     onOpenTitle:(MediaItem,String)->Unit,onOpenTorBox:()->Unit,connected:Boolean,onOpenAccount:()->Unit,
-    viewModel:JellyfinViewModel,sharedScope:SharedTransitionScope?,animatedScope:AnimatedVisibilityScope?,browser:JellyfinBrowserViewModel=androidx.lifecycle.viewmodel.compose.viewModel(),onMediaCenter:()->Unit={},scanModel:LibraryScanViewModel=androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel:JellyfinViewModel,sharedScope:SharedTransitionScope?,animatedScope:AnimatedVisibilityScope?,browser:JellyfinBrowserViewModel=androidx.lifecycle.viewmodel.compose.viewModel(),onMediaCenter:()->Unit={},scanModel:LibraryScanViewModel=androidx.lifecycle.viewmodel.compose.viewModel(),onOpenAutoAdd:()->Unit={}
 ) {
     val items by viewModel.items.collectAsState();val loading by viewModel.loading.collectAsState();val error by viewModel.error.collectAsState();val total by viewModel.total.collectAsState()
     val filters by viewModel.filters.collectAsState();var options by remember{mutableStateOf(false)}
@@ -52,14 +52,14 @@ import coil.compose.AsyncImage
                     DropdownMenuItem(text={Text("Refresh library")},onClick={close();refresh()})
                     DropdownMenuItem(text={Text("Connection settings")},onClick={close();onOpenAccount()})
                 }
-                Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox"),"jellyfin",{if(it=="torbox")onOpenTorBox()},Modifier.fillMaxWidth())
+                Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Series"),"jellyfin",{if(it=="torbox")onOpenTorBox() else if(it=="autoadd")onOpenAutoAdd()},Modifier.fillMaxWidth())
                 Spacer(Modifier.height(14.dp))
                 if(connected) {
                     LibrarySearch(filters.query,{viewModel.setFilters(filters.copy(query=it))},{options=true})
                     Spacer(Modifier.height(10.dp))
                     LibraryScanControl(connected,refresh,scanModel,leading={LibraryChoice(parent?.name ?: "All libraries",connected,{catalogOpen=true},Modifier.weight(1f))})
-                    Spacer(Modifier.height(8.dp));StakTabs(listOf("all" to "All","movie" to "Movies","series" to "Series"),filters.type,{viewModel.setFilters(filters.copy(type=it))},Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(10.dp));Text("${shown.size} titles"+(if(displayLoading) " · Loading${total?.let{" $it server items"} ?: "…"}" else ""),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextMuted)
+                    Spacer(Modifier.height(8.dp));StakSegmented(listOf("all" to "All","movie" to "Movies","series" to "Series"),filters.type,{viewModel.setFilters(filters.copy(type=it))},Modifier.fillMaxWidth(),fillWidth=true)
+                    Spacer(Modifier.height(10.dp));Text("${shown.size} titles"+(if(displayLoading) " · Loading${total?.let{" $it server items"} ?: "…"}" else ""),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
                     if(displayLoading) {Spacer(Modifier.height(8.dp));StakLoadingProgress(Modifier.fillMaxWidth())}
                     if(displayError!=null){Spacer(Modifier.height(10.dp));Text(displayError.orEmpty(),fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=StakTextMuted);StakButton("Retry library",{if(parent==null)viewModel.refresh() else browser.select(parent)})}
                 } else {
@@ -80,8 +80,8 @@ import coil.compose.AsyncImage
             val key="library-all-${item.jellyfinId ?: item.id}"
             Column(stakItemMotion()) {
                 if(filters.layout=="list")LibraryMediaRow(item,{onOpenTitle(item,key)})
-                else StakPosterCard(item,{onOpenTitle(item,key)},compactTitle=true,showLibraryBadge=false,modifier=Modifier.stakSharedElement(sharedScope,animatedScope,key))
-                if(item.jellyfinVersionIds.orEmpty().size>1)TextButton(onClick={versions=item},contentPadding=PaddingValues(0.dp),modifier=Modifier.height(28.dp)){Text("${item.jellyfinVersionIds.orEmpty().size} versions",fontFamily=SpaceMonoFont,fontSize=9.sp,color=StakTextMuted)}
+                else StakPosterCard(item,{onOpenTitle(item,key)},compactTitle=true,showLibraryBadge=false,artworkModifier=Modifier.stakSharedElement(sharedScope,animatedScope,key))
+                if(item.jellyfinVersionIds.orEmpty().size>1)TextButton(onClick={versions=item},contentPadding=PaddingValues(0.dp),modifier=Modifier.heightIn(min=44.dp)){Text("${item.jellyfinVersionIds.orEmpty().size} versions",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)}
             }
         }
     }
@@ -98,8 +98,8 @@ import coil.compose.AsyncImage
         LibraryArtwork(item.poster,item.name,Modifier.width(44.dp).height(66.dp))
         Column(Modifier.weight(1f)) {
             Text(item.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=14.sp,lineHeight=19.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
-            Text(listOfNotNull(item.year,if(item.isSeries)"Series" else "Movie").joinToString(" · "),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=16.sp,color=StakTextMuted)
-            Text(if(item.watched)"Watched" else if(item.progress>0)"${(item.progress*100).toInt()}% watched" else "Unwatched",fontFamily=SpaceMonoFont,fontSize=9.sp,lineHeight=15.sp,color=StakTextMuted)
+            Text(listOfNotNull(item.year,if(item.isSeries)"Series" else "Movie").joinToString(" · "),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=16.sp,color=StakTextMuted)
+            Text(if(item.watched)"Watched" else if(item.progress>0)"${(item.progress*100).toInt()}% watched" else "Unwatched",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
         }
         if(item.watched)Icon(Lucide.Check,"Watched",tint=StakText,modifier=Modifier.size(17.dp))
     }
@@ -110,6 +110,6 @@ import coil.compose.AsyncImage
 @Composable internal fun LibraryArtwork(url:String?,name:String,modifier:Modifier=Modifier) {
     Box(modifier.clip(RoundedCornerShape(7.dp)).background(StakSurface),contentAlignment=Alignment.Center) {
         Icon(Lucide.Film,null,tint=StakTextMuted,modifier=Modifier.size(20.dp))
-        AsyncImage(url,name,contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
+        StakArtwork(url,name,contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
     }
 }

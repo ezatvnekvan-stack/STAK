@@ -32,9 +32,10 @@ import kotlinx.coroutines.CancellationException
 
 @Composable private fun ExtrasHeading(text: String) { Text(text.uppercase(), fontFamily = DotoFont, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, letterSpacing = 1.4.sp, color = StakText); Spacer(Modifier.height(12.dp)) }
 
-@Composable fun TitleScoreRow(details: TitleDetails?) {
-    if (details == null) return
-    RatingStrip(details.imdbRating,details.rottenTomatoes,details.metacritic)
+@Composable fun TitleScoreRow(details:TitleDetails?){
+    if(details==null)return
+    if(details.imdbRating?.takeIf{it.isFinite()&&it>0&&it<=10}!=null)RatingBadge(details.imdbRating)
+    else Text("IMDb rating unavailable",fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted)
 }
 
 @Composable fun TitleExtras(details: TitleDetails?, media: MediaItem, onOpenTitle: (MediaItem) -> Unit) {
@@ -47,35 +48,31 @@ import kotlinx.coroutines.CancellationException
             Spacer(Modifier.height(24.dp));ExtrasHeading("Cast")
             LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)){
                 items(details!!.cast,key={"${it.id}:${it.role}"},contentType={"cast"}){actor->
-                    Column(Modifier.width(76.dp).clickable{person=actor}){
-                        AsyncImage(actor.photo,actor.name,contentScale=ContentScale.Crop,modifier=Modifier.width(76.dp).height(96.dp).clip(RoundedCornerShape(10.dp)).background(StakSurface))
+                    Column(Modifier.width(88.dp).clickable{person=actor}){
+                        AsyncImage(actor.photo,actor.name,contentScale=ContentScale.Crop,modifier=Modifier.width(88.dp).height(110.dp).clip(RoundedCornerShape(10.dp)).background(StakSurface))
                         Spacer(Modifier.height(7.dp))
-                        Text(actor.name,fontFamily=HankenFont,fontSize=11.sp,lineHeight=14.sp,color=StakText,minLines=2,maxLines=2,overflow=TextOverflow.Ellipsis)
+                        Text(actor.name,fontFamily=HankenFont,fontSize=13.sp,lineHeight=17.sp,color=StakText,minLines=2,maxLines=2,overflow=TextOverflow.Ellipsis)
                         Spacer(Modifier.height(2.dp))
-                        Text(actor.role,fontFamily=HankenFont,fontSize=10.sp,lineHeight=14.sp,color=StakTextMuted,maxLines=1,overflow=TextOverflow.Ellipsis)
+                        Text(actor.role,fontFamily=HankenFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted,maxLines=1,overflow=TextOverflow.Ellipsis)
                     }
                 }
             }
         }
         if(!details?.crew.isNullOrEmpty()){
-            Spacer(Modifier.height(24.dp));ExtrasHeading("Creators")
-            val shown=if(allCredits)details!!.crew else details!!.crew.take(2)
-            shown.forEach{credit->
-                Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable{person=credit}.padding(vertical=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)){
-                    Text(credit.name,Modifier.weight(1f),fontFamily=HankenFont,fontSize=13.sp,lineHeight=17.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
-                    Text(credit.role,Modifier.widthIn(max=140.dp),fontFamily=HankenFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted,maxLines=2,overflow=TextOverflow.Ellipsis)
+            Spacer(Modifier.height(24.dp))
+            val credit=details!!.crew.firstOrNull{it.role.contains(if(media.isSeries)"Creator"else "Director",true)}?:details.crew.first()
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
+                Column(Modifier.weight(1f).heightIn(min=48.dp).clickable{person=credit},verticalArrangement=Arrangement.spacedBy(4.dp)){
+                    Text(credit.role,fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted,maxLines=1,overflow=TextOverflow.Ellipsis)
+                    Text(credit.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=14.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
                 }
-                HorizontalDivider(color=Color.White.copy(alpha=.07f))
-            }
-            if(details.crew.size>2)TextButton(onClick={allCredits=!allCredits},modifier=Modifier.heightIn(min=44.dp)){
-                Text(if(allCredits)"Show fewer"else "View all ${details.crew.size}",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextSoft)
-                Spacer(Modifier.width(6.dp));Icon(Lucide.ChevronDown,null,tint=StakTextMuted,modifier=Modifier.size(13.dp).rotate(if(allCredits)180f else 0f))
+                StakButton("All credits",{allCredits=true},compact=true,variant=StakButtonVariant.Ghost,icon=Lucide.ChevronRight)
             }
         }
         if(gallery.isNotEmpty()){
             Spacer(Modifier.height(24.dp));ExtrasHeading("Gallery")
             BoxWithConstraints{
-                val width=(maxWidth-20.dp)/3
+                val width=maxWidth*.72f
                 LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp)){
                     items(gallery,key={it},contentType={"gallery"}){picture->
                         AsyncImage(picture,"View artwork ${gallery.indexOf(picture)+1} for ${media.name}",contentScale=ContentScale.Crop,modifier=Modifier.width(width).aspectRatio(16f/9f).clip(RoundedCornerShape(10.dp)).background(StakSurface).clickable{selectedImage=picture})
@@ -83,13 +80,19 @@ import kotlinx.coroutines.CancellationException
                 }
             }
         }
-        listOf("Collection" to details?.collection.orEmpty(),"Related titles" to details?.related.orEmpty()).forEach{(heading,titles)->if(titles.isNotEmpty()){
+        listOf("Collection" to details?.collection.orEmpty(),"Similar titles" to details?.related.orEmpty()).forEach{(heading,titles)->if(titles.isNotEmpty()){
             Spacer(Modifier.height(24.dp));ExtrasHeading(heading)
             BoxWithConstraints{val width=(maxWidth-24.dp)/3;LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)){
                 items(titles,key={"${it.type}:${it.id}"},contentType={"related"}){item->StakPosterCard(item,{onOpenTitle(item)},Modifier.width(width))}
             }}
         }}
     }
+    if(allCredits)GlassAlertDialog({allCredits=false},title={Text("All credits",fontFamily=DotoFont)},text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+        details?.crew.orEmpty().forEach{credit->Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable{allCredits=false;person=credit},verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
+            Text(credit.name,Modifier.weight(1f),fontFamily=HankenFont,fontSize=14.sp,color=StakText)
+            Text(credit.role,Modifier.weight(.7f),fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)
+        }}
+    }},confirmButton={StakButton("Close",{allCredits=false})})
     selectedImage?.let { picture -> Dialog(onDismissRequest = { selectedImage = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         SmoothDialogWindow()
         Box(Modifier.fillMaxSize().background(Color(0xF2080808))) {
@@ -109,15 +112,15 @@ import kotlinx.coroutines.CancellationException
         loading = true; error = false
         try { movies = DirectServices.filmography(person.id) } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { error = true } finally { loading = false }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Color(0xFF101010)) {
+    GlassDialog(onDismiss = onDismiss) {
         app.stak.nativeapp.ui.components.SmoothDialogWindow()
-        Column(Modifier.fillMaxWidth().heightIn(max = 700.dp).verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Column(Modifier.fillMaxWidth().heightIn(max = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp*.82f).verticalScroll(rememberScrollState()).padding(16.dp)) {
             Text(person.name, fontFamily = DotoFont, fontWeight = FontWeight.Black, fontSize = 28.sp, color = StakText)
             Text(person.role, fontFamily = HankenFont, fontSize = 13.sp, color = StakTextMuted)
             Spacer(Modifier.height(20.dp)); ExtrasHeading("Filmography")
             if (loading) Text("Loading filmography…", color = StakTextMuted)
             if (error) { Text("Filmography could not load.", color = StakTextMuted); StakButton("Retry", { revision++ }) }
-            movies.chunked(3).forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { row.forEach { title -> StakPosterCard(title, { onOpenTitle(title) }, Modifier.weight(1f)) }; repeat(2-row.size) { Spacer(Modifier.weight(1f)) } }; Spacer(Modifier.height(16.dp)) }
+            movies.chunked(3).forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { row.forEach { title -> StakPosterCard(title, { onOpenTitle(title) }, Modifier.weight(1f)) }; repeat(3-row.size) { Spacer(Modifier.weight(1f)) } }; Spacer(Modifier.height(16.dp)) }
             if (!loading && !error && movies.isEmpty()) Text("No titles returned.", color = StakTextMuted)
             StakButton("Close", onDismiss)
         }
@@ -130,9 +133,9 @@ import kotlinx.coroutines.CancellationException
     LaunchedEffect(media.mediaKey,episode.season,episode.episode) {
         try { if (media.imdbId != null) rating = MediaRepository().episodeRating(media.imdbId,episode) } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Color(0xFF101010)) {
+    GlassDialog(onDismiss = onDismiss) {
         app.stak.nativeapp.ui.components.SmoothDialogWindow()
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Column(Modifier.fillMaxWidth().heightIn(max=androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp*.82f).verticalScroll(rememberScrollState()).padding(16.dp)) {
             episode.image?.let { AsyncImage(it, episode.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().aspectRatio(16f/9f)) }
             Spacer(Modifier.height(12.dp)); Text(episode.name, fontFamily = DotoFont, fontWeight = FontWeight.Black, fontSize = 24.sp, color = StakText)
             Text("${media.name} · S${episode.season} E${episode.episode}${episode.released?.let { " · ${it.take(10)}" }.orEmpty()}", fontFamily = HankenFont, fontSize = 12.sp, color = StakTextMuted)

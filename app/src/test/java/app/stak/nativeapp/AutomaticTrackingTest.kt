@@ -20,4 +20,15 @@ class AutomaticTrackingTest {
     @Test fun earlierManualPlanAloneDoesNotStartWatching(){val p=SeriesProgress(SeriesPlan(movie.copy(type="series"),"watching"),emptyList(),emptySet(),null,null,0,false,"watching");assertTrue(automaticWatchingRows(listOf(p),emptyList(),emptyList()).isEmpty())}
     @Test fun staleNextUpDisappearsAfterServerCompletion(){val item=movie.copy(type="series",season=1,episode=2,nextUp=true);assertTrue(automaticWatchingRows(emptyList(),listOf(JournalEntry(item,null,true,"Jellyfin",scope=scope)),listOf(item)).isEmpty())}
 
+    @Test fun historyRefreshesArtworkWithoutChangingTheViewingOrCrossingAccounts(){
+        val old=movie.copy(poster="old-poster",background="old-backdrop")
+        val event=WatchEvent("past",old,100,"Jellyfin",scope)
+        val fresh=JournalEntry(movie.copy(poster="new-poster",background="new-backdrop"),null,false,"Jellyfin",30,scope)
+        val other=fresh.copy(media=movie.copy(poster="other-user"),scope="other",updatedAt=40)
+        val result=serverViewingHistory(scope,listOf(event),listOf(other,fresh)).single()
+        assertEquals("new-poster",result.media.poster);assertEquals("new-backdrop",result.media.background)
+        assertEquals(100L,result.watchedAt);assertTrue(result.played);assertEquals("past",result.eventId)
+        assertEquals("old-poster",serverViewingHistory(scope,listOf(event),listOf(other)).single().media.poster)
+        assertEquals("old-poster",serverViewingHistory(scope,listOf(event),listOf(fresh.copy(media=movie))).single().media.poster)
+    }
 }

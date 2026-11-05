@@ -24,4 +24,19 @@ class SecureStorage(context: Context, namespace:String = "") {
     }
 
     fun getSecret(key: String): String? = prefs.getString(key, null)
+    internal fun removeSecretChecked(key:String){check(prefs.edit().remove(key).commit()){"Secure settings could not be saved"}}
+
+    internal fun backupValues():Map<String,String> = prefs.all.filterKeys{cloudBackupKey(it)}.mapValues{(_,value)->require(value is String);value}
+    internal fun restoreValues(values:Map<String,String>){
+        require(values.keys.all(::cloudBackupKey))
+        val editor=prefs.edit();prefs.all.keys.filter(::cloudBackupKey).forEach(editor::remove)
+        values.forEach{(key,value)->editor.putString(key,value)}
+        check(editor.commit()){"Secure restore failed"}
+        check(backupValues()==values){"Secure restore verification failed"}
+    }
+    internal fun listenForBackup(callback:()->Unit):()->Unit {
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener{_,key->if(key==null||cloudBackupKey(key))callback()}
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        return {prefs.unregisterOnSharedPreferenceChangeListener(listener)}
+    }
 }

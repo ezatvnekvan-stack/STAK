@@ -1,11 +1,11 @@
-# Local Android/IDE state
+# Android / IDE / build output
 .gradle/
 .kotlin/
 .idea/
 **/build/
 local.properties
 *.iml
-# Private signing and runtime configuration
+# Private configuration and signing
 signing/
 *.keystore
 *.jks
@@ -15,17 +15,38 @@ signing/
 .env
 .env.*
 !.env.example
+cloud-config.env
 keystore.properties
 secrets.properties
-# Generated distributions, media and local verification
-*.apk
-*.aab
+**/torznab.json
+**/migration.json
+**/migration.json.new
+# Generated output and local assistant state
+distribution/
+delivery/
+outputs/
 artifacts/
 verification/
-outputs/
+validation/
+.freebuff/
+.codex-remote-attachments/
+HANDOFF-MANIFEST.json
+*.apk
+*.aab
+*.zip
+*.tar
+*.gz
 *.log
 *.db
 *.db-shm
 *.db-wal
+*.sqlite
+*.sqlite3
+/deployment/stak-server/data/
 __pycache__/
+.pytest_cache/
+.venv/
+venv/
+*.pyc
 .DS_Store
+Thumbs.db

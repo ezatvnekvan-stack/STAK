@@ -51,9 +51,14 @@ class DirectCatalog(
     }
 
     suspend fun heroMetadata(item:MediaItem):MediaItem=withContext(Dispatchers.IO) {
-        val id=item.id.removePrefix("tmdb:").takeIf{it.matches(Regex("\\d+"))} ?: return@withContext item.copy(rating=null)
+        if(tmdbKey().isBlank())return@withContext item.copy(rating=null)
         val kind=if(item.isSeries)"tv" else "movie"
+        val id=item.id.removePrefix("tmdb:").takeIf{it.matches(Regex("\\d+"))} ?: item.imdbId?.takeIf{it.matches(Regex("tt\\d+"))}?.let{imdb->
+            tmdb("/find/$imdb",mapOf("external_source" to "imdb_id"),tmdbKey()).objects(if(item.isSeries)"tv_results"else "movie_results").firstOrNull()?.text("id")
+        } ?: return@withContext item.copy(rating=null)
         val data=tmdb("/$kind/$id",mapOf("append_to_response" to "images,external_ids,${if(item.isSeries)"content_ratings" else "release_dates"}","include_image_language" to "en,null","language" to "en-US"),tmdbKey())
+        val verifiedImdb=data.objectOrNull("external_ids")?.text("imdb_id")
+        if(item.imdbId!=null&&verifiedImdb!=null&&item.imdbId!=verifiedImdb)return@withContext item.copy(rating=null)
         val logos=data.objectOrNull("images")?.objects("logos").orEmpty().filter{it.text("iso_639_1") in listOf(null,"en")}
         val logo=logos.firstOrNull{it.text("iso_639_1")=="en"} ?: logos.firstOrNull()
         val us=data.objectOrNull(if(item.isSeries)"content_ratings" else "release_dates")?.objects("results")?.firstOrNull{it.text("iso_3166_1")=="US"}
@@ -92,7 +97,8 @@ class DirectCatalog(
         DiscoverResult(items.distinctBy { "${it.type}:${it.mediaKey}" }, 1, 1, "cinemeta")
     }
 
-    suspend fun details(type: String, id: String): TitleDetails = DirectTitleMetadata(tmdbKey, preferCinemeta, request).load(type, id)
+    suspend fun details(type: String, id: String, firstSeasonOnly: Boolean = false): TitleDetails = DirectTitleMetadata(tmdbKey, preferCinemeta, request).load(type, id, firstSeasonOnly)
+    suspend fun season(id:String, season:Int):List<Episode> = DirectTitleMetadata(tmdbKey,preferCinemeta,request).season(id,season)
 
     private fun tmdb(path: String, params: Map<String, String>, key: String): JsonObject = request("https://api.themoviedb.org/3$path", if (key.contains('.')) params else params + ("api_key" to key), if (key.contains('.')) key else null)
 
@@ -117,6 +123,8 @@ internal val providerClient = OkHttpClient.Builder().connectTimeout(15, TimeUnit
 internal class ProviderFailure(val status: Int, message: String): IOException(message)
 internal fun providerJson(url: String, params: Map<String, String> = emptyMap(), bearer: String? = null): JsonObject {
     val publicCache = bearer == null && params.isEmpty() && url.startsWith("https://v3-cinemeta.strem.io/")
+    val metadataKey=MetadataResponseCache.key(url,params,bearer)
+    metadataKey?.let { MetadataResponseCache.read(it)?.let { cached -> return cached } }
     if (publicCache) PublicMetadataCache.read(url)?.let { return it }
     val builder = url.toHttpUrl().newBuilder()
     params.forEach { (key, value) -> builder.addQueryParameter(key, value) }
@@ -131,6 +139,7 @@ internal fun providerJson(url: String, params: Map<String, String> = emptyMap(),
         val body = response.body?.string() ?: throw IOException("Provider returned an empty response.")
         val parsed = try { JsonParser.parseString(body).asJsonObject } catch (_: RuntimeException) { throw IOException("Provider returned an invalid response.") }
         if (publicCache) PublicMetadataCache.write(url, parsed)
+        metadataKey?.let { MetadataResponseCache.write(it,parsed) }
         return parsed
     }
 }

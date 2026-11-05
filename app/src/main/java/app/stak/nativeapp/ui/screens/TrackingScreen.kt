@@ -89,8 +89,6 @@ import java.time.*
             }
         }
         if(tab=="watching"){
-            item(key="month"){WatchingMonthSummary(month,recent.firstOrNull()?.first?.media,today){stats()}}
-            item(key="habits"){WatchingHabits(entries,today){stats("week")}}
             item(key="controls"){
                 TrackingSection("IN PROGRESS")
                 if(search){StakTextField(query,{query=it},"Search Watching",height=44);Spacer(Modifier.height(8.dp))}
@@ -106,6 +104,8 @@ import java.time.*
             item(key="recent-heading"){Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){TrackingSection("WATCH HISTORY");Spacer(Modifier.weight(1f));TextButton(onClick={history()}){Text("View all",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft)}}}
             if(recent.isEmpty())item{Text("No Jellyfin history yet.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)}
             else item(key="recent-rail"){LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.semantics{contentDescription="Recent viewing cards"}){items(recent,key={it.id}){group->RecentlyWatchedCard(group){if(group.first.isEpisode)history()else onOpenTitle(group.first.media)}}}}
+            item(key="month"){WatchingMonthSummary(month,recent.firstOrNull()?.first?.media,today){stats()}}
+            item(key="habits"){WatchingHabits(entries,today){stats("week")}}
         }else if(tab=="calendar")item{ReleaseCalendar(trackedCalendar,prefs,{viewModel.preferences(it)},onOpenTitle,calendarViewModel)}
         else{
             item(key="period"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){DiscoverySelect("",period,listOf("week" to "Last 7 days","this_month" to "This month","all" to "All time"),{viewModel.preferences(prefs.copy(period=it))},Modifier.width(165.dp),accessibilityLabel="Tracking period")}}
@@ -119,7 +119,7 @@ import java.time.*
                 item(key="history-controls"){
                     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("${selected.size} ${if(selected.size==1)"entry"else "entries"}",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted,modifier=Modifier.weight(1f));IconButton(onClick={historySearch=!historySearch;if(!historySearch)viewModel.preferences(prefs.copy(query=""))}){Icon(Lucide.Search,"Search history",tint=StakTextMuted,modifier=Modifier.size(20.dp))}}
                     if(historySearch)StakTextField(prefs.query,{viewModel.preferences(prefs.copy(query=it))},"Search activity")
-                    StakTabs(listOf("all" to "All","movie" to "Movies","episode" to "Episodes"),if(prefs.type=="series")"episode"else prefs.type,{viewModel.preferences(prefs.copy(type=it))})
+                    StakSegmented(listOf("all" to "All","movie" to "Movies","episode" to "Episodes"),if(prefs.type=="series")"episode"else prefs.type,{viewModel.preferences(prefs.copy(type=it))})
                 }
                 if(selected.isEmpty())item{Text("No viewings in this selection.",fontFamily=HankenFont,fontSize=13.sp,color=StakTextMuted)}
                 historyDays(selected).forEach{day->item(key="day:${day.date}"){Text(historyDateLabel(day.date,today),fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft,modifier=Modifier.padding(top=10.dp))};items(day.groups,key={it.id}){group->HistoryCard(group,onOpenTitle,{details=it},Modifier)}}

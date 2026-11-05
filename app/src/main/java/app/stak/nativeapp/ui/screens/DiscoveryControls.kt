@@ -194,11 +194,10 @@ private fun ServiceRow(option: DiscoveryOption, selected: Boolean, onClick: () -
 
 @Composable
 fun InlineRetry(message: String, action: String = "Retry", onClick: () -> Unit) {
-    val text = androidx.compose.ui.text.buildAnnotatedString { append(message); append(" "); appendInlineContent("retry", action) }
-    Text(text, fontFamily = HankenFont, fontSize = 12.sp, lineHeight = 30.sp, color = StakTextMuted, inlineContent = mapOf("retry" to androidx.compose.foundation.text.InlineTextContent(androidx.compose.ui.text.Placeholder(if (action.length > 7) maxOf(110f,action.length*6.4f+12f).sp else 66.sp, 44.sp, androidx.compose.ui.text.PlaceholderVerticalAlign.TextCenter)) {
-        if (action.length > 7) Box(Modifier.fillMaxSize().clickable(onClick = onClick), contentAlignment = Alignment.Center) { Text(action.uppercase(), fontFamily = SpaceMonoFont, fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = .4.sp, color = StakText) }
-        else StakButton(action,onClick,Modifier.fillMaxSize(),compact=true)
-    }))
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(StakSurface.copy(alpha=.55f)).border(1.dp,StakBorderSoft,RoundedCornerShape(12.dp)).padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+        Text(message,fontFamily=HankenFont,fontSize=13.sp,lineHeight=20.sp,color=StakTextSoft)
+        StakButton(action,onClick,compact=true,variant=StakButtonVariant.Ghost)
+    }
 }
 
 /** Provider artwork fills the clipped card; selection remains above the image. */

@@ -24,6 +24,8 @@ import app.stak.nativeapp.ui.components.*
 import app.stak.nativeapp.ui.theme.*
 
 @Composable fun SetupScreen(settings:SettingsStore,controller:ConnectionSettingsController,onFinish:()->Unit){
+    var accountOpen by remember{mutableStateOf(false)}
+    if(accountOpen){CloudAccountScreen(onBack={accountOpen=false});return}
     var step by rememberSaveable{mutableIntStateOf(0)}
     var section by rememberSaveable{mutableStateOf<String?>(null)}
     val connections by controller.state.collectAsState()
@@ -57,6 +59,7 @@ import app.stak.nativeapp.ui.theme.*
                     Spacer(Modifier.height(4.dp))
                     when(page){
                         0->{
+                            StakButton("Sign in",{accountOpen=true},variant=StakButtonVariant.Ghost)
                             StakLottie(StakAnimation.Welcome,Modifier.padding(vertical=20.dp).size(96.dp))
                             SetupCopy("Discover a film. Find the best source. Keep your Jellyfin library and viewing history together.")
                             SetupCopy("Connect only what you use. You can change everything later in Settings.")
@@ -64,7 +67,7 @@ import app.stak.nativeapp.ui.theme.*
                         1->{
                             ServiceRow("Jellyfin","Library, Continue Watching and watched state",Lucide.MonitorPlay,if(connections.jellyfinConnected)"Ready" else "Optional"){section="jellyfin"}
                             ServiceRow("TorBox","Add releases and manage your files",Lucide.Database,if(connections.torboxSaved)"Saved" else "Optional"){section="account"}
-                            ServiceRow("Metadata & ratings","TMDb discovery · IMDb, RT & Metacritic via OMDb",Lucide.Search,if(connections.tmdbSaved)"Saved" else "Optional"){section="metadata"}
+                            ServiceRow("Metadata & ratings","TMDb discovery · IMDb ratings",Lucide.Search,if(connections.tmdbSaved)"Saved" else "Optional"){section="metadata"}
                             SetupCopy("Already connected? Your existing credentials and library stay in place.")
                         }
                         2->{

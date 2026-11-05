@@ -37,6 +37,7 @@ import app.stak.nativeapp.ui.theme.*
     Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(start=16.dp,end=16.dp,top=18.dp,bottom=120.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
         Row(verticalAlignment=Alignment.CenterVertically){StakIconButton({if(editor!=null){editor=null;error=null}else onBack()}){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back",tint=StakText,modifier=Modifier.size(20.dp))};StakPageHeader(if(editor==null)"Search sources" else "Connect source")}
         if(editor==null){
+            Text("These sources are used by Find Sources. Auto-add uses the sources configured on STAK Server.",fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=StakTextMuted)
             Text("${addons.count{it.enabled}} addons enabled",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
             addons.forEach{addon->
                 Column(Modifier.fillMaxWidth().background(Color(0x600A0C10),RoundedCornerShape(16.dp)).border(1.dp,Color(0x24FFFFFF),RoundedCornerShape(16.dp)).padding(16.dp)){

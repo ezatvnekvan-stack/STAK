@@ -69,7 +69,8 @@ class DiscoverViewModel(private val repository: MediaRepository = MediaRepositor
     init { load(); refreshServices() }
 
     private fun readSaved(): DiscoveryState = try {
-        val s = Gson().fromJson(NativeRuntime.settings.discoveryJson, DiscoveryState::class.java) ?: DiscoveryState()
+        val raw = Gson().fromJson(NativeRuntime.settings.discoveryJson, DiscoveryState::class.java) ?: DiscoveryState()
+        val s=if(raw.filters.sort=="vote_average.desc")raw.copy(filters=raw.filters.copy(sort=""))else raw
         if (s.type !in listOf("movie","series") || s.category !in discoveryCategories.map { it.first } || !s.region.matches(Regex("[A-Z]{2}")) || s.filters.validationError() != null) DiscoveryState() else s
     } catch (_: Exception) { DiscoveryState() }
     private fun persist() {
@@ -126,7 +127,7 @@ class DiscoverViewModel(private val repository: MediaRepository = MediaRepositor
     private fun schedule(debounce: Long) {
         val token = ++generation
         job?.cancel()
-        allItems = emptyList(); _items.value = emptyList(); _page.value = 1; _totalPages.value = 1
+        allItems = if(debounce>0)rankedSearch(allItems,_query.value)else emptyList(); updateVisible(); _page.value = 1; _totalPages.value = 1
         _error.value = null; _notice.value = null; _ratingErrors.value = 0; _verifiedImdb.value = false; _partialErrors.value = emptyList(); cursor = null
         _browsing.value = requireTmdb || explicitBrowse || _query.value.isNotBlank() || _filters.value != DiscoveryFilters()
         if (!_browsing.value) { _loading.value = false; _loadingMore.value = false; return }
@@ -136,7 +137,7 @@ class DiscoverViewModel(private val repository: MediaRepository = MediaRepositor
         job = viewModelScope.launch {
             try {
                 if (debounce > 0) delay(debounce)
-                val result = repository.discover(type, category, query, 1, browseYear, strict, filters, region)
+                val result = repository.discover(type, category, query, 1, browseYear, strict, filters, region,onPartial={rows->if(token==generation){allItems=rows;updateVisible()}})
                 if (token != generation) return@launch
                 allItems = result.items; updateVisible(); _totalPages.value = result.totalPages
                 _notice.value = result.notice; _ratingErrors.value = result.ratingErrors; _verifiedImdb.value = result.verifiedImdb

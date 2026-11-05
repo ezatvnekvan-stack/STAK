@@ -14,6 +14,9 @@ interface TrackingDao {
     @Query("SELECT * FROM tracking")
     suspend fun getAll():List<TrackingEntity>
 
+    @Query("DELETE FROM tracking")
+    suspend fun clearForRestore()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(item: TrackingEntity)
     @Insert(onConflict = OnConflictStrategy.REPLACE)

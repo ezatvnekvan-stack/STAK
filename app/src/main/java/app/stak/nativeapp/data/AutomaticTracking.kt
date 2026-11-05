@@ -9,7 +9,14 @@ fun serverTrackingStates(scope:String,rows:List<JournalEntry>,items:List<MediaIt
 }
 fun serverViewingHistory(scope:String,events:List<WatchEvent>,states:List<JournalEntry>):List<JournalEntry>{
     if(scope=="local")return emptyList()
-    val history=events.filter{it.scope==scope&&it.source.equals("Jellyfin",true)}.map{it.journal()}
+    val current=states.filter{it.scope==scope&&it.source.equals("Jellyfin",true)}.sortedByDescending{it.updatedAt}
+    val history=events.filter{it.scope==scope&&it.source.equals("Jellyfin",true)}.map{event->
+        val fresh=current.firstOrNull{matchingWatch(it.media,event.media)}?.media
+        val media=if(fresh==null)event.media else event.media.copy(
+            poster=fresh.poster?.takeIf{it.isNotBlank()}?:event.media.poster,
+            background=fresh.background?.takeIf{it.isNotBlank()}?:event.media.background)
+        event.journal().copy(media=media)
+    }
     return (history+states.filter{it.scope==scope&&it.played}).fold(emptyList<JournalEntry>()){all,row->
         if(all.any{matchingWatch(it.media,row.media)&&it.watchedAt==row.watchedAt})all else all+row
     }.sortedByDescending{it.watchedAt?:Long.MIN_VALUE}

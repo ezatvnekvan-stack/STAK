@@ -10,7 +10,7 @@ import kotlinx.coroutines.*
 import app.stak.nativeapp.data.*
 import java.time.LocalDate
 
-class HomeViewModel(private val repository: MediaRepository = MediaRepository(),private val feedLoader:suspend()->HomeFeed = repository::home, private val calendar:CalendarRepository=CalendarRepository(), private val releaseLoader:suspend(List<MediaItem>,LocalDate,Boolean)->ReleaseFeed = {items,date,force->calendar.upcoming(items,date,force=force)}) : ViewModel() {
+class HomeViewModel(private val repository: MediaRepository = MediaRepository(),private val feedLoader:(suspend()->HomeFeed)? = null, private val calendar:CalendarRepository=CalendarRepository(), private val releaseLoader:suspend(List<MediaItem>,LocalDate,Boolean)->ReleaseFeed = {items,date,force->calendar.upcoming(items,date,force=force)},private val brandLoader:suspend(MediaItem)->MediaItem={repository.branding(it)}) : ViewModel() {
     private val _feed = MutableStateFlow<HomeFeed?>(null)
     val feed: StateFlow<HomeFeed?> = _feed
     private val _loading = MutableStateFlow(false)
@@ -29,15 +29,27 @@ class HomeViewModel(private val repository: MediaRepository = MediaRepository(),
         catch(cancelled:CancellationException){throw cancelled}catch(_:Exception){if(token==comingGeneration)_comingError.value="Coming up could not load. Check TMDb in Metadata & ratings."}
         finally{if(token==comingGeneration)_comingLoading.value=false}}
     }
-    init { refresh() }
 
+
+    private var generation=0
+    private var brandingJob:Job?=null
+    init { refresh() }
     fun refresh() {
         if (_loading.value) return
+        val token=++generation;brandingJob?.cancel()
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
-            runCatching { feedLoader() }
-                .onSuccess { _feed.value = it }
+            runCatching { feedLoader?.invoke() ?: repository.home { partial -> _feed.value=partial } }
+                .onSuccess { feed->
+                    _feed.value=feed
+                    val row=feed.rows.firstOrNull{it.id=="trending_movie"}
+                    val first=row?.items?.firstOrNull()
+                    if(first!=null&&first.logo==null)brandingJob=viewModelScope.launch{
+                        val branded=try{brandLoader(first)}catch(c:CancellationException){throw c}catch(_:Exception){first}
+                        if(token==generation)_feed.value=_feed.value?.let{current->current.copy(rows=current.rows.map{r->if(r.id==row?.id&&r.items.firstOrNull()?.mediaKey==first.mediaKey)r.copy(items=listOf(branded)+r.items.drop(1))else r})}
+                    }
+                }
                 .onFailure { _error.value = it.message ?: "Could not load Home" }
             _loading.value = false
         }

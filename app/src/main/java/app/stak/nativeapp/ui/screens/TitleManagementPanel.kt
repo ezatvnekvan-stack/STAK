@@ -13,7 +13,7 @@ import app.stak.nativeapp.ui.theme.*
     Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
             StakButton("Trailer",onTrailer,Modifier.weight(1f),icon=Lucide.Play,enabled=trailer,compact=true)
-            StakButton(if(saved)"Saved"else "Watchlist",onWatchlist,Modifier.weight(1f),icon=Lucide.Bookmark,enabled=!watchlistBusy,compact=true)
+            StakButton(if(saved)"Saved"else "Watchlist",onWatchlist,Modifier.weight(1f).nothingSignal(saved),icon=if(saved)Lucide.BookmarkFilled else Lucide.Bookmark,iconTint=if(saved)StakAccent else StakText,enabled=!watchlistBusy,compact=true)
         }
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
             JellyfinBadge(available=inLibrary,connected=connected)

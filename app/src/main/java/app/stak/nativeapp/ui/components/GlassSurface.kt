@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package app.stak.nativeapp.ui.components
 
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +29,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogWindowProvider
 
@@ -98,9 +100,16 @@ fun Modifier.recordGlassSource(source:GlassSource,view:android.view.View,key:(()
     }
 }
 @Composable fun GlassAlertDialog(onDismissRequest:()->Unit,title:@Composable ()->Unit,text:@Composable ()->Unit,confirmButton:@Composable ()->Unit,dismissButton:(@Composable ()->Unit)?=null,containerColor:Color=Color.Transparent){
-    GlassDialog(onDismissRequest){CompositionLocalProvider(LocalContentColor provides app.stak.nativeapp.ui.theme.StakText){Column(Modifier.fillMaxWidth().heightIn(max=androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp*.85f).verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
-        title();text();Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp,androidx.compose.ui.Alignment.End)){dismissButton?.invoke();confirmButton()}
-    }}}
+    GlassDialog(onDismissRequest){CompositionLocalProvider(
+        LocalContentColor provides app.stak.nativeapp.ui.theme.StakText,
+        androidx.compose.material3.LocalTextStyle provides androidx.compose.ui.text.TextStyle(fontFamily=app.stak.nativeapp.ui.theme.HankenFont,fontSize=14.sp,lineHeight=21.sp)
+    ){
+        Column(Modifier.fillMaxWidth().heightIn(max=androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp*.85f).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
+            androidx.compose.material3.ProvideTextStyle(androidx.compose.ui.text.TextStyle(fontFamily=app.stak.nativeapp.ui.theme.DotoFont,fontSize=20.sp,lineHeight=26.sp,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold)){title()}
+            Column(Modifier.weight(1f,fill=false).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){text()}
+            androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp,androidx.compose.ui.Alignment.End),verticalArrangement=Arrangement.spacedBy(4.dp)){dismissButton?.invoke();confirmButton()}
+        }
+    }}
 }
 @Composable fun GlassDropdownMenu(expanded:Boolean,onDismissRequest:()->Unit,modifier:Modifier=Modifier,containerColor:Color=Color.Transparent,content:@Composable ColumnScope.()->Unit){
     if(expanded)PauseCinematicMotion()

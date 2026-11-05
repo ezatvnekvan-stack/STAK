@@ -7,6 +7,14 @@ import androidx.room.Query
 
 @Dao
 interface PreferenceDao {
+    @Query("SELECT * FROM preferences ORDER BY key")
+    suspend fun getAllForBackup():List<PreferenceEntity>
+
+    @Query("SELECT * FROM preferences ORDER BY key")
+    fun observeForBackup():kotlinx.coroutines.flow.Flow<List<PreferenceEntity>>
+
+    @Query("DELETE FROM preferences")
+    suspend fun clearForRestore()
     @Query("SELECT value FROM preferences WHERE key = :key")
     suspend fun get(key: String): String?
 

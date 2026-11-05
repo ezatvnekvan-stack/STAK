@@ -21,15 +21,16 @@ import app.stak.nativeapp.ui.theme.*
 @Composable fun MatteSurface(modifier:Modifier=Modifier,source:GlassSource?=null,content:@Composable BoxScope.()->Unit){
     Box(modifier.clip(RoundedCornerShape(12.dp)).background(Color.Black.copy(alpha=.12f)).border(1.dp,Color.White.copy(alpha=.24f),RoundedCornerShape(12.dp)),content=content)
 }
-@Composable fun StakButton(label:String,onClick:()->Unit,modifier:Modifier=Modifier,variant:StakButtonVariant=StakButtonVariant.Outlined,icon:androidx.compose.ui.graphics.vector.ImageVector?=null,enabled:Boolean=true,compact:Boolean=false){
+@Composable fun StakButton(label:String,onClick:()->Unit,modifier:Modifier=Modifier,variant:StakButtonVariant=StakButtonVariant.Outlined,icon:androidx.compose.ui.graphics.vector.ImageVector?=null,enabled:Boolean=true,compact:Boolean=false,iconTint:Color?=null){
     val press=rememberPressMotion(enabled)
     val bg=if(variant==StakButtonVariant.Primary)Color(0xF0101114) else Color.Transparent
     val pressed by press.source.collectIsPressedAsState()
     val strokeTarget=when(variant){StakButtonVariant.Primary->StakAccent.copy(alpha=.85f);StakButtonVariant.Ghost->Color.Transparent;StakButtonVariant.Destructive->Color(0xFFAD555B);else->Color.White.copy(alpha=.40f)}
     val stroke by animateColorAsState(if(pressed&&enabled&&variant!=StakButtonVariant.Ghost) Color.White.copy(alpha=.9f) else strokeTarget,if(LocalReducedMotion.current)snap() else tween(120),label="button-edge")
     val fg=when(variant){StakButtonVariant.Primary->Color.White;StakButtonVariant.Destructive->Color(0xFFFF969C);else->StakText}
+    val glyphInk by animateColorAsState(iconTint?:fg,if(LocalReducedMotion.current)snap()else tween(StakMotion.Quick),label="button-glyph")
     Row(modifier.pressMotion(press).alpha(if(enabled)1f else .4f).heightIn(min=44.dp).clip(RoundedCornerShape(11.dp)).background(bg).border(1.dp,stroke,RoundedCornerShape(11.dp)).clickable(interactionSource=press.source,indication=LocalIndication.current,enabled=enabled,onClick=onClick).padding(horizontal=if(compact)12.dp else 16.dp,vertical=8.dp),horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically){
-        icon?.let{Icon(it,null,tint=fg,modifier=Modifier.size(16.dp));Spacer(Modifier.width(7.dp))}
+        icon?.let{Icon(it,null,tint=glyphInk,modifier=Modifier.size(16.dp));Spacer(Modifier.width(7.dp))}
         Text(label.uppercase(),fontFamily=SpaceMonoFont,fontWeight=FontWeight.Bold,fontSize=11.sp,lineHeight=17.sp,color=fg,maxLines=1)
     }
 }
@@ -40,7 +41,7 @@ import app.stak.nativeapp.ui.theme.*
 @Composable fun StakChip(label:String,selected:Boolean,onClick:()->Unit,modifier:Modifier=Modifier,leading:(@Composable ()->Unit)?=null){
     val press=rememberPressMotion()
     val stroke by animateColorAsState(if(selected)Color.White.copy(alpha=.80f) else Color.White.copy(alpha=.30f),if(LocalReducedMotion.current)snap() else tween(StakMotion.Quick),label="chip")
-    Box(modifier.heightIn(min=44.dp).pressMotion(press).clip(RoundedCornerShape(10.dp)).clickable(interactionSource=press.source,indication=LocalIndication.current,onClick=onClick),contentAlignment=Alignment.Center){
+    Box(modifier.heightIn(min=44.dp).pressMotion(press).clip(RoundedCornerShape(10.dp)).selectable(selected=selected,role=Role.RadioButton,interactionSource=press.source,indication=LocalIndication.current,onClick=onClick),contentAlignment=Alignment.Center){
         Row(Modifier.clip(RoundedCornerShape(9.dp)).border(1.dp,stroke,RoundedCornerShape(9.dp)).padding(horizontal=12.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically){leading?.let{it();Spacer(Modifier.width(6.dp))};Text(label.uppercase(),fontFamily=SpaceMonoFont,fontWeight=FontWeight.Bold,fontSize=11.sp,color=if(selected)Color.White else StakTextMuted,maxLines=1)}
     }
 }
@@ -55,9 +56,9 @@ import app.stak.nativeapp.ui.theme.*
         if(fillWidth)Box(Modifier.align(Alignment.CenterStart).width(cell).height(32.dp).graphicsLayer{translationX=position.value.toPx()}.clip(RoundedCornerShape(9.dp)).border(1.dp,Color.White.copy(alpha=.75f),RoundedCornerShape(9.dp)))
         Row(horizontalArrangement=Arrangement.spacedBy(4.dp),verticalAlignment=Alignment.CenterVertically){options.forEach{(id,label)->
             val press=rememberPressMotion()
-            Box((if(fillWidth)Modifier.weight(1f) else Modifier).height(44.dp).pressMotion(press).clip(RoundedCornerShape(9.dp)).clickable(interactionSource=press.source,indication=LocalIndication.current){onSelect(id)},contentAlignment=Alignment.Center){
+            Box((if(fillWidth)Modifier.weight(1f) else Modifier).height(44.dp).pressMotion(press).clip(RoundedCornerShape(9.dp)).selectable(selected=selected==id,role=Role.RadioButton,interactionSource=press.source,indication=LocalIndication.current){onSelect(id)},contentAlignment=Alignment.Center){
                 if(!fillWidth&&selected==id)Box(Modifier.matchParentSize().padding(vertical=6.dp).clip(RoundedCornerShape(9.dp)).border(1.dp,Color.White.copy(alpha=.75f),RoundedCornerShape(9.dp)))
-                Text(label.uppercase(),Modifier.padding(horizontal=12.dp,vertical=5.dp),fontFamily=SpaceMonoFont,fontWeight=FontWeight.Bold,fontSize=11.sp,lineHeight=17.sp,color=if(id==selected)StakText else StakTextMuted,maxLines=1)
+                Text(label.uppercase(),Modifier.padding(horizontal=if(fillWidth)6.dp else 12.dp,vertical=5.dp),fontFamily=SpaceMonoFont,fontWeight=FontWeight.Bold,fontSize=(if(label.length>12)10 else fontSize.coerceIn(11,12)).sp,lineHeight=17.sp,color=if(id==selected)StakText else StakTextMuted,maxLines=1)
             }
         }}
     }

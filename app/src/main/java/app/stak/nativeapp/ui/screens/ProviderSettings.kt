@@ -70,7 +70,7 @@ fun ProviderSettings(id: String, controller: ConnectionSettingsController, onBac
 @Composable
 private fun MetadataProviderSettings(c: ConnectionSettingsController, s: ConnectionFormState, submit: (() -> Unit) -> Unit) {
     val enabled = s.busy.isBlank()
-    Body("Connect TMDb for discovery and OMDb for ratings. Both keys are optional.",12)
+    Body("Connect TMDb for discovery. IMDb ratings use OMDb when configured, with Cinemeta as a fallback.",12)
     for (provider in listOf("tmdb", "omdb")) {
         Spacer(Modifier.height(16.dp))
         val saved = if (provider == "tmdb") s.tmdbSaved else s.omdbSaved
@@ -98,7 +98,7 @@ private fun MetadataProviderSettings(c: ConnectionSettingsController, s: Connect
     Spacer(Modifier.height(16.dp))
     DiscoverySelect("Series metadata source", s.series, listOf("tmdb" to "TMDb", "cinemeta" to "Cinemeta"), { c.metadataPreference("series", it) }, fieldHeight = 44, labelSize = 11, enabled = enabled)
     Spacer(Modifier.height(16.dp))
-    MetadataToggle("Ratings: IMDb/RT/Metacritic via OMDb", s.ratings, enabled) { c.metadataPreference("ratings", it.toString()) }
+    MetadataToggle("IMDb ratings", s.ratings, enabled) { c.metadataPreference("ratings", it.toString()) }
     Spacer(Modifier.height(16.dp))
     MetadataToggle("Show IMDb rating on lists", s.imdbOnLists, enabled) { c.metadataPreference("imdbOnLists", it.toString()) }
     Spacer(Modifier.height(16.dp))

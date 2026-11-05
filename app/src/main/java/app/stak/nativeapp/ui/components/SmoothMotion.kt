@@ -13,8 +13,8 @@ import androidx.compose.ui.window.DialogWindowProvider
 
 val LocalReducedMotion=staticCompositionLocalOf{false}
 object StakMotion {
-    const val Quick=160
-    const val Standard=260
+    const val Quick=120
+    const val Standard=220
     const val Atmosphere=500
     val Ease=FastOutSlowInEasing
 }
@@ -22,7 +22,7 @@ data class PressMotion(val source:MutableInteractionSource,val scale:State<Float
 @Composable fun rememberPressMotion(enabled:Boolean=true):PressMotion {
     val source=remember{MutableInteractionSource()}
     val pressed by source.collectIsPressedAsState()
-    val scale=animateFloatAsState(if(pressed&&enabled&&!LocalReducedMotion.current).975f else 1f,if(LocalReducedMotion.current)snap() else spring(dampingRatio=.85f,stiffness=700f),label="press")
+    val scale=animateFloatAsState(if(pressed&&enabled&&!LocalReducedMotion.current).975f else 1f,if(LocalReducedMotion.current)snap() else spring(dampingRatio=.95f,stiffness=1000f),label="press")
     return PressMotion(source,scale)
 }
 fun Modifier.pressMotion(motion:PressMotion)=graphicsLayer{scaleX=motion.scale.value;scaleY=motion.scale.value}
@@ -43,6 +43,6 @@ fun Modifier.pressMotion(motion:PressMotion)=graphicsLayer{scaleX=motion.scale.v
 @Composable fun Modifier.premiumEntrance():Modifier {
     val reduced=LocalReducedMotion.current
     val amount=remember{Animatable(if(reduced)1f else 0f)}
-    LaunchedEffect(reduced){if(reduced)amount.snapTo(1f) else amount.animateTo(1f,tween(190,easing=StakMotion.Ease))}
-    return graphicsLayer{alpha=amount.value;scaleX=.975f+.025f*amount.value;scaleY=scaleX}
+    LaunchedEffect(reduced){if(reduced)amount.snapTo(1f) else amount.animateTo(1f,tween(StakMotion.Standard,easing=StakMotion.Ease))}
+    return graphicsLayer{alpha=amount.value;translationY=12f*density*(1f-amount.value);scaleX=.975f+.025f*amount.value;scaleY=scaleX}
 }

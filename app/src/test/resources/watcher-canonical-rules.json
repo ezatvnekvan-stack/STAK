@@ -1,0 +1,327 @@
+[
+  {
+    "request": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": "12345",
+        "tvdb": "67890",
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "2160_only",
+      "resolutionWaitHours": 24,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "checkMinutes": 45,
+      "confirm": true,
+      "confirmed": true
+    },
+    "response": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": 12345,
+        "tvdb": 67890,
+        "jellyfin": null,
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "2160_only",
+      "resolutionWaitHours": 0,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "maxEpisodeGb": null,
+      "checkMinutes": 45,
+      "confirmed": true
+    }
+  },
+  {
+    "request": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": "12345",
+        "tvdb": "67890",
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "2160_only",
+      "resolutionWaitHours": 72,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "checkMinutes": 45,
+      "confirm": true,
+      "confirmed": true
+    },
+    "response": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": 12345,
+        "tvdb": 67890,
+        "jellyfin": null,
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "2160_only",
+      "resolutionWaitHours": 0,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "maxEpisodeGb": null,
+      "checkMinutes": 45,
+      "confirmed": true
+    }
+  },
+  {
+    "request": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": "12345",
+        "tvdb": "67890",
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "2160_preferred",
+      "resolutionWaitHours": 24,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "checkMinutes": 45,
+      "confirm": true,
+      "confirmed": true
+    },
+    "response": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": 12345,
+        "tvdb": 67890,
+        "jellyfin": null,
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "2160_preferred",
+      "resolutionWaitHours": 24,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "maxEpisodeGb": null,
+      "checkMinutes": 45,
+      "confirmed": true
+    }
+  },
+  {
+    "request": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": "12345",
+        "tvdb": "67890",
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "2160_preferred",
+      "resolutionWaitHours": 0,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "checkMinutes": 45,
+      "confirm": true,
+      "confirmed": true
+    },
+    "response": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": 12345,
+        "tvdb": 67890,
+        "jellyfin": null,
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "2160_preferred",
+      "resolutionWaitHours": 24,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "maxEpisodeGb": null,
+      "checkMinutes": 45,
+      "confirmed": true
+    }
+  },
+  {
+    "request": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": "12345",
+        "tvdb": "67890",
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "1080_only",
+      "resolutionWaitHours": 24,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "checkMinutes": 45,
+      "confirm": true,
+      "confirmed": true
+    },
+    "response": {
+      "ruleId": "watch_imdb_tt1234567_fixture",
+      "series": {
+        "imdb": "tt1234567",
+        "tmdb": 12345,
+        "tvdb": 67890,
+        "jellyfin": null,
+        "name": "Fixture series"
+      },
+      "enabled": true,
+      "paused": false,
+      "createdOn": "2026-11-03",
+      "watchedSeasons": [
+        2,
+        1
+      ],
+      "includeSpecials": false,
+      "onlyNewEpisodes": false,
+      "resolutionMode": "1080_only",
+      "resolutionWaitHours": 24,
+      "releaseTypes": [
+        "WEB-DL",
+        "Remux"
+      ],
+      "hdrMode": "any",
+      "dvMode": "any",
+      "atmosMode": "any",
+      "languageMode": "any",
+      "maxEpisodeGb": null,
+      "checkMinutes": 45,
+      "confirmed": true
+    }
+  }
+]

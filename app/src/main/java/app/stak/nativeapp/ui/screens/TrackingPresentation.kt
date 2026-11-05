@@ -39,7 +39,7 @@ import java.util.Locale
 }
 @Composable internal fun SummaryValue(value:String,label:String,modifier:Modifier){
     Column(modifier,verticalArrangement=Arrangement.spacedBy(6.dp)){
-        Text(value,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=27.sp,color=StakText,maxLines=1)
+        NothingNumber(value,style=androidx.compose.ui.text.TextStyle(fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=27.sp,color=StakText))
         Text(label,fontFamily=HankenFont,fontSize=12.sp,color=StakTextSoft)
     }
 }
@@ -63,7 +63,7 @@ import java.util.Locale
                 Icon(if(expanded)Icons.Default.ExpandLess else Icons.Default.ExpandMore,if(expanded)"Collapse episodes of ${first.media.name}" else "Expand episodes of ${first.media.name}",tint=StakTextMuted)
             }else IconButton(onClick={onEdit(first)}){Icon(Icons.Default.Info,"Viewing details for ${first.media.name}",tint=StakTextMuted,modifier=Modifier.size(17.dp))}
         }
-        AnimatedVisibility(expanded){Column(Modifier.padding(start=48.dp)){
+        NothingExpand(expanded){Column(Modifier.padding(start=48.dp)){
             TextButton(onClick={onOpen(journalSeriesTitle(first.media))}){Text("View title",fontFamily=HankenFont,fontSize=12.sp,color=StakTextSoft)}
             group.seasons.forEach{season->HistorySeasonRow(first.media,season,onOpen,onEdit)}
         }}
@@ -78,7 +78,7 @@ import java.util.Locale
             Text("${season.entries.size}",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
             Icon(if(expanded)Icons.Default.ExpandLess else Icons.Default.ExpandMore,null,tint=StakTextMuted,modifier=Modifier.padding(horizontal=12.dp).size(18.dp))
         }
-        AnimatedVisibility(expanded){Column{season.entries.forEach{entry->
+        NothingExpand(expanded){Column{season.entries.forEach{entry->
             Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable{onOpen(entry.media)}.padding(start=12.dp),verticalAlignment=Alignment.CenterVertically){
                 Text("S${entry.media.season} E${entry.media.episode}",fontFamily=SpaceMonoFont,fontSize=12.sp,color=StakTextSoft,modifier=Modifier.weight(1f))
                 IconButton(onClick={onEdit(entry)}){Icon(Icons.Default.Info,"Viewing details for ${entry.media.name} S${entry.media.season} E${entry.media.episode}",tint=StakTextMuted,modifier=Modifier.size(16.dp))}

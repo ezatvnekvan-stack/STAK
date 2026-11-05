@@ -20,6 +20,6 @@ import app.stak.nativeapp.ui.theme.*
 @Composable private fun WatchlistCount(count:Int,label:String,modifier:Modifier){
     Row(modifier.semantics(mergeDescendants=true){contentDescription="$label count"},verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)){
         Text(count.toString(),fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=27.sp,lineHeight=33.sp,color=StakText)
-        Text(label.uppercase(java.util.Locale.ENGLISH),fontFamily=SpaceMonoFont,fontWeight=FontWeight.Normal,fontSize=9.sp,lineHeight=13.sp,letterSpacing=1.sp,color=StakTextMuted)
+        Text(label.uppercase(java.util.Locale.ENGLISH),fontFamily=SpaceMonoFont,fontWeight=FontWeight.Normal,fontSize=11.sp,lineHeight=13.sp,letterSpacing=1.sp,color=StakTextMuted)
     }
 }

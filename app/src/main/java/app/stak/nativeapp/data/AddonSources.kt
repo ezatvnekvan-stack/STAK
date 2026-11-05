@@ -38,12 +38,14 @@ class AddonSourceClient(
     }}
 ) {
     companion object{private val client=OkHttpClient.Builder().followRedirects(false).followSslRedirects(false).callTimeout(30,TimeUnit.SECONDS).build()}
-    suspend fun search(type:String,imdb:String,season:Int?=null,episode:Int?=null):AddonSearchResult=supervisorScope {
+    suspend fun search(type:String,imdb:String,season:Int?=null,episode:Int?=null,onPartial:suspend(AddonSearchResult)->Unit={}):AddonSearchResult=supervisorScope {
         require(type in listOf("movie","series")&&imdb.matches(Regex("tt\\d+"))){"Resolve this title's IMDb identity first."}
         val identity=if(type=="series"){require(season!=null&&episode!=null);"$imdb:$season:$episode"}else imdb
         val enabled=addons().filter{it.enabled}.take(12)
         require(enabled.isNotEmpty()){"Enable a source in Settings → Search sources."}
-        val results=enabled.chunked(4).flatMap{group->group.map{addon->async(Dispatchers.Default){
+        val permits=kotlinx.coroutines.sync.Semaphore(4)
+        val results=enabled.map{addon->async(Dispatchers.Default){permits.acquire();try{
+            val result=
             try {
                 val manifest=normalizeAddonManifest(addon.manifestUrl)
                 val base=manifest.removeSuffix("/manifest.json")
@@ -52,7 +54,9 @@ class AddonSourceClient(
                 val parsed=streams.take(1500).mapNotNull{value->if(!value.isJsonObject)null else runCatching{parseSourceRelease(value.asJsonObject)?.let{release->release.copy(addonName=addon.name,indexer=if(release.indexer=="Torrentio")addon.name else release.indexer)}}.getOrNull()}
                 parsed to if(parsed.isNotEmpty()&&parsed.none{it.canImport})"${addon.name}: playback-only links returned. Enable torrent results in this addon to add them to TorBox." else null
             }catch(cancelled:CancellationException){throw cancelled}catch(_:Exception){emptyList<SourceRelease>() to "${addon.name}: search failed; check the addon configuration."}
-        }}.awaitAll()}
+            onPartial(AddonSearchResult(result.first,result.second?.let{listOf(it)}?:emptyList()))
+            result
+        }finally{permits.release()}}}.awaitAll()
         if(results.all{it.second!=null&&it.first.isEmpty()})throw IOException("All enabled addons failed. Check their configuration and connection.")
         val candidates=results.flatMap{it.first}.distinctBy{it.infoHash?.let{hash->"$hash:${it.fileIndex}"} ?: "${it.addonName}:${it.name}:${it.streamUrl}"}
         AddonSearchResult(candidates.take(5000),results.mapNotNull{it.second})

@@ -12,7 +12,24 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.UUID
 
-data class LibraryApproval(val id:String,val scope:String,val hash:String?=null,val name:String="",val type:String="unknown",val approved:Boolean=true,val revision:String=UUID.randomUUID().toString(),val sentTo:String?=null,val state:String="saved",val note:String="",val at:Long=System.currentTimeMillis())
+data class LibraryApproval(val id:String,val scope:String,val hash:String?=null,val name:String="",val type:String="unknown",val approved:Boolean=true,val revision:String=UUID.randomUUID().toString(),val sentTo:String?=null,val state:String="saved",val note:String="",val at:Long=System.currentTimeMillis(),val media:ApprovalMediaIdentity?=null)
+data class ApprovalMediaIdentity(val title:String,val imdb:String?=null,val tmdb:String?=null,val year:Int?=null)
+internal fun approvalMedia(media:MediaItem?):ApprovalMediaIdentity? {
+    media?:return null
+    val imdb=(media.imdbId?:media.id).takeIf{it.matches(Regex("tt\\d{3,12}"))}
+    val tmdb=media.id.removePrefix("tmdb:").takeIf{media.id.startsWith("tmdb:")&&it.matches(Regex("\\d{1,12}"))}
+    val year=media.year?.take(4)?.toIntOrNull()?.takeIf{it in 1870..2200}
+    return ApprovalMediaIdentity(media.name.take(160),imdb,tmdb,year)
+}
+private fun remoteApprovalMedia(value:JsonObject):ApprovalMediaIdentity? {
+    val obj=value.get("media")?.takeIf{it.isJsonObject}?.asJsonObject?:return null
+    val title=obj.text("title").orEmpty().take(160)
+    val imdb=obj.text("imdb")?.takeIf{it.matches(Regex("tt\\d{3,12}"))}
+    val tmdb=obj.text("tmdb")?.takeIf{it.matches(Regex("\\d{1,12}"))}
+    val year=obj.text("year")?.toIntOrNull()?.takeIf{it in 1870..2200}
+    return ApprovalMediaIdentity(title,imdb,tmdb,year)
+}
+
 data class LibraryFilterConnection(val url:String="",val token:String="",val enabled:Boolean=false){override fun toString()="LibraryFilterConnection(credentials hidden)"}
 data class ApprovalDocument(val version:Int=1,val connection:LibraryFilterConnection=LibraryFilterConnection(),val entries:List<LibraryApproval> = emptyList())
 
@@ -49,6 +66,33 @@ fun approvalEndpoint(raw:String):HttpUrl {
 }
 fun approvalConnectionId(c:LibraryFilterConnection)=credentialScope(c.url.trimEnd('/')+"|"+c.token)
 
+/** Merge authenticated filter results without replaying server approvals as local writes. */
+internal fun mergeFilterApprovals(doc:ApprovalDocument,account:String,connection:String,remote:List<JsonObject>,now:Long=System.currentTimeMillis()):ApprovalDocument {
+    val entries=doc.entries.toMutableList()
+    val duplicates=remote.groupBy{it.text("id")}.filterValues{it.size>1}.keys
+    for(value in remote.take(10000)){
+        try {
+            val id=value.text("id")?:continue
+            if(!id.matches(Regex("\\d{1,20}"))||id in duplicates||value.text("scope")!=account)continue
+            val decision=value.get("approved")?.takeIf{it.isJsonPrimitive&&it.asJsonPrimitive.isBoolean}?.asBoolean?:continue
+            val rawHash=value.text("hash")
+            val hash=approvalHash(rawHash)
+            if(rawHash!=null&&hash==null)continue
+            val type=value.text("type")?.takeIf{it in setOf("movie","series","unknown")}?:continue
+            val index=entries.indexOfFirst{it.scope==account&&it.id==id}
+            val old=entries.getOrNull(index)
+            // Pending explicit device edits win; an old endpoint cannot acknowledge them.
+            if(old!=null&&old.sentTo!=connection)continue
+            val row=(old?:LibraryApproval(id,account,at=now)).copy(
+                hash=hash,name=value.text("name").orEmpty().take(160).ifBlank{old?.name?:"Torrent $id"},
+                type=type,approved=decision,sentTo=connection,
+                state=value.text("state").orEmpty().take(80).ifBlank{"pending"},note=value.text("note").orEmpty().take(160),media=remoteApprovalMedia(value)?:old?.media)
+            if(index>=0)entries[index]=row else if(entries.size<10000)entries.add(row)
+        }catch(_:RuntimeException){ /* An invalid remote row never destroys saved approvals. */ }
+    }
+    return doc.copy(entries=entries)
+}
+
 class ApprovalStore(private val settings:SettingsStore=NativeRuntime.settings){
     companion object{private val lock=Any()}
     fun read():ApprovalDocument=synchronized(lock){
@@ -58,18 +102,24 @@ class ApprovalStore(private val settings:SettingsStore=NativeRuntime.settings){
         }catch(e:Exception){throw IOException("Saved library approvals could not be read. Existing data was not overwritten.",e)}
     }
     fun update(change:(ApprovalDocument)->ApprovalDocument):ApprovalDocument=synchronized(lock){val old=read();val next=change(old);require(next.entries.size<=10000){"Approval limit reached."};if(next!=old)settings.saveLibraryApprovalsChecked(Gson().toJson(next));next}
-    fun approve(id:String,key:String,hash:String?=null,name:String="",type:String="unknown"):LibraryApproval {
+    fun approve(id:String,key:String,hash:String?=null,name:String="",type:String="unknown",media:ApprovalMediaIdentity?=null):LibraryApproval {
         require(id.matches(Regex("\\d{1,20}"))&&key.isNotBlank());val account=credentialScope("torbox:$key");val cleanHash=approvalHash(hash)
-        val next=update{doc->val old=doc.entries.firstOrNull{it.scope==account&&it.id==id};val row=LibraryApproval(id,account,cleanHash?:old?.hash,name.take(160).ifBlank{old?.name?:"Torrent $id"},type.takeIf{it in setOf("movie","series")}?:old?.type?:"unknown",revision=UUID.randomUUID().toString(),at=old?.at?:System.currentTimeMillis())
+        val next=update{doc->val old=doc.entries.firstOrNull{it.scope==account&&it.id==id};val row=LibraryApproval(id,account,cleanHash?:old?.hash,name.take(160).ifBlank{old?.name?:"Torrent $id"},type.takeIf{it in setOf("movie","series")}?:old?.type?:"unknown",revision=UUID.randomUUID().toString(),at=old?.at?:System.currentTimeMillis(),media=media?:old?.media)
             doc.copy(entries=doc.entries.filterNot{it.scope==account&&it.id==id}+row)}
         return next.entries.last()
     }
     fun importRecorded(account:String,records:List<DeliveryRecord>)=update{doc->
         val ids=doc.entries.filter{it.scope==account}.map{it.id}.toSet()
         val added=records.filter{it.torboxAccount==account&&it.torboxId.matches(Regex("\\d{1,20}"))&&it.torboxId !in ids}.distinctBy{it.torboxId}.map{record->
-            LibraryApproval(record.torboxId,account,approvalHash(record.hash),(record.media?.name?:record.releaseName).take(160).ifBlank{"Torrent ${record.torboxId}"},record.media?.type?.takeIf{it in setOf("movie","series")}?:"unknown",at=record.at)
+            LibraryApproval(record.torboxId,account,approvalHash(record.hash),(record.media?.name?:record.releaseName).take(160).ifBlank{"Torrent ${record.torboxId}"},record.media?.type?.takeIf{it in setOf("movie","series")}?:"unknown",at=record.at,media=approvalMedia(record.media))
         }
-        doc.copy(entries=doc.entries+added)
+        val byId=records.filter{it.torboxAccount==account}.associateBy{it.torboxId}
+        val enriched=doc.entries.map{row->
+            val record=byId[row.id]
+            if(row.scope==account&&row.media==null&&record!=null&&(row.hash==null||record.hash==null||row.hash==approvalHash(record.hash)))
+                row.copy(media=approvalMedia(record.media)) else row
+        }
+        doc.copy(entries=enriched+added)
     }
     fun decide(row:LibraryApproval,approved:Boolean,type:String=row.type)=update{doc->doc.copy(entries=doc.entries.map{if(it.scope==row.scope&&it.id==row.id)it.copy(approved=approved,type=type,revision=UUID.randomUUID().toString(),sentTo=null,state="saved",note="")else it})}
     fun acknowledge(row:LibraryApproval,connection:String,state:String,note:String)=update{doc->doc.copy(entries=doc.entries.map{if(it.scope==row.scope&&it.id==row.id&&it.revision==row.revision)it.copy(sentTo=connection,state=state,note=note.take(160))else it})}
@@ -95,7 +145,11 @@ class LibraryFilterClient(private val connection:LibraryFilterConnection,private
         }
     }
     suspend fun status(scope:String):JsonObject=call("v1/status").also{if(it.text("protocol")!="stak-library-filter/1")throw LibraryFilterFailure("This endpoint is not a supported STAK library filter.");if(it.text("scope")!=scope)throw LibraryFilterFailure("The filter uses a different TorBox API key. Match the app and filter TorBox settings.")}
-    suspend fun send(row:LibraryApproval)=call("v1/approvals",JsonObject().apply{addProperty("id",row.id);addProperty("scope",row.scope);row.hash?.let{addProperty("hash",it)};addProperty("name",row.name);addProperty("type",row.type);addProperty("approved",row.approved)})
+    suspend fun send(row:LibraryApproval)=call("v1/approvals",JsonObject().apply{addProperty("id",row.id);addProperty("scope",row.scope);row.hash?.let{addProperty("hash",it)};addProperty("name",row.name);addProperty("type",row.type);addProperty("approved",row.approved);row.media?.let{add("media",Gson().toJsonTree(it))}})
+    suspend fun identify(row:LibraryApproval)=call("v1/identity",JsonObject().apply{
+        addProperty("id",row.id);addProperty("scope",row.scope);addProperty("hash",row.hash)
+        add("media",Gson().toJsonTree(row.media))
+    })
     suspend fun entries()=call("v1/approvals").objects("items")
 }
 
@@ -104,9 +158,28 @@ object LibraryApprovals {
     val revision=MutableStateFlow(0L);val issue=MutableStateFlow<String?>(null);val issueAccount=MutableStateFlow("")
     suspend fun capture(id:String,key:String,hash:String?=null,name:String="",media:MediaItem?=null)=withContext(Dispatchers.IO){
         issueAccount.value=credentialScope("torbox:$key")
-        try{ApprovalStore().approve(id,key,hash,media?.name?:name,media?.type?:"unknown");issue.value=null;revision.value++;tasks.launch{try{sync()}catch(c:CancellationException){throw c}catch(e:Exception){issue.value=libraryFilterError(e)}};true}
+        try{ApprovalStore().approve(id,key,hash,media?.name?:name,media?.type?:"unknown",approvalMedia(media));issue.value=null;revision.value++;tasks.launch{try{sync()}catch(c:CancellationException){throw c}catch(e:Exception){issue.value=libraryFilterError(e)}};true}
         catch(c:CancellationException){throw c}
         catch(_:Exception){issue.value="Added to TorBox, but library approval could not be saved. Approve it from the TorBox file details; do not add it again.";false}
+    }
+    suspend fun pairUnifiedWatcher(connection:WatcherConnection):Boolean=withContext(Dispatchers.IO){
+        if(WatcherClient(connection).health().text("protocol")!="stak-server/1")return@withContext false
+        val account=torboxScope();val newConnection=LibraryFilterConnection(watchEndpoint(connection.url).resolve("library/")!!.toString().trimEnd('/'),connection.token,true)
+        val client=LibraryFilterClient(newConnection);client.status(account)
+        val remote=client.entries();val identity=approvalConnectionId(newConnection)
+        val imported=mergeFilterApprovals(ApprovalDocument(),account,identity,remote).entries
+        ApprovalStore().update{old->
+            if(torboxScope()!=account||WatchRuleStore().read().connection!=connection)throw CancellationException("Server pairing changed")
+            val acknowledged=old.entries.filter{it.scope==account&&it.sentTo!=null}
+            if(acknowledged.any{local->imported.none{it.id==local.id}})throw LibraryFilterFailure("The server is missing earlier approvals. Migrate the existing filter before sharing its pairing.")
+            val pending=old.entries.filter{it.scope==account&&it.sentTo==null}
+            val merged=imported.filter{row->pending.none{it.id==row.id}}.map{row->
+                val previous=old.entries.firstOrNull{it.scope==account&&it.id==row.id}
+                if(previous!=null)row.copy(at=previous.at,revision=previous.revision,media=row.media?:previous.media) else row
+            }
+            old.copy(connection=newConnection,entries=old.entries.filter{it.scope!=account}+pending+merged)
+        }
+        revision.value++;true
     }
     suspend fun sync():JsonObject?=lock.withLock{
         withContext(Dispatchers.IO){
@@ -124,8 +197,21 @@ object LibraryApprovals {
                 val response=client.send(row);store.acknowledge(row,identity,response.text("state")?:"pending",response.text("note").orEmpty())
             }
             val updates=client.entries()
-            for(row in store.read().entries.filter{it.scope==account&&it.sentTo==identity}){
-                updates.firstOrNull{it.text("id")==row.id}?.let{remote->store.acknowledge(row,identity,remote.text("state")?:"pending",remote.text("note").orEmpty())}
+            if(status.text("server_protocol")=="stak-server/1"){
+                for(row in store.read().entries.filter{it.scope==account&&it.sentTo==identity&&it.media!=null&&it.hash!=null}){
+                    val remote=updates.firstOrNull{it.text("id")==row.id&&it.text("scope")==account&&it.text("hash")==row.hash}
+                    if(remote!=null&&remoteApprovalMedia(remote)!=row.media){
+                        if(torboxScope(settings)!=account||approvalConnectionId(store.read().connection)!=identity)throw CancellationException("Library account or endpoint changed")
+                        val confirmed=client.identify(row)
+                        if(confirmed.text("id")!=row.id||confirmed.text("scope")!=account||confirmed.text("hash")!=row.hash)throw LibraryFilterFailure("Server did not confirm the media identity.")
+                        confirmed.entrySet().forEach{(key,value)->remote.add(key,value)}
+                    }
+                }
+            }
+            store.update{current->
+                if(torboxScope(settings)!=account||!current.connection.enabled||approvalConnectionId(current.connection)!=identity)
+                    throw CancellationException("Library account or endpoint changed")
+                mergeFilterApprovals(current,account,identity,updates)
             }
             issue.value=null;revision.value++;status
         }

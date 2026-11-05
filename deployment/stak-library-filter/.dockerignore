@@ -1,5 +1,0 @@
-.env
-__pycache__
-*.log
-*.db
-*.db-journal

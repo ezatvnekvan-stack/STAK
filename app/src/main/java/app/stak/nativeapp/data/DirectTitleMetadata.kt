@@ -15,7 +15,7 @@ internal class DirectTitleMetadata(
         val secret = key()
         return request("https://api.themoviedb.org/3$path", params + mapOf("language" to "en-US") + if (secret.contains('.')) emptyMap() else mapOf("api_key" to secret), secret.takeIf { it.contains('.') })
     }
-    suspend fun load(type: String, id: String): TitleDetails = withContext(Dispatchers.IO) {
+    suspend fun load(type: String, id: String, firstSeasonOnly: Boolean = false): TitleDetails = withContext(Dispatchers.IO) {
         val kind = if (type == "series") "series" else "movie"
         var fallbackNotice: String? = null
         if (preferCinemeta(kind) && id.matches(Regex("tt\\d+"))) {
@@ -43,10 +43,10 @@ internal class DirectTitleMetadata(
                 fallbackNotice?.let { notices += it }
                 val episodes = if (kind == "series") coroutineScope {
                     val permits = Semaphore(4)
-                    data.objects("seasons").mapNotNull { it.number("season_number")?.toInt()?.takeIf { n -> n > 0 } }.distinct().sorted().map { season -> async {
+                    data.objects("seasons").mapNotNull { it.number("season_number")?.toInt()?.takeIf { n -> n > 0 } }.distinct().sorted().let { if(firstSeasonOnly) emptyList() else it }.map { season -> async {
                         permits.withPermit {
                             try { tmdb("/tv/$tmdbId/season/$season").objects("episodes").mapNotNull { episode ->
-                                episode.number("episode_number")?.toInt()?.takeIf { it > 0 }?.let { n -> Episode(season, n, episode.text("name") ?: "Episode $n", episode.text("overview"), image(episode.text("still_path")), episode.number("runtime")?.toInt()?.let { "$it min" }, released = episode.text("air_date")) }
+                                episode.number("episode_number")?.toInt()?.takeIf { it > 0 }?.let { n -> Episode(season, n, episode.text("name") ?: "Episode $n", episode.text("overview"), image(episode.text("still_path"), "w300"), episode.number("runtime")?.toInt()?.let { "$it min" }, released = episode.text("air_date")) }
                             } }
                             catch (cancelled: CancellationException) { throw cancelled }
                             catch (_: Exception) { notices += "Season $season could not load. Retry metadata."; emptyList() }
@@ -56,10 +56,10 @@ internal class DirectTitleMetadata(
                 val creators = data.objects("created_by").map { it.deepCopy().apply { addProperty("job", "Creator") } }
                 val aggregate = data.objectOrNull("aggregate_credits")?.objects("crew").orEmpty().flatMap { person -> person.objects("jobs").filter { it.text("job") in setOf("Writer", "Screenplay", "Story", "Teleplay", "Showrunner") }.map { job -> person.deepCopy().apply { addProperty("job", job.text("job")) } } }
                 val crewRows = creators + aggregate + data.objectOrNull("credits")?.objects("crew").orEmpty().filter { it.text("job") in setOf("Director", "Creator", "Showrunner", "Writer", "Screenplay", "Story", "Teleplay") && (kind == "movie" || it.text("job") != "Director") }
-                val crew = crewRows.groupBy { it.text("id") }.mapNotNull { (personId, rows) -> personId?.let { TitlePerson(it, rows.first().text("name").orEmpty(), rows.mapNotNull { r -> r.text("job") }.distinct().joinToString(" · "), image(rows.first().text("profile_path"))) } }.sortedBy { if (it.role.split(" · ").any { role -> role in setOf("Director", "Creator", "Showrunner") }) 0 else 1 }
-                val cast = data.objectOrNull("credits")?.objects("cast").orEmpty().take(18).mapNotNull { p -> p.text("id")?.let { TitlePerson(it, p.text("name").orEmpty(), p.text("character").orEmpty(), image(p.text("profile_path"))) } }
+                val crew = crewRows.groupBy { it.text("id") }.mapNotNull { (personId, rows) -> personId?.let { TitlePerson(it, rows.first().text("name").orEmpty(), rows.mapNotNull { r -> r.text("job") }.distinct().joinToString(" · "), image(rows.first().text("profile_path"), "w185")) } }.sortedBy { if (it.role.split(" · ").any { role -> role in setOf("Director", "Creator", "Showrunner") }) 0 else 1 }
+                val cast = data.objectOrNull("credits")?.objects("cast").orEmpty().take(18).mapNotNull { p -> p.text("id")?.let { TitlePerson(it, p.text("name").orEmpty(), p.text("character").orEmpty(), image(p.text("profile_path"), "w185")) } }
                 val images = data.objectOrNull("images")
-                val gallery = images?.objects("backdrops").orEmpty().take(12).mapNotNull { it.text("file_path")?.let { path -> "https://image.tmdb.org/t/p/original$path" } }.distinct()
+                val gallery = images?.objects("backdrops").orEmpty().take(12).mapNotNull { it.text("file_path")?.let { path -> "https://image.tmdb.org/t/p/w780$path" } }.distinct()
                 val logos = images?.objects("logos").orEmpty().filter { it.text("iso_639_1") in listOf(null, "en") }
                 val logo = image(logos.firstOrNull { it.text("iso_639_1") == "en" }?.text("file_path") ?: logos.firstOrNull()?.text("file_path"))
                 val trailer = data.objectOrNull("videos")?.objects("results").orEmpty().sortedByDescending { it.get("official")?.asBoolean == true }.firstOrNull { it.text("site") == "YouTube" && it.text("type") == "Trailer" && it.text("key")?.matches(Regex("[A-Za-z0-9_-]{6,32}")) == true }?.text("key")
@@ -85,7 +85,18 @@ internal class DirectTitleMetadata(
         val trailer = meta.objects("trailers").firstNotNullOfOrNull { it.text("source")?.takeIf { s -> s.matches(Regex("[A-Za-z0-9_-]{6,32}")) && it.text("type") == "Trailer" } }
         return TitleDetails(item, item.genres, episodes = episodes, seasons = episodes.map { it.season }.distinct(), notice = notice, trailerUrl = trailer?.let { "https://www.youtube.com/watch?v=$it" }, logo = meta.text("logo"))
     }
-    private fun image(path: String?): String? = path?.takeIf { it.isNotBlank() }?.let { "https://image.tmdb.org/t/p/w780$it" }
+    suspend fun season(id: String, season: Int): List<Episode> = withContext(Dispatchers.IO) {
+        require(season >= 0)
+        val tmdbId = if(id.startsWith("tmdb:")) id.substringAfter(':') else
+            tmdb("/find/$id", mapOf("external_source" to "imdb_id")).objects("tv_results").firstOrNull()?.text("id")
+        require(tmdbId?.matches(Regex("[0-9]+")) == true)
+        tmdb("/tv/$tmdbId/season/$season").objects("episodes").mapNotNull { ep ->
+            ep.number("episode_number")?.toInt()?.takeIf { it > 0 }?.let { n ->
+                Episode(season,n,ep.text("name") ?: "Episode $n",ep.text("overview"),image(ep.text("still_path"),"w300"),ep.number("runtime")?.toInt()?.let { "$it min" },released=ep.text("air_date"))
+            }
+        }
+    }
+    private fun image(path: String?, size: String = "w500"): String? = path?.takeIf { it.isNotBlank() }?.let { "https://image.tmdb.org/t/p/$size$it" }
 }
 internal fun JsonObject.objects(name: String): List<JsonObject> = get(name)?.takeIf { it.isJsonArray }?.asJsonArray?.mapNotNull { it.takeIf { value -> value.isJsonObject }?.asJsonObject }.orEmpty()
 internal fun JsonObject.objectOrNull(name: String): JsonObject? = get(name)?.takeIf { it.isJsonObject }?.asJsonObject

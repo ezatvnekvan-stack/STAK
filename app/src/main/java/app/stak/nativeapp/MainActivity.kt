@@ -111,6 +111,7 @@ import app.stak.nativeapp.ui.screens.LibraryScreen
 import app.stak.nativeapp.ui.screens.TitleScreen
 import app.stak.nativeapp.ui.screens.TorBoxScreen
 import app.stak.nativeapp.ui.screens.TrackingScreen
+import app.stak.nativeapp.ui.screens.TrackingSettings
 import app.stak.nativeapp.ui.screens.TrackingViewModel
 import app.stak.nativeapp.ui.screens.WatchlistScreen
 import app.stak.nativeapp.ui.screens.WatchlistViewModel
@@ -132,7 +133,9 @@ class MainActivity : ComponentActivity() {
         window.decorView.post{app.stak.nativeapp.performance.requestSmoothDisplay(window)}
     }
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        val cloudRestored=intent.getBooleanExtra("stak_cloud_restored",false)
+        intent.removeExtra("stak_cloud_restored")
+        super.onCreate(if(cloudRestored)null else savedInstanceState)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
@@ -154,7 +157,9 @@ class MainActivity : ComponentActivity() {
                 if (matches) settings.jellyfinToken?.let { token -> app.stak.nativeapp.data.DirectJellyfin.authorizationHeaders(token).forEach { (name, value) -> builder.header(name, value) } }
                 chain.proceed(builder.build())
             }.build()
-        }.crossfade(160).build())
+        }.memoryCache { coil.memory.MemoryCache.Builder(this).maxSizePercent(.20).build() }
+            .diskCache { coil.disk.DiskCache.Builder().directory(java.io.File(cacheDir,"artwork-v2")).maxSizeBytes(160L*1024*1024).build() }
+            .crossfade(120).build())
         setContent { StakTheme { StakApp() } }
     }
 }
@@ -166,6 +171,8 @@ sealed interface Dest {
     data object Watchlist : Dest
     data object Library : Dest
     data object Tracking : Dest
+    data object SeriesTracking : Dest
+    data class SeriesCenter(val item:MediaItem) : Dest
     data object Account : Dest
     data object MediaCenter : Dest
     data object TorBox : Dest
@@ -190,6 +197,23 @@ fun StakApp() {
     val context = LocalContext.current
     val settings = remember(context) { SettingsStore(context) }
     NativeRuntime.settings = settings
+    val cloud=remember(context){app.stak.nativeapp.data.CloudAccountController.get(context)}
+    var recoveryReady by remember{mutableStateOf(false)}
+    var recoveryError by remember{mutableStateOf(false)}
+    var recoveryAttempt by remember{mutableIntStateOf(0)}
+    LaunchedEffect(cloud,recoveryAttempt){
+        recoveryError=false
+        try{cloud.recoverPending();cloud.start();recoveryReady=true}
+        catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}
+        catch(_:Exception){recoveryError=true}
+    }
+    if(!recoveryReady){
+        Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.Center){
+            Text(if(recoveryError)"Could not finish restoring your data."else "Opening STAK…",fontFamily=app.stak.nativeapp.ui.theme.HankenFont,color=StakText)
+            if(recoveryError)app.stak.nativeapp.ui.components.StakButton("Retry",{recoveryAttempt++})
+        }
+        return
+    }
     remember { StakAccent = Color(settings.accentColor.toInt()) }
 
     val hostContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
@@ -209,6 +233,7 @@ fun StakApp() {
     }
     val homeViewModel: HomeViewModel = viewModel()
     val discoverViewModel: DiscoverViewModel = viewModel()
+    val searchResultsViewModel: DiscoverViewModel = viewModel(key="global-search")
     val watchlistViewModel: WatchlistViewModel = viewModel {
         WatchlistViewModel(DatabaseProvider.get(context).watchlistDao())
     }
@@ -251,6 +276,7 @@ fun StakApp() {
     app.stak.nativeapp.ui.screens.MediaSyncHost(jellyfinViewModel,trackingViewModel,credentialRevision)
     LaunchedEffect(localTracking, jellyfinItems) {
         discoverViewModel.setKnownTitles(localTracking.filter { it.played && it.type != "episode" }.map { it.id }.toSet(), jellyfinItems.map { it.mediaKey }.toSet())
+        searchResultsViewModel.setKnownTitles(localTracking.filter { it.played && it.type != "episode" }.map { it.id }.toSet(), jellyfinItems.map { it.mediaKey }.toSet())
     }
     val localItems = remember(localTracking) {
         localTracking.filter { it.type != "episode" && (it.played||it.progress>0f) }.map { entry ->
@@ -265,7 +291,7 @@ fun StakApp() {
         }
     }
     val reduced = rememberReducedMotion(reducedOverride)
-    val duration = if (reduced) 0 else StakMotion.Standard
+    val duration = if (reduced) 100 else StakMotion.Standard
     val screenStates=rememberSaveableStateHolder()
     var stack by remember { mutableStateOf(listOf<Dest>(Dest.Home)) }
     var direction by remember { mutableIntStateOf(1) }
@@ -292,7 +318,9 @@ fun StakApp() {
 
     fun switchTab(dest: Dest) {
         if (current == dest) return
-        direction = 1
+        val from=visibleTabs.indexOfFirst{it.dest==current}
+        val to=visibleTabs.indexOfFirst{it.dest==dest}
+        direction=if(from>=0&&to>=0&&to<from)-1 else 1
         stack = listOf(dest)
     }
 
@@ -383,17 +411,17 @@ fun StakApp() {
                 targetState = current,
                 transitionSpec = {
                     if (direction > 0) {
-                        (slideInHorizontally(tween(duration,easing=StakMotion.Ease)) { it / 12 } + fadeIn(tween(duration,easing=StakMotion.Ease))) togetherWith
-                            (slideOutHorizontally(tween(duration,easing=StakMotion.Ease)) { -it / 12 } + fadeOut(tween(duration,easing=StakMotion.Ease)))
+                        (slideInHorizontally(tween(duration,easing=StakMotion.Ease)) { if(reduced)0 else it / 12 } + fadeIn(tween(duration,easing=StakMotion.Ease))) togetherWith
+                            (slideOutHorizontally(tween(duration,easing=StakMotion.Ease)) { if(reduced)0 else -it / 12 } + fadeOut(tween(duration,easing=StakMotion.Ease)))
                     } else {
-                        (slideInHorizontally(tween(duration,easing=StakMotion.Ease)) { -it / 12 } + fadeIn(tween(duration,easing=StakMotion.Ease))) togetherWith
-                            (slideOutHorizontally(tween(duration,easing=StakMotion.Ease)) { it / 12 } + fadeOut(tween(duration,easing=StakMotion.Ease)))
+                        (slideInHorizontally(tween(duration,easing=StakMotion.Ease)) { if(reduced)0 else -it / 12 } + fadeIn(tween(duration,easing=StakMotion.Ease))) togetherWith
+                            (slideOutHorizontally(tween(duration,easing=StakMotion.Ease)) { if(reduced)0 else it / 12 } + fadeOut(tween(duration,easing=StakMotion.Ease)))
                     }
                 },
                 label = "screen"
             ) { dest ->
                 val animatedScope = this
-                val stateKey=if(dest is Dest.Title)"title:${dest.item.type}:${dest.item.mediaKey}:${dest.sharedKey}" else dest.javaClass.simpleName
+                val stateKey=if(dest is Dest.Title)"title:${dest.item.type}:${dest.item.mediaKey}:${dest.sharedKey}" else if(dest is Dest.SeriesCenter)"series-center:${dest.item.mediaKey}" else dest.javaClass.simpleName
                 screenStates.SaveableStateProvider(stateKey) {
                 Box(
                     modifier = Modifier
@@ -408,7 +436,7 @@ fun StakApp() {
                             },
                             onSearch = { query ->
                                 searchSeed = query
-                                discoverViewModel.search(query)
+                                searchResultsViewModel.search(query)
                                 push(Dest.Search)
                             },
                             onOpenAccount = { switchTab(Dest.Account) },
@@ -417,7 +445,7 @@ fun StakApp() {
                             onBrowseSection = { id ->
                                 app.stak.nativeapp.data.HomeSections.defaults().find { it.id == id }?.let { section ->
                                     searchSeed = ""
-                                    discoverViewModel.browse(section)
+                                    searchResultsViewModel.browse(section)
                                     push(Dest.Search)
                                 }
                             },
@@ -437,7 +465,8 @@ fun StakApp() {
                         ).also { LaunchedEffect(Unit) { homeViewModel.refresh() } }
 
                         Dest.Search -> app.stak.nativeapp.ui.screens.SearchScreen(
-                            viewModel = discoverViewModel,
+                            viewModel = searchResultsViewModel,
+                            onBack = { pop() },
                             onOpenTitle = { item, key -> push(Dest.Title(item, key)) },
                             watchIds = watchIds,
                             sharedScope = sharedScope,
@@ -451,7 +480,7 @@ fun StakApp() {
                             },
                             sharedScope = sharedScope,
                             animatedScope = animatedScope,
-                            initialQuery = searchSeed,
+                            initialQuery = "",
                             watchIds = watchIds,
                             viewModel = discoverViewModel
                         )
@@ -461,7 +490,7 @@ fun StakApp() {
                                 tap()
                                 push(Dest.Title(item, key))
                             },
-                            onBrowseDiscover = { searchSeed = ""; discoverViewModel.openDiscover(); switchTab(Dest.Discover) },
+                            onBrowseDiscover = { switchTab(Dest.Discover) },
                             viewModel = watchlistViewModel,
                             watchedIds = libraryWatchedIds,
                             sharedScope = sharedScope,
@@ -473,7 +502,8 @@ fun StakApp() {
                                 tap()
                                 push(Dest.Title(item, key))
                             },
-                            onOpenTorBox = { push(Dest.TorBox) },
+                            onOpenTorBox = { switchTab(Dest.TorBox) },
+                            onOpenAutoAdd = { switchTab(Dest.SeriesTracking) },
                             onMediaCenter = {push(Dest.MediaCenter)},
                             connected = jellyfinConnected,
                             viewModel = jellyfinViewModel,
@@ -495,21 +525,30 @@ fun StakApp() {
                             onOpenAccount = {accountSection="jellyfin";switchTab(Dest.Account)}
                         )
 
+                        Dest.SeriesTracking, is Dest.SeriesCenter -> app.stak.nativeapp.ui.screens.SeriesCenterScreen(
+                            onLibrary={switchTab(Dest.Library)},onTorBox={switchTab(Dest.TorBox)},
+                            onSettings={accountSection="tracking";switchTab(Dest.Account)},
+                            onMediaCenter={push(Dest.MediaCenter)},onOpenTitle={push(Dest.Title(it))},knownSeries=jellyfinItems,
+                            onSourceSettings={accountSection="account";switchTab(Dest.Account)},onRefreshLibrary={jellyfinViewModel.refresh()},initialSeries=(dest as? Dest.SeriesCenter)?.item,onExit={pop()},
+                            libraryBusy=jellyfinViewModel.loading.collectAsState().value,libraryIssue=jellyfinViewModel.error.collectAsState().value)
+
                         Dest.TorBox -> TorBoxScreen(
                             onOpenTitle = { item -> push(Dest.Title(item)) },
                             onOpenLibrary = { switchTab(Dest.Library) },
+                            onOpenAutoAdd = { switchTab(Dest.SeriesTracking) },
                             torboxKey = torboxKey,
                             onOpenAccount = { accountSection = "account"; switchTab(Dest.Account) },
                             onMediaCenter = {push(Dest.MediaCenter)}
                         )
 
-                        Dest.Account -> AccountScreen(viewModel = accountViewModel, initialSection = accountSection, onSetup={setup=true},onMediaCenter={push(Dest.MediaCenter)})
+                        Dest.Account -> AccountScreen(viewModel = accountViewModel, initialSection = accountSection, onSetup={setup=true},onMediaCenter={push(Dest.MediaCenter)},onOpenAutoAdd={switchTab(Dest.SeriesTracking)})
                         Dest.MediaCenter -> app.stak.nativeapp.ui.screens.MediaCenterScreen(onBack={pop()},connections=accountViewModel.services)
 
                         is Dest.Title -> {
                             val watched = dest.item.mediaKey in playedIds
                             TitleScreen(
                                 item = dest.item,
+                                viewModel = androidx.lifecycle.viewmodel.compose.viewModel(key="detail:$journalScope:${dest.item.type}:${dest.item.mediaKey}"),
                                 onBack = { pop() },
                                 isWatchlisted = posterIndex.isWatchlisted(dest.item),
                                 watchlistBusy = watchlistBusy,
@@ -526,7 +565,9 @@ fun StakApp() {
                                 episodeStates = episodeStates,
                                 onOpenTitle = { push(Dest.Title(it)) },
                                 onOpenSourceSettings = {accountSection="account";switchTab(Dest.Account)},
+                                onOpenSettings = {accountSection="tracking";switchTab(Dest.Account)},
                                 onOpenTorbox = {push(Dest.TorBox)},
+                                onOpenSeriesCenter = {push(Dest.SeriesCenter(it))},
                                 syncNotice = null,
 
                             )
@@ -554,7 +595,7 @@ fun StakApp() {
                 onSelect = { tab ->
                     tap()
                     if (tab == Dest.Account) accountSection = null
-                    if (tab == Dest.Discover) { searchSeed = ""; discoverViewModel.openDiscover() }
+                    // Returning to Discover preserves its query, filters and scroll position.
                     switchTab(tab)
                 }
             )
@@ -577,7 +618,7 @@ internal fun StakBottomBar(current: Dest, backdrop: androidx.compose.ui.graphics
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth().height(64.dp).clip(RoundedCornerShape(22.dp))) {
     GlassBackdrop(backdrop,Modifier.matchParentSize())
     val shape = RoundedCornerShape(22.dp)
-    val activeDestination=tabs.find{it.dest==current}?.dest ?: if(current==Dest.TorBox)Dest.Library else current
+    val activeDestination=tabs.find{it.dest==current}?.dest ?: if(current==Dest.TorBox||current==Dest.SeriesTracking||current is Dest.SeriesCenter)Dest.Library else current
     val activeIndex=tabs.indexOfFirst{it.dest==activeDestination}
     val cell=(maxWidth-8.dp)/tabs.size.coerceAtLeast(1)
     val indicator=androidx.compose.animation.core.animateDpAsState(4.dp+cell*activeIndex.coerceAtLeast(0)+(cell-4.dp)/2,if(LocalReducedMotion.current)androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio=.9f,stiffness=600f),label="navigation-dot")
@@ -595,6 +636,7 @@ internal fun StakBottomBar(current: Dest, backdrop: androidx.compose.ui.graphics
     ) {
         tabs.forEach { tab ->
             val active = activeDestination == tab.dest
+            val lift=androidx.compose.animation.core.animateFloatAsState(if(active)1f else 0f,if(LocalReducedMotion.current)androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio=.72f,stiffness=650f),label="navigation-icon-lift")
             val activeTint by animateColorAsState(if(active)Color.White else Color(0xFFA3A3A3),tween(if(LocalReducedMotion.current)0 else StakMotion.Quick),label="tab-ink")
             Column(
                 modifier = Modifier
@@ -618,15 +660,15 @@ internal fun StakBottomBar(current: Dest, backdrop: androidx.compose.ui.graphics
                         tab.icon,
                         contentDescription = tab.label,
                         tint = activeTint,
-                        modifier = Modifier.size(19.dp)
+                        modifier = Modifier.size(19.dp).graphicsLayer{translationY=-2.dp.toPx()*lift.value;scaleX=1f+.08f*lift.value;scaleY=scaleX}
                     )
                 }
                 Text(
                     tab.label.uppercase(),
                     fontFamily = SpaceMonoFont,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 9.sp,
-                    lineHeight = 11.25.sp,
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
                     letterSpacing = (-0.36).sp,
                     color = activeTint,
                     maxLines = 1

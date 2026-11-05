@@ -23,7 +23,7 @@ class LiveSearchViewModel(private val loader:suspend(String)->List<MediaItem> = 
         _items.value=rankedSearch(merged,_query.value,true).take(60)
     }
     fun setQuery(value:String,immediate:Boolean=false){
-        _query.value=value.take(160);val token=++generation;job?.cancel();remote=emptyList();_error.value=null;publish()
+        _query.value=value.take(160);val token=++generation;job?.cancel();remote=rankedSearch(remote,_query.value);_error.value=null;publish()
         val q=providerSearchQuery(_query.value)
         if(normalizedSearch(q).length<2){_loading.value=false;return}
         val key=normalizedSearch(q)

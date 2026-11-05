@@ -1,0 +1,2 @@
+# Runtime is Python standard library; this is only for offline fixture tests.
+pytest>=8,<9

@@ -52,12 +52,15 @@ import kotlinx.coroutines.CancellationException
     }
 }
 /** Shared cinematic artwork; missing art remains a quiet native surface. */
-@Composable private fun TrackingArtwork(media:MediaItem?,modifier:Modifier=Modifier){
+@Composable internal fun TrackingArtwork(media:MediaItem?,modifier:Modifier=Modifier){
     Box(modifier.background(Color(0xFF101216))){
-        val image=media?.background?:media?.poster
-        if(image!=null)AsyncImage(image,null,contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha=.82f),Color.Black.copy(alpha=.40f)))))
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent,Color.Black.copy(alpha=.62f)))))
+        val images=remember(media?.background,media?.poster){listOfNotNull(media?.background,media?.poster).filter{it.isNotBlank()}.distinct()}
+        var index by remember(images){mutableIntStateOf(0)}
+        val image=images.getOrNull(index)
+        if(image!=null)AsyncImage(image,null,contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize(),onError={if(index<images.size)index++})
+        else LibraryArtwork(null,media?.name.orEmpty(),Modifier.fillMaxSize())
+        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha=.52f),Color.Black.copy(alpha=.12f)))))
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent,Color.Black.copy(alpha=.48f)))))
     }
 }
 @Composable internal fun RecentlyWatchedCard(group:HistoryGroup,onOpen:()->Unit){
@@ -66,10 +69,10 @@ import kotlinx.coroutines.CancellationException
         Box(Modifier.fillMaxWidth().height(96.dp).clip(RoundedCornerShape(12.dp)).border(1.dp,Color(0x25FFFFFF),RoundedCornerShape(12.dp))){
             TrackingArtwork(media,Modifier.fillMaxSize())
             Icon(Lucide.Check,null,tint=StakText,modifier=Modifier.align(Alignment.TopEnd).padding(8.dp).size(18.dp))
-            Text(group.subtitle,fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakText,modifier=Modifier.align(Alignment.BottomStart).padding(10.dp),maxLines=1,overflow=TextOverflow.Ellipsis)
+            Text(group.subtitle,fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakText,modifier=Modifier.align(Alignment.BottomStart).padding(10.dp),maxLines=1,overflow=TextOverflow.Ellipsis)
         }
         Text(media.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=14.sp,lineHeight=18.sp,color=StakText,modifier=Modifier.padding(top=8.dp),maxLines=1,overflow=TextOverflow.Ellipsis)
-        Text(historyDateLabel(journalDay(group.first.watchedAt)),fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted,modifier=Modifier.padding(top=3.dp,bottom=4.dp))
+        Text(historyDateLabel(journalDay(group.first.watchedAt)),fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted,modifier=Modifier.padding(top=3.dp,bottom=4.dp))
     }
 }
 private fun insightRuntime(insights:ViewingInsights):String=if(insights.knownRuntimeTitles==0&&insights.movies+insights.episodes>0)"—"else {
@@ -84,7 +87,7 @@ private fun insightRuntime(insights:ViewingInsights):String=if(insights.knownRun
                 Text("MONTH IN REVIEW",fontFamily=DotoFont,fontWeight=FontWeight.Bold,fontSize=16.sp,color=StakText,modifier=Modifier.weight(1f))
                 Icon(Lucide.ChevronRight,null,tint=StakTextSoft,modifier=Modifier.size(16.dp))
             }
-            Text(today.format(DateTimeFormatter.ofPattern("MMMM yyyy",Locale.ENGLISH)),fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextSoft)
+            Text(today.format(DateTimeFormatter.ofPattern("MMMM yyyy",Locale.ENGLISH)),fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft)
             Text("${insights.movies} ${if(insights.movies==1)"movie"else "movies"} · ${insights.episodes} ${if(insights.episodes==1)"episode"else "episodes"} · ${insightRuntime(insights)} est.",fontFamily=HankenFont,fontSize=13.sp,lineHeight=18.sp,color=StakText,maxLines=2)
         }
     }
@@ -106,15 +109,18 @@ private fun insightRuntime(insights:ViewingInsights):String=if(insights.knownRun
             Icon(if(streak)Lucide.Zap else Icons.Default.Schedule,null,tint=StakAccent,modifier=Modifier.size(18.dp))
         }
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
-            Text(value,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=25.sp,lineHeight=29.sp,color=StakText)
+            NothingNumber(value,style=androidx.compose.ui.text.TextStyle(fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=25.sp,lineHeight=29.sp,color=StakText))
             Text(label,fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted)
         }
+        val reveal=rememberNothingReveal("habit:$streak:$counts",duration=420)
         Canvas(Modifier.width(74.dp).height(26.dp)){
             val step=size.width/7;val peak=counts.maxOrNull()?.coerceAtLeast(1)?:1
             counts.forEachIndexed{i,count->
                 val rows=if(streak)5 else (1+4f*count/peak).toInt()
                 repeat(rows){r->repeat(2){c->
-                    drawRect(if(count==0)Color.White.copy(alpha=.13f)else if(i==6)StakAccent else Color.White.copy(alpha=.75f),androidx.compose.ui.geometry.Offset(i*step+c*3.dp.toPx(),size.height-2.dp.toPx()-r*4.dp.toPx()),androidx.compose.ui.geometry.Size(2.dp.toPx(),2.dp.toPx()))
+                    val ink=if(count==0)Color.White.copy(alpha=.13f)else if(i==6)StakAccent else Color.White.copy(alpha=.75f)
+                    val shown=(reveal.value*9-i*.35f-r).coerceIn(0f,1f)
+                    drawRect(ink.copy(alpha=ink.alpha*shown),androidx.compose.ui.geometry.Offset(i*step+c*3.dp.toPx(),size.height-2.dp.toPx()-r*4.dp.toPx()),androidx.compose.ui.geometry.Size(2.dp.toPx(),2.dp.toPx()))
                 }}
             }
         }

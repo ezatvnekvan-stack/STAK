@@ -15,7 +15,7 @@ internal fun jellyfinMediaItem(item: JsonObject, server: String): MediaItem {
     val duration = ((item.number("RunTimeTicks") ?: 0.0)/10_000).toLong()
     val position = ((state?.number("PlaybackPositionTicks") ?: 0.0)/10_000).toLong().coerceAtLeast(0)
     val seriesId = item.text("SeriesId")
-    val artworkId = item.text("SeriesPrimaryImageTag")?.let { seriesId } ?: id
+    val artworkId = seriesId ?: id
     val provider=item.objectOrNull(if(item.text("Type")=="Episode")"SeriesProviderIds" else "ProviderIds")
     val keys=provider?.entrySet()?.mapNotNull{(key,value)->val name=key.lowercase();val text=value.takeIf{it.isJsonPrimitive}?.asString;if(name in setOf("imdb","tmdb","tvdb")&&text!=null&&text.matches(if(name=="imdb")Regex("tt\\d+") else Regex("\\d+")))"$name:$text" else null}.orEmpty()
     val source=item.objects("MediaSources").firstOrNull()

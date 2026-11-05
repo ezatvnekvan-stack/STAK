@@ -44,34 +44,55 @@ object SourceMaterials {
 
 data class CachedSourceSnapshot(val releases:List<SourceRelease>,val hashes:Set<String>,val remaining:Int,val checked:Int,val metadataFailures:Int)
 
-/** A search session verifies known hashes first, then eight metadata-only releases per user batch. */
+/** Verified results stream independently of provider and metadata completion order. */
 class CachedSourceSession(private val key:String,private val check:suspend(List<String>,String)->Set<String>,private val prepare:suspend(SourceRelease,String)->PreparedSource=SourceMaterials::prepare){
+    private val guard=Any()
+    private val checking=kotlinx.coroutines.sync.Mutex()
+    private val resolving=kotlinx.coroutines.sync.Mutex()
     private val candidates=linkedMapOf<String,SourceRelease>()
     private val checked=mutableSetOf<String>();private val cached=mutableSetOf<String>();private val attempted=mutableSetOf<String>();private var failures=0
-    fun accept(items:List<SourceRelease>){
+    fun accept(items:List<SourceRelease>)=synchronized(guard){
         for(source in items.filter{it.canImport}){
             val id=source.sourceIdentity
-            if(candidates.size<5000||id in candidates)candidates[id]=candidates[id]?.let{mergeSourceCandidates(listOf(it,source)).single()}?:source
+            if(candidates.size<5000||id in candidates)candidates[id]=candidates[id]?.let{old->
+                val normalized=if(old.infoHash!=null&&source.infoHash==null)source.copy(infoHash=old.infoHash)else source
+                mergeSourceCandidates(listOf(old,normalized)).single()
+            }?:source
         }
     }
-    fun snapshot():CachedSourceSnapshot=CachedSourceSnapshot(mergeSourceCandidates(candidates.values.filter{it.infoHash in cached}),cached.toSet(),candidates.count{(id,s)->s.infoHash==null&&id !in attempted},checked.size,failures)
+    fun snapshot():CachedSourceSnapshot=synchronized(guard){CachedSourceSnapshot(mergeSourceCandidates(candidates.values.filter{it.infoHash in cached}),cached.toSet(),candidates.count{(id,s)->s.infoHash==null&&id !in attempted},checked.size,failures)}
     suspend fun known(update:suspend(CachedSourceSnapshot)->Unit){
-        val hashes=bestQualityOrder(candidates.values.toList(),emptySet(),false).mapNotNull{it.infoHash?.lowercase()}.filter{it.matches(Regex("[a-f0-9]{40}"))&&it !in checked}.distinct()
-        for(batch in hashes.chunked(80)){
-            currentCoroutineContext().ensureActive()
-            val result=check(batch,key).intersect(batch.toSet());checked+=batch;cached+=result;update(snapshot())
-        }
-        update(snapshot())
+        checking.lock()
+        try{
+            val hashes=synchronized(guard){bestQualityOrder(candidates.values.toList(),emptySet(),false).mapNotNull{it.infoHash?.lowercase()}.filter{it.matches(Regex("[a-f0-9]{40}"))&&it !in checked}.distinct()}
+            for(batch in hashes.chunked(80)){
+                currentCoroutineContext().ensureActive()
+                val result=check(batch,key).intersect(batch.toSet())
+                synchronized(guard){checked+=batch;cached+=result}
+                update(snapshot())
+            }
+            update(snapshot())
+        }finally{checking.unlock()}
     }
-    suspend fun more(update:suspend(CachedSourceSnapshot)->Unit){
-        val next=bestQualityOrder(candidates.filter{(id,s)->s.infoHash==null&&id !in attempted}.values.toList(),emptySet(),false).take(8)
-        for(group in next.chunked(3)){
-            val resolved=supervisorScope{group.map{source->async{
-                val id=source.sourceIdentity
-                try{id to prepare(source,key).source}catch(c:CancellationException){throw c}catch(_:Exception){id to null}
-            }}.awaitAll()}
-            for((id,source)in resolved){attempted+=id;if(source==null)failures++ else candidates[id]=source}
-            known(update)
-        }
+    suspend fun more(limit:Int=8,update:suspend(CachedSourceSnapshot)->Unit):Int{
+        resolving.lock()
+        try{
+            val next=synchronized(guard){
+                bestQualityOrder(candidates.filter{(id,s)->s.infoHash==null&&id !in attempted}.values.toList(),emptySet(),false).take(limit.coerceIn(0,8)).also{rows->rows.forEach{attempted+=it.sourceIdentity}}
+            }
+            for(group in next.chunked(3))supervisorScope{
+                val completed=kotlinx.coroutines.channels.Channel<Pair<String,SourceRelease?>>(3)
+                val jobs=group.map{source->launch{
+                    val result=try{prepare(source,key).source}catch(c:CancellationException){throw c}catch(_:Exception){null}
+                    completed.send(source.sourceIdentity to result)
+                }}
+                try{repeat(group.size){
+                    val (id,source)=completed.receive()
+                    synchronized(guard){if(source==null)failures++ else candidates[id]=source}
+                    known(update)
+                }}finally{jobs.forEach{it.cancel()};completed.cancel()}
+            }
+            return next.size
+        }finally{resolving.unlock()}
     }
 }

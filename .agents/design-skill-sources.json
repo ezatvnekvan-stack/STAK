@@ -1,0 +1,74 @@
+{
+  "scope": "project",
+  "sources": [
+    {
+      "repository": "https://github.com/dominikmartn/nothing-design-skill",
+      "commit": "74affbb786af098b18503467b205c10a7df30126",
+      "license": ".agents/licenses/dominikmartn.txt",
+      "skills": {
+        "nothing-design": {
+          "SKILL.md": "64275c2031790e64bdc95e77fd87f75afc6f5d73989a5d1b2a766ee161059ad1",
+          "references/components.md": "f9452969d79600d5efdc46e35a11b7c7d1a1cd1377d7581097ebac721202cd6e",
+          "references/platform-mapping.md": "66e15975efdfad553d4e357ad7fdd6357fce03d073dd11ed1a36fe1d4063871d",
+          "references/tokens.md": "39afb46a2012dc6454ca3c4081e1b27e959b6780efc6abed18dcaeeff9320e5e"
+        }
+      }
+    },
+    {
+      "repository": "https://github.com/Rpeng666/ui-ux-pro-max-skill-codex",
+      "commit": "5c02e4c57e8dce4451f65c0dd50eab6b4a4ed3e6",
+      "license": ".agents/licenses/Rpeng666.txt",
+      "skills": {
+        "ui-ux-pro-max": {
+          "SKILL.md": "360d09d9a3099c5e94fc725e8cb85753d210162e4c7822c9003d8c5f38899d15",
+          "data/app-interface.csv": "2a17ef810dab715ce1f339861817a8fbe3ccc38142b70517301e874803e838ac",
+          "data/charts.csv": "a70ef7460b0eaaea8614f86a0d09a4bc38b467804179762464b5ca45b491baac",
+          "data/colors.csv": "5a6cb6c5d6f19b5f5e51865ae1e643e4baa05d04304d0bab976f064632149a6a",
+          "data/google-fonts.csv": "3fd2898fb0fdd31ba758bf05cfcd2b58cd0f038a20cf08e417d09e5a8a4a509e",
+          "data/icons.csv": "f376c29fb4df37b4bdb366a5aa70cb211ba3dd8b435390aaa03152a64b07d2e8",
+          "data/landing.csv": "121a2cac7cf21050234b5f80e7b4e182f10123536032e0f9ad862ad3aec9677d",
+          "data/motion.csv": "528be03324785eb568c9570f5d60fc1644d5bc7ce2cbdd21b648cb90ce74e76e",
+          "data/products.csv": "9fd9e776ba847cf44c1ea78f95fe5e33b2c56bb7e186e3cfff9c49bc7fcb691b",
+          "data/react-performance.csv": "904c8afcda229629545912dde0e8ac37503757131f0169f80b016f1f58c4fd3f",
+          "data/styles.csv": "f37eb20e7403a715d440efd45ce6952ea6a445d6143fd130c52e219a4bec9911",
+          "data/typography.csv": "dbea262a54e3bfa2e6c3b15989a365d5ef4c43349316aff46635e82ca825adce",
+          "data/ui-reasoning.csv": "06e4369445388ba9b7a57347510b125b7a2145bbf8546a327ba50292503b204a",
+          "data/ux-guidelines.csv": "e01943c433b2cad3040f19389b3b0455673758a569b7a927b5bedf65c989cb96",
+          "scripts/core.py": "ab9f398b493e34404448cefc766239ee86119c7a21d8581ba965cabdc698b0a8",
+          "scripts/design_system.py": "db272c6649322e383714c73305705101fe1d44c15bd64556d5a515b1c419c2d2",
+          "scripts/search.py": "d9983d2a21d330b6b696480940fd78029f7b34027814f2ac1cf17c5d0b042407",
+          "data/stacks/angular.csv": "dd7cc2a2b34cd8f0508bd05b067545e7a44f7724440c432d491d92a61a8fb6c1",
+          "data/stacks/astro.csv": "ad18dae3ab6d148d37d144592df80dc1825b6c9e86d9d2d68fdda77434206a37",
+          "data/stacks/flutter.csv": "fe36d404c799781e8ba6e9a8179b45799ed5126a545528550cd2eb0f2346e8c5",
+          "data/stacks/html-tailwind.csv": "7aef38e75c53559470afcfa91580a9917ca8b7dbf8b92110389e23e93703ac52",
+          "data/stacks/jetpack-compose.csv": "6c8fd4b0391c342c12b0af15610cd5becbeccaef0bbe8dcfc01d928c3195d93e",
+          "data/stacks/laravel.csv": "50e11e60a64b30f329af25ae71f4b8bbdb43bafc1865451b74f9f540a88964d5",
+          "data/stacks/nextjs.csv": "e828ccc04843742f52f545a068e8a9ab0d2b97c0e771f7e93bf0cef74da05554",
+          "data/stacks/nuxt-ui.csv": "05d6e74501b2b6a636faed32450622759f49a5bcafad971f5f4e7eba0eb7be71",
+          "data/stacks/nuxtjs.csv": "f7a3f2d9542856d00199f85c6c023b7c284cc698e2e6e12d61afce2edacb24d6",
+          "data/stacks/react-native.csv": "077aefc81d194895ecf7936b3ed298b978e36961f183e3a275f8acda19b5f621",
+          "data/stacks/react.csv": "e5624ab41d33427d88e41d07581ce4eca59b37b36ab72a6ad43a9c8e2d0a1c72",
+          "data/stacks/shadcn.csv": "395c2e415ef6f48a474acccdc8eb2c7258a6ed751a5037ba171a2d8823e02ded",
+          "data/stacks/svelte.csv": "71af52d64f266c88070b91dbbaa900c2f8074b6baae9f35eaea6ba9cec6fd803",
+          "data/stacks/swiftui.csv": "c9c2d2510f8e66281a2514e8dd0125a6b653b9ef53a71281b5e7dfe003d5b569",
+          "data/stacks/threejs.csv": "f1c05f8f269fc4784170c837f4ff43b50042f00bbd6ba7dbef2896081a052544",
+          "data/stacks/vue.csv": "c2724915d3c11cd67263f25896cff721f787a0fdd8326002d31e9f5806dfd8f8"
+        }
+      }
+    },
+    {
+      "repository": "https://github.com/emilkowalski/skills",
+      "commit": "f1090bec277140d02ed202440185ad9d02ac1490",
+      "license": ".agents/licenses/emilkowalski.txt",
+      "skills": {
+        "review-animations": {
+          "SKILL.md": "5f9fb98b69cace7107af8b393a4196fd42fa42d98bce0e5afc1f866ff3b8a41c",
+          "STANDARDS.md": "8f5fe3f5a04537556dd4e6a37f7a8d6f616d840eb80f2f68b5b594febb170657"
+        },
+        "animation-performance": {
+          "SKILL.md": "6c60f45ab416ff3f7d7765a5427beead77fab0d82487fe610d2a298397558d0a"
+        }
+      }
+    }
+  ]
+}

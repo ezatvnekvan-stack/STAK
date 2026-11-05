@@ -18,6 +18,29 @@ class SettingsStore(context: Context, namespace:String = "") {
         set(value)=secure.putSecret("playback_device_v1",value)
     private val prefs: SharedPreferences = context.getSharedPreferences("${namespace}stak_settings", Context.MODE_PRIVATE)
     private val secure = SecureStorage(context,namespace)
+    internal fun backupValues()=encodeBackupPreferences(prefs.all.filterKeys(::cloudBackupKey))
+    internal fun backupSecrets()=secure.backupValues()
+    internal fun restoreBackupValues(values:com.google.gson.JsonObject,secrets:Map<String,String>){
+        val decoded=decodeBackupPreferences(values)
+        val editor=prefs.edit();prefs.all.keys.filter(::cloudBackupKey).forEach(editor::remove)
+        decoded.forEach{(key,value)->when(value){
+            is String->editor.putString(key,value)
+            is Boolean->editor.putBoolean(key,value)
+            is Int->editor.putInt(key,value)
+            is Long->editor.putLong(key,value)
+            is Float->editor.putFloat(key,value)
+            is Set<*>->editor.putStringSet(key,value.map{it as String}.toSet())
+            else->error("Unsupported setting")
+        }}
+        check(editor.commit()){"Settings restore failed"};secure.restoreValues(secrets)
+    }
+    internal fun cloudValue(key:String):String?{require(key.startsWith("cloud_"));return secure.getSecret(key)}
+    internal fun cloudValue(key:String,value:String?){require(key.startsWith("cloud_"));if(value==null)secure.removeSecretChecked(key)else secure.putSecretChecked(key,value)}
+    internal fun listenForBackup(callback:()->Unit):()->Unit {
+        val listener=SharedPreferences.OnSharedPreferenceChangeListener{_,key->if(key==null||cloudBackupKey(key))callback()}
+        prefs.registerOnSharedPreferenceChangeListener(listener);val secureClose=secure.listenForBackup(callback)
+        return {prefs.unregisterOnSharedPreferenceChangeListener(listener);secureClose()}
+    }
     var torznabIndexersJson:String?
         get()=secure.getSecret("torznab_indexers_v1")
         set(value)=secure.putSecret("torznab_indexers_v1",value)
@@ -39,6 +62,17 @@ class SettingsStore(context: Context, namespace:String = "") {
         get()=secure.getSecret("stak_library_approvals_v1")
         set(value)=secure.putSecret("stak_library_approvals_v1",value)
     internal fun saveLibraryApprovalsChecked(value:String)=secure.putSecretChecked("stak_library_approvals_v1",value)
+
+    /** Per-series auto-add rules + watcher connection (secret, like approvals). */
+    var watcherRulesJson:String?
+        get()=secure.getSecret("watcher_rules_v1")
+        set(value)=secure.putSecret("watcher_rules_v1",value)
+    internal fun saveWatcherRulesChecked(value:String)=secure.putSecretChecked("watcher_rules_v1",value)
+
+    /** Transient watcher state cache (excluded from cloud backup: it is re-fetched). */
+    var watchStatusCacheJson:String?
+        get()=prefs.getString("watch_status_cache",null)
+        set(value)=prefs.edit().putString("watch_status_cache",value).apply()
     var playbackJson: String?
         get() = secure.getSecret("playback_state")
         set(value) = secure.putSecret("playback_state", value)
@@ -60,6 +94,10 @@ class SettingsStore(context: Context, namespace:String = "") {
         set(value) = prefs.edit().putString("jellyfin_user_name", value).apply()
     val jellyfinDeviceId: String
         get() = prefs.getString("jellyfin_device_id", null) ?: java.util.UUID.randomUUID().toString().also { prefs.edit().putString("jellyfin_device_id", it).apply() }
+
+    var savedPublicLists:String?
+        get()=prefs.getString("saved_public_lists",null)
+        set(value)=prefs.edit().putString("saved_public_lists",value).apply()
 
     var discoveryJson: String?
         get() = prefs.getString("discovery_state", null)

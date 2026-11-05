@@ -1,0 +1,83 @@
+{
+  "repository": "https://github.com/chrisbanes/skills",
+  "commit": "8df9735a751cfabe5ddae457f28b0a8ea3d4092b",
+  "scope": "project",
+  "destination": ".agents/skills",
+  "skills": {
+    "compose-performance": {
+      "files": {
+        "SKILL.md": "716bc82c7c36b989f19be7868623da2ccd9fec97b35a803062036aa02adb6a7d",
+        "references/composition-contracts.md": "003f6d0f4f9fd108635619468d700d8e360f28d9f2e9ea21aed246d508a59852",
+        "references/deferred-reads.md": "c57117e3e95c9a9b72d64c54e9d084cb4eb5bf22ec29792fd7332f2352e44644",
+        "references/diagnosis.md": "f355f396e602dddb8d8821e7162e2dadd59fe58cbb48ca5e4ef211155fb526c8",
+        "references/stability.md": "f2654851d8c1ee81892e45cec26c81eba8bdd5cf73568e028a9a556603a59555"
+      }
+    },
+    "compose-animations": {
+      "files": {
+        "SKILL.md": "eb94fc221017aad7c80b5414847379ac856b2f1c1363d1b67758701df2f5c217",
+        "references/animated-content.md": "dcad71b0849571086196e5155ddf352b160c236a5470585fbe7b8121095f13cc"
+      }
+    },
+    "compose-component-design": {
+      "files": {
+        "SKILL.md": "1a3599e3d5feb9398ca4dbb5f093ef15cafdf2866f041d02538d3bc35c954c92",
+        "references/modifier-layout.md": "53de73379e843a649665e5b07a8edab9498d77bf2bcb025bbab7f378cc6db53a",
+        "references/slot-apis.md": "08fd24b6bee03879aaa71f69ebf504e6a0990ff761795a6f1ac99379c8ef79ad"
+      }
+    },
+    "compose-state-and-effects": {
+      "files": {
+        "SKILL.md": "9930eb2858e3d17fa1ecaf220e20b7bc88b3b1d975d21c9ae4db6f2849c0f0d0",
+        "references/local-state.md": "c06198d5cd5e9619ee0fc9edbd56c20d99994ed627a8d98cea2aba2e16319377",
+        "references/side-effects.md": "c963f760a257d9340ce91540647499c6e7b0ae163b40c65b954ad82da8561de9",
+        "references/state-hoisting.md": "acf654d62bf71421d0ce1370da882a3746d7991009d57cf0cc697359450a9a5f"
+      }
+    },
+    "kotlin-concurrency-and-flow": {
+      "files": {
+        "SKILL.md": "56398cb404c19c5e7719bb833f2380dd44d7d6e478e8a1454ea677c2867e11b9",
+        "references/flow-state-events.md": "dcbbe576d065061049504c94145cd3250e33b54e1ff49143fcd23d8329e43278",
+        "references/structured-concurrency.md": "c6726b464150d21164986f1c08fdfc0f1a62ef907ea0416ca9fdbb1028156808"
+      }
+    },
+    "compose-ui-testing-patterns": {
+      "files": {
+        "SKILL.md": "a2d2d398dfa9f9dfe6ea94f53c3fc9b52e00b38fd203f1d154799f2b5e3ea09a",
+        "references/interaction-state.md": "6f5dc22030d3527249355d71bd44d999f5abe947c910a42d91762672ed9b87cc"
+      }
+    },
+    "kotlin-api-design": {
+      "files": {
+        "SKILL.md": "0d0dfe0e85a002472523c7de1d0c4997f1da05a036e002c07708ee9a68357649",
+        "references/functions.md": "760c0ce359b42c2c1fd67d9b417d141e272d4ba5f4b5a27c7a2ff353f67328ce",
+        "references/multiplatform-boundaries.md": "6d11700892f66a4e36878c4fa9f064baf1151bc6da756967a44c0a54c18bd746",
+        "references/value-classes.md": "2b222ac5fd7caea277ea34c294079e954defab68910ba4210d243430de0ca262"
+      }
+    },
+    "gradle-run": {
+      "files": {
+        "SKILL.md": "2cceef9b4280f6c0948c7df09a01804c8fc39d6d68b811ec09bb38fbe4116219",
+        "agents/openai.yaml": "1769a5188d27feb65ae4ef6805053edafec3359b2e2f37ddc985b31017eaea81",
+        "references/subagent-selection.md": "8e5c3e0769675425374b579904dbd8d304de09b2c98d180278df9e6c8ee3a9b5",
+        "scripts/gradle_run.py": "7ab3fdeefe9a49274f9a765c23dc0d0c220945efc6a0115c9cfee52f91df0da2",
+        "scripts/test_gradle_run.py": "1d16d8df6ae28388c72a31886d3154f44f2a1bb68a748ab40484ff1566bcbad5"
+      }
+    },
+    "android-benchmark-comparison": {
+      "files": {
+        "SKILL.md": "3f02082ca58c7147c20a015f1d3f14e41ede6c06a8b1f8482aaeb90aa58f2a13"
+      }
+    },
+    "compose-focus-navigation": {
+      "files": {
+        "SKILL.md": "1dd608632e6914c0323d832a2c56a04932d9c677901187b7cd26ec70a46e6901"
+      }
+    },
+    "kotlin-control-flow": {
+      "files": {
+        "SKILL.md": "dd45004142078e8fd8b231a18906db452af06da5ead09446ef0b2ec703d5159b"
+      }
+    }
+  }
+}

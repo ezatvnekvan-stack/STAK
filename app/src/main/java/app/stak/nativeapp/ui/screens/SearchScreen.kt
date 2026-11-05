@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -26,7 +27,7 @@ import app.stak.nativeapp.ui.components.*
 import app.stak.nativeapp.ui.theme.*
 
 @Composable
-fun SearchScreen(viewModel: DiscoverViewModel, onOpenTitle: (MediaItem, String) -> Unit, watchIds: Set<String>, sharedScope: SharedTransitionScope?, animatedScope: AnimatedVisibilityScope?) {
+fun SearchScreen(viewModel: DiscoverViewModel, onOpenTitle: (MediaItem, String) -> Unit, watchIds: Set<String>, sharedScope: SharedTransitionScope?, animatedScope: AnimatedVisibilityScope?, onBack:()->Unit={}) {
     val query by viewModel.query.collectAsState(); val items by viewModel.items.collectAsState()
     val loading by viewModel.loading.collectAsState(); val error by viewModel.error.collectAsState()
     val page by viewModel.page.collectAsState(); val pages by viewModel.totalPages.collectAsState()
@@ -36,11 +37,13 @@ fun SearchScreen(viewModel: DiscoverViewModel, onOpenTitle: (MediaItem, String) 
     val browsing by viewModel.browsing.collectAsState()
     var showFilters by remember { mutableStateOf(false) }; var suggesting by remember { mutableStateOf(false) }
     val chips = filters.chips(genres)
-    LazyVerticalGrid(columns = GridCells.Fixed(4), contentPadding = PaddingValues(16.dp,20.dp,16.dp,120.dp), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize()) {
+    LazyVerticalGrid(columns = GridCells.Fixed(3), contentPadding = PaddingValues(16.dp,20.dp,16.dp,120.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize()) {
         item(key = "search-header", span = { GridItemSpan(maxLineSpan) }) {
             Column {
+                Row(verticalAlignment=Alignment.CenterVertically){StakIconButton(onBack){Icon(Lucide.ChevronRight,"Back",tint=StakText,modifier=Modifier.size(18.dp).graphicsLayer{rotationZ=180f})};StakPageHeader("Search")}
+                Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StakTextField(query, { suggesting = true; viewModel.setQuery(it) }, "Movie, series or IMDb ID", modifier = Modifier.weight(1f), leading = { Icon(Lucide.Search,null,tint = StakTextFaint,modifier = Modifier.size(16.dp)) }, trailing = if(query.isNotBlank()) {{ Box(Modifier.size(28.dp).clickable { suggesting=false;viewModel.clearSearch() },contentAlignment=Alignment.Center) { Icon(Lucide.X,"Clear search",tint=StakTextMuted,modifier=Modifier.size(14.dp)) } }} else null)
+                    StakTextField(query, { suggesting = true; viewModel.setQuery(it) }, "Movie, series or IMDb ID", modifier = Modifier.weight(1f), leading = { Icon(Lucide.Search,null,tint = StakTextFaint,modifier = Modifier.size(16.dp)) }, trailing = if(query.isNotBlank()) {{ Box(Modifier.size(44.dp).clickable { suggesting=false;viewModel.clearSearch() },contentAlignment=Alignment.Center) { Icon(Lucide.X,"Clear search",tint=StakTextMuted,modifier=Modifier.size(14.dp)) } }} else null)
                     StakIconButton({ showFilters = true }) { Icon(Lucide.Sliders,"Filters",tint=StakText,modifier=Modifier.size(17.dp)); if(chips.isNotEmpty()) Box(Modifier.align(Alignment.TopEnd).size(6.dp).background(StakAccent,CircleShape)) }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -67,10 +70,10 @@ fun SearchScreen(viewModel: DiscoverViewModel, onOpenTitle: (MediaItem, String) 
         else {
             items(items,key={"${it.type}:${it.mediaKey}"},contentType={"poster"}) { item ->
                 val key="search-${item.type}-${item.mediaKey}"
-                StakPosterCard(item,{suggesting=false;onOpenTitle(item,key)},stakItemMotion().stakSharedElement(sharedScope,animatedScope,key),inWatchlist=item.mediaKey in watchIds || item.id in watchIds)
+                StakPosterCard(item,{suggesting=false;onOpenTitle(item,key)},stakItemMotion(),artworkModifier=Modifier.stakSharedElement(sharedScope,animatedScope,key),compactTitle=true,titleSize=13,yearSize=10,inWatchlist=item.mediaKey in watchIds || item.id in watchIds)
             }
             if(browsing && !loading && error==null && items.isEmpty()) item(span={GridItemSpan(maxLineSpan)}) {
-                StakEmpty("No results","Try another term or loosen the filters.",actionLabel="Clear filters",onAction={viewModel.clearSearch()})
+                StakEmpty("No results","Try another term or loosen the filters.",actionLabel="Clear filters",onAction={viewModel.resetFilters()})
             }
         }
         if(page<pages) item(span={GridItemSpan(maxLineSpan)}) { StakButton(if(loadingMore)"Loading…" else "Load more",{viewModel.loadMore()},Modifier.fillMaxWidth(),enabled=!loadingMore && !loading) }

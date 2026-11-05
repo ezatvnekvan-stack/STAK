@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!core/
+!core/*.py
+!server/
+!server/*.py
+!filter_server.py

@@ -42,7 +42,7 @@ class LibraryScanViewModel(private val gateway:LibraryScanGateway=DirectLibraryS
     Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(8.dp)){
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
         leading?.invoke(this)
-        StakButton(if(state.active)"Scanning library…"else "Scan library",viewModel::scan,icon=Lucide.Refresh,enabled=connected&&!state.active&&!checking&&state.allowed!=false,compact=true)
+        StakButton(if(state.active)"Scanning library…"else "Scan library",viewModel::scan,modifier=Modifier.nothingSignal(state.phase),icon=if(state.phase=="completed")Lucide.Check else Lucide.Refresh,enabled=connected&&!state.active&&!checking&&state.allowed!=false,compact=true)
         }
         if(state.active){if(state.progress!=null)StakProgress(state.progress!!,height=4)else StakLoadingProgress();Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(state.message.orEmpty(),Modifier.weight(1f),fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted);state.progress?.let{Text("${(it*100).toInt()}%",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakText)}}}
         else if(state.message!=null){Row(verticalAlignment=Alignment.CenterVertically){Text(state.message.orEmpty(),Modifier.weight(1f),fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted);if(state.phase=="unknown")StakButton("Check status",viewModel::refresh,variant=StakButtonVariant.Ghost,compact=true)}}

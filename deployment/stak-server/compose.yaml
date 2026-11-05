@@ -1,0 +1,50 @@
+services:
+  stak-server:
+    build: .
+    image: stak-server:local
+    container_name: stak-server
+    restart: always
+    init: true
+    stop_grace_period: 60s
+    network_mode: host
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    cap_add: [DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: ${STAK_MEMORY_LIMIT:-768m}
+    cpus: ${STAK_CPU_LIMIT:-1.0}
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    env_file: .env
+    environment:
+      STAK_DB_PATH: /data/stak-watch.db
+      STATE_DB: /data/filter.db
+      SOURCE_ROOT: /source
+      OUTPUT_ROOT: /library
+      STAK_TORZNAB_FILE: /config/torznab.json
+    volumes:
+      - ./data:/data
+      - type: bind
+        source: ./torznab.json
+        target: /config/torznab.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${ZURG_SOURCE_DIR:?Set the existing Zurg source directory}
+        target: /source
+        read_only: true
+        bind:
+          propagation: rslave
+          create_host_path: false
+      - type: bind
+        source: ${STAK_LIBRARY_DIR:?Set the dedicated filtered library directory}
+        target: /library
+        bind:
+          create_host_path: false

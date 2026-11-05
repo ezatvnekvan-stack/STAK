@@ -49,7 +49,7 @@ import app.stak.nativeapp.ui.theme.*
     val state=rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing=refreshing,onRefresh={if(enabled)onRefresh()},state=state,modifier=Modifier.fillMaxSize(),indicator={
         if(enabled&&(refreshing||state.distanceFraction>0f))Column(Modifier.align(Alignment.TopCenter).padding(top=8.dp).width(110.dp).clip(RoundedCornerShape(10.dp)).background(StakSurface).border(1.dp,Color.White.copy(alpha=.18f),RoundedCornerShape(10.dp)).padding(10.dp).testTag("library-refresh-indicator"),verticalArrangement=Arrangement.spacedBy(6.dp)){
-            Text(if(refreshing)"REFRESHING"else "PULL TO REFRESH",fontFamily=SpaceMonoFont,fontSize=8.sp,color=StakText)
+            Text(if(refreshing)"REFRESHING"else "PULL TO REFRESH",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakText)
             if(refreshing)StakLoadingProgress()else StakProgress(state.distanceFraction.coerceIn(0f,1f),height=2)
         }
     },content=content)

@@ -6,21 +6,36 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 
 /** Native equivalent of the Capacitor direct-provider catalog path. */
-class MediaRepository(private val catalog: DirectCatalog = DirectCatalog(preferCinemeta = { type -> (if (type == "series") NativeRuntime.settings.seriesMetadata else NativeRuntime.settings.movieMetadata) == "cinemeta" }), private val discovery: DirectDiscovery = DirectDiscovery(), private val trakt:TraktCatalog=TraktCatalog()) {
-    suspend fun home(): HomeFeed = withContext(Dispatchers.IO) {
+class MediaRepository(private val catalog: DirectCatalog = DirectCatalog(preferCinemeta = { type -> (if (type == "series") NativeRuntime.settings.seriesMetadata else NativeRuntime.settings.movieMetadata) == "cinemeta" }), private val discovery: DirectDiscovery = DirectDiscovery(), private val trakt:TraktCatalog=TraktCatalog(),private val imdbFallback:ImdbRating=ImdbRating()) {
+    suspend fun home():HomeFeed=home { }
+    suspend fun home(onPartial:suspend(HomeFeed)->Unit): HomeFeed = withContext(Dispatchers.IO) {
         coroutineScope {
             val definitions = HomeSections.read(NativeRuntime.settings.homeRowsJson)
                 .filter { it.enabled && it.id !in listOf("continue", "watchlist", "coming_up") }
-            val rows = definitions.map { section -> async {
+            val published=definitions.map{HomeRow(it.id,it.title,emptyList())}.toMutableList()
+            var partialHero=emptyList<MediaItem>()
+            val publishLock=kotlinx.coroutines.sync.Mutex()
+            suspend fun publishRow(index:Int,row:HomeRow){
+                publishLock.lock()
+                try{published[index]=row;onPartial(HomeFeed(partialHero,rows=published.toList(),source="direct"))}finally{publishLock.unlock()}
+            }
+            val rows = definitions.mapIndexed { index,section -> async {
+                val completed=
                 try {
                     val fromTrakt=section.category in listOf("trending","anticipated")
-                    val result=if(fromTrakt)trakt.list(section.type,section.category,limit=10)else catalog.discover(section.type,section.category,1,section.year)
+                    val result=if(fromTrakt)trakt.list(section.type,section.category,limit=10,onPartial={items->publishRow(index,HomeRow(section.id,section.title,items,provider="Trakt"))})else catalog.discover(section.type,section.category,1,section.year)
                     HomeRow(section.id,section.title,result.items.take(20),provider=if(fromTrakt)"Trakt"else null)
                 } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
                 } catch (error: Exception) {
                     val fromTrakt=section.category in listOf("trending","anticipated")
                     HomeRow(section.id,section.title,emptyList(),if(fromTrakt)error.message ?: "Trakt could not load. Please retry."else "Unable to load titles. Check your connection and retry.",if(fromTrakt)"Trakt"else null)
                 }
+                publishRow(index,completed)
+                if(section.id=="trending_movie"&&completed.items.firstOrNull()?.logo==null&&completed.items.isNotEmpty()){
+                    val first=completed.items.first()
+                    val branded=try{catalog.heroMetadata(first)}catch(c:kotlinx.coroutines.CancellationException){throw c}catch(_:Exception){first}
+                    completed.copy(items=listOf(branded)+completed.items.drop(1)).also{publishRow(index,it)}
+                }else completed
             }}
             val hero = if (!NativeRuntime.settings.tmdbKey.isNullOrBlank()) {
                 listOf("movie", "series").map { type -> async {
@@ -29,14 +44,16 @@ class MediaRepository(private val catalog: DirectCatalog = DirectCatalog(preferC
                     catch (_: Exception) { emptyList<MediaItem>() }
                 }}.map { it.await() }.let { lists -> (0..2).flatMap { i -> lists.mapNotNull { it.getOrNull(i) } } }
             } else emptyList()
+            publishLock.lock()
+            try{partialHero=hero;onPartial(HomeFeed(hero,rows=published.toList(),source="direct"))}finally{publishLock.unlock()}
             val permits=kotlinx.coroutines.sync.Semaphore(3)
             val brandedHero=hero.map{item->async{permits.acquire();try{catalog.heroMetadata(item)}catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}catch(_:Exception){item.copy(rating=null)}finally{permits.release()}}}.map{it.await()}
             HomeFeed(hero = brandedHero, rows = rows.map { it.await() }, source = "direct")
         }
     }
 
-    suspend fun discover(type: String, category: String, query: String, page: Int, year: Int? = null, requireTmdb: Boolean = false, filters: DiscoveryFilters = DiscoveryFilters(), region: String = "US", cursor: Map<String,Int>? = null): DiscoverResult {
-        if(!requireTmdb&&query.isBlank()&&category in listOf("trakt_trending","anticipated"))return trakt.list(type,if(category=="anticipated")"anticipated"else "trending",page)
+    suspend fun discover(type: String, category: String, query: String, page: Int, year: Int? = null, requireTmdb: Boolean = false, filters: DiscoveryFilters = DiscoveryFilters(), region: String = "US", cursor: Map<String,Int>? = null,onPartial:suspend(List<MediaItem>)->Unit={}): DiscoverResult {
+        if(!requireTmdb&&query.isBlank()&&category in listOf("trakt_trending","anticipated"))return trakt.list(type,if(category=="anticipated")"anticipated"else "trending",page,onPartial=onPartial)
         filters.validationError()?.let { throw IllegalArgumentException(it) }
         val configured = !NativeRuntime.settings.tmdbKey.isNullOrBlank()
         if (query.isNotBlank()) {
@@ -55,7 +72,9 @@ class MediaRepository(private val catalog: DirectCatalog = DirectCatalog(preferC
     suspend fun discoveryRegions() = discovery.regions()
 
     private val ratings = DirectRatings()
-    suspend fun details(type: String, id: String): TitleDetails {
+    suspend fun fastDetails(type:String,id:String):TitleDetails = details(type,id,true)
+    suspend fun seasonDetails(id:String,season:Int):List<Episode> = catalog.season(id,season)
+    suspend fun details(type: String, id: String, firstSeasonOnly:Boolean = false): TitleDetails {
         val base = if(id.startsWith("jellyfin:")) {
             val itemId=id.substringAfter(':');require(itemId.matches(Regex("[A-Za-z0-9-]+")))
             val settings=NativeRuntime.settings
@@ -63,17 +82,20 @@ class MediaRepository(private val catalog: DirectCatalog = DirectCatalog(preferC
             val local=jellyfinMediaItem(data,DirectJellyfin.normalizeServer(settings.jellyfinUrl.orEmpty()))
             val provider=data.objectOrNull("ProviderIds")
             val identity=provider?.text("Imdb")?.takeIf{it.matches(Regex("tt\\d+"))} ?: provider?.text("Tmdb")?.takeIf{it.matches(Regex("\\d+"))}?.let{"tmdb:$it"}
-            if(identity!=null)try {catalog.details(type,identity)}catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}catch(_:Exception){TitleDetails(local,notice="Showing Jellyfin metadata. Additional provider metadata could not load.")}
+            if(identity!=null)try {catalog.details(type,identity,firstSeasonOnly)}catch(cancelled:kotlinx.coroutines.CancellationException){throw cancelled}catch(_:Exception){TitleDetails(local,notice="Showing Jellyfin metadata. Additional provider metadata could not load.")}
             else TitleDetails(local)
-        } else catalog.details(type, id)
-        val imdb = base.item.imdbId
-        if (!NativeRuntime.settings.ratingsEnabled || NativeRuntime.settings.omdbKey.isNullOrBlank() || imdb == null) return base
-        return try {
-            val scores = ratings.get(imdb)
-            base.copy(imdbRating = scores.imdb, rottenTomatoes = scores.rottenTomatoes, metacritic = scores.metacritic)
-        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
-        catch (_: Exception) { base.copy(notice = listOfNotNull(base.notice, "OMDb ratings could not load. Retry metadata.").joinToString(" ")) }
+        } else catalog.details(type, id,firstSeasonOnly)
+        return if(firstSeasonOnly)base else enrichRatings(base)
     }
+    suspend fun enrichRatings(base:TitleDetails):TitleDetails {
+        if(!NativeRuntime.settings.ratingsEnabled)return base.copy(rottenTomatoes=null,metacritic=null)
+        val imdb=base.item.imdbId?.takeIf{it.matches(Regex("tt\\d+"))}?:return base.copy(rottenTomatoes=null,metacritic=null)
+        var score=base.imdbRating?.takeIf{it.isFinite()&&it>0&&it<=10}
+        if(!NativeRuntime.settings.omdbKey.isNullOrBlank())try{score=ratings.get(imdb).imdb?:score}catch(c:kotlinx.coroutines.CancellationException){throw c}catch(_:Exception){}
+        if(score==null)try{score=imdbFallback.get(base.item.type,imdb)}catch(c:kotlinx.coroutines.CancellationException){throw c}catch(_:Exception){}
+        return base.copy(imdbRating=score,rottenTomatoes=null,metacritic=null)
+    }
+    suspend fun branding(item:MediaItem):MediaItem=catalog.heroMetadata(item)
     suspend fun episodeRating(imdb: String, episode: Episode): Double? = if (NativeRuntime.settings.ratingsEnabled && !NativeRuntime.settings.omdbKey.isNullOrBlank()) ratings.get(imdb, episode.season, episode.episode).imdb else null
 
     // Tracking and watchlist are observed from Room in StakApp, never filled with demo records.

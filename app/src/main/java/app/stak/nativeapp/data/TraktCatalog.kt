@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class TraktPage(val entries:JsonArray,val pages:Int)
 internal fun traktCatalogRequest(path:String,params:Map<String,String>,clientId:String):TraktPage {
-    require(path.matches(Regex("/(movies|shows)/(trending|anticipated)")))
+    require(path.matches(Regex("/(movies|shows)/(trending|anticipated)")) || path in setOf("/lists/popular","/lists/trending","/search/list") || path.matches(Regex("/lists/[1-9][0-9]*/items")))
     val url=("https://api.trakt.tv"+path).toHttpUrl().newBuilder().apply{params.forEach{(k,v)->addQueryParameter(k,v)}}.build()
     val request=Request.Builder().url(url).header("Content-Type","application/json").header("User-Agent","STAK/1.2.3").header("trakt-api-key",clientId).header("trakt-api-version","2").build()
     // Never forward an app key to a redirect target; reuse the shared provider pool.
@@ -42,7 +42,7 @@ class TraktCatalog(
     private val artwork:suspend(MediaItem)->MediaItem={TraktArtwork.load(it)}
 ) {
     private val cache=ConcurrentHashMap<String,Pair<Long,DiscoverResult>>()
-    suspend fun list(type:String,category:String,page:Int=1,limit:Int=20):DiscoverResult=withContext(Dispatchers.IO){
+    suspend fun list(type:String,category:String,page:Int=1,limit:Int=20,onPartial:suspend(List<MediaItem>)->Unit={}):DiscoverResult=withContext(Dispatchers.IO){
         require(type in listOf("movie","series")&&category in listOf("trending","anticipated")&&page in 1..1000&&limit in 1..20)
         val secret=key().trim();if(secret.isBlank())throw IOException("Add your Trakt Client ID in Settings → Metadata & ratings.")
         require(secret.length<=256&&secret.none{it.isWhitespace()}){"Invalid Trakt Client ID."}
@@ -50,12 +50,18 @@ class TraktCatalog(
         cache[cacheKey]?.takeIf{System.currentTimeMillis()-it.first<3_600_000}?.let{return@withContext it.second}
         val data=request("/${if(type=="series")"shows"else "movies"}/$category",mapOf("page" to "$page","limit" to "$limit","extended" to "full"),secret)
         val permits=Semaphore(3)
-        val items=coroutineScope{parseTraktItems(data.entries,type).map{item->async{permits.withPermit{try{artwork(item)}catch(cancelled:CancellationException){throw cancelled}catch(_:Exception){item}}}}.awaitAll()}
+        val items=parseTraktItems(data.entries,type).toMutableList()
+        onPartial(items.toList())
+        for(batch in items.indices.chunked(3)){
+            val images=coroutineScope{batch.map{index->async{permits.withPermit{try{index to artwork(items[index])}catch(cancelled:CancellationException){throw cancelled}catch(_:Exception){index to items[index]}}}}.awaitAll()}
+            images.forEach{(index,item)->items[index]=item}
+            onPartial(items.toList())
+        }
         val result=DiscoverResult(items,page,data.pages.coerceAtLeast(page),"trakt",notice="Trakt · ${if(category=="anticipated")"Most anticipated"else "Trending"} ${if(type=="series")"series"else "movies"}")
         if(cache.size>=48)cache.clear();cache[cacheKey]=System.currentTimeMillis() to result;result
     }
 }
-private object TraktArtwork {
+internal object TraktArtwork {
     private val cache=ConcurrentHashMap<String,Pair<Long,MediaItem>>()
     suspend fun load(item:MediaItem):MediaItem=withContext(Dispatchers.IO){
         val settings=NativeRuntime.settings;val key=settings.tmdbKey.orEmpty();val cacheKey="${credentialScope(key)}:${item.type}:${item.id}"

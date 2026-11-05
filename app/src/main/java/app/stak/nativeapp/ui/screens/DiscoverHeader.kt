@@ -34,9 +34,9 @@ import app.stak.nativeapp.ui.theme.*
     services:@Composable ()->Unit
 ){
     Column(Modifier.fillMaxWidth().testTag("discover-browse-header")){
-        StakTextField(query,onQuery,"Movie, series or IMDb ID",height=46,leading={Icon(Lucide.Search,null,tint=StakTextFaint,modifier=Modifier.size(16.dp))},trailing=if(query.isNotEmpty()){{Box(Modifier.size(40.dp).clickable{onQuery("")},contentAlignment=Alignment.Center){Icon(Lucide.X,"Clear search",tint=StakTextMuted,modifier=Modifier.size(18.dp))}}}else null)
+        StakTextField(query,onQuery,"Movie, series or IMDb ID",height=46,leading={Icon(Lucide.Search,null,tint=StakTextFaint,modifier=Modifier.size(16.dp))},trailing=if(query.isNotEmpty()){{Box(Modifier.size(44.dp).clickable{onQuery("")},contentAlignment=Alignment.Center){Icon(Lucide.X,"Clear search",tint=StakTextMuted,modifier=Modifier.size(18.dp))}}}else null)
         if(query.isBlank()){
-            Spacer(Modifier.height(6.dp));StakTabs(listOf("movie" to "Movies","series" to "Series"),type,onType)
+            Spacer(Modifier.height(6.dp));StakSegmented(listOf("movie" to "Movies","series" to "Series"),type,onType,Modifier.fillMaxWidth(),fillWidth=true)
         }
         val extraChips=chips.filter{it.first !in listOf("provider","sort")}
         if(extraChips.isNotEmpty()){
@@ -49,11 +49,9 @@ import app.stak.nativeapp.ui.theme.*
             }
         }
         Spacer(Modifier.height(10.dp));services()
-        if(query.isBlank()){
-            Spacer(Modifier.height(6.dp));DiscoverCategoryTabs(category,onCategory)
-        }
         Row(Modifier.fillMaxWidth().heightIn(min=44.dp).padding(top=2.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
-            Text("$count ${if(query.isBlank())"titles"else "results"}",fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted)
+            if(query.isBlank())DiscoverCategoryMenu(category,onCategory)
+            else Text("$count results",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)
             DiscoverSortMenu(filters.sort,onSort)
         }
     }
@@ -87,9 +85,17 @@ import app.stak.nativeapp.ui.theme.*
     var open by remember{mutableStateOf(false)}
     Box{
         Row(Modifier.heightIn(min=44.dp).clip(RoundedCornerShape(10.dp)).border(1.dp,Color.White.copy(alpha=.3f),RoundedCornerShape(10.dp)).clickable{open=true}.semantics{contentDescription="Sort"}.padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){
-            Text(discoverySorts.firstOrNull{it.first==value}?.second ?: value,fontFamily=HankenFont,fontSize=12.sp,color=StakText)
+            Text(discoverySorts.filterNot{it.first=="vote_average.desc"}.firstOrNull{it.first==value}?.second ?: "Recommended",fontFamily=HankenFont,fontSize=12.sp,color=StakText)
             Icon(Lucide.ChevronDown,null,tint=StakTextMuted,modifier=Modifier.size(13.dp))
         }
-        GlassDropdownMenu(open,{open=false}){discoverySorts.forEach{(id,label)->DropdownMenuItem(text={Text(label,fontFamily=HankenFont,color=if(id==value)StakText else StakTextMuted)},onClick={open=false;onSelect(id)})}}
+        GlassDropdownMenu(open,{open=false}){discoverySorts.filterNot{it.first=="vote_average.desc"}.forEach{(id,label)->DropdownMenuItem(text={Text(label,fontFamily=HankenFont,color=if(id==value)StakText else StakTextMuted)},onClick={open=false;onSelect(id)})}}
+    }
+}
+
+@Composable private fun DiscoverCategoryMenu(value:String,onSelect:(String)->Unit){
+    var open by remember{mutableStateOf(false)}
+    Box(Modifier.testTag("discover-category-tabs")){
+        StakButton(discoveryCategories.firstOrNull{it.first==value}?.second?:"Popular",{open=true},compact=true,icon=Lucide.ChevronDown)
+        GlassDropdownMenu(open,{open=false}){discoveryCategories.forEach{(id,label)->DropdownMenuItem(text={Text(label,fontFamily=HankenFont,color=if(id==value)StakText else StakTextMuted)},onClick={open=false;onSelect(id)})}}
     }
 }

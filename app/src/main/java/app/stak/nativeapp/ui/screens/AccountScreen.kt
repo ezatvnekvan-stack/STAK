@@ -298,6 +298,8 @@ private val settingsCards = listOf(
 
     SettingsCard("jellyfin", Lucide.MonitorPlay, "Jellyfin", "Server · playback · sync"),
 
+    SettingsCard("tracking", Lucide.Radio, "STAK Server", "Auto-add · library organization · connection"),
+
 
 
     SettingsCard("appearance", Lucide.Palette, "Appearance", "Theme · accent · atmosphere · ratings"),
@@ -330,7 +332,7 @@ private val settingsCards = listOf(
 
 
 
-fun AccountScreen(viewModel: AccountViewModel, initialSection: String? = null, onSetup:()->Unit={},onMediaCenter:()->Unit={}) {
+fun AccountScreen(viewModel: AccountViewModel, initialSection: String? = null, onSetup:()->Unit={},onMediaCenter:()->Unit={},onOpenAutoAdd:()->Unit={}) {
 
 
 
@@ -420,7 +422,11 @@ fun AccountScreen(viewModel: AccountViewModel, initialSection: String? = null, o
 
     androidx.activity.compose.BackHandler(enabled = section != null) { section = null }
 
+    if(section=="stak-account"){CloudAccountScreen(onBack={section=null});return}
+
     if(section=="sources"){SourcesSettings(onBack={section=null});return}
+
+    if(section=="tracking"){TrackingSettings(onBack={section=null},onOpenOverview=onOpenAutoAdd);return}
 
 
     if (section in setOf("account", "metadata", "jellyfin")) {
@@ -560,6 +566,8 @@ fun AccountScreen(viewModel: AccountViewModel, initialSection: String? = null, o
 
 
                 StakPageHeader(title = "Settings")
+                Spacer(Modifier.height(14.dp))
+                CloudAccountEntry(onOpen={section="stak-account"})
 
 
 
@@ -1565,7 +1573,7 @@ private fun SettingsDetail(
 
 
 
-                        Text("Catalog requests connect directly to Cinemeta or TMDb. Saved titles and viewing progress are stored on this device.", fontFamily = HankenFont, fontSize = 13.sp, lineHeight = 19.sp, color = StakTextMuted)
+                        Text("Catalog requests connect directly to Cinemeta or TMDb. Saved titles and viewing progress are stored on this device. Sign in to your STAK account for encrypted cloud backup.", fontFamily = HankenFont, fontSize = 13.sp, lineHeight = 19.sp, color = StakTextMuted)
 
 
 

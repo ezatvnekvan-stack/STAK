@@ -200,10 +200,15 @@ fun StakProgress(value:Float,modifier:Modifier=Modifier,height:Int=6,color:Color
 
 @Composable
 fun StakLoadingProgress(modifier:Modifier=Modifier) {
-    val phase=if(LocalReducedMotion.current)androidx.compose.runtime.rememberUpdatedState(.7f) else rememberInfiniteTransition(label="segmented-loading").animateFloat(0f,1.4f,infiniteRepeatable(tween(1300,easing=LinearEasing),RepeatMode.Restart),label="loading-position")
+    val phase=if(!nothingLoopEnabled())androidx.compose.runtime.rememberUpdatedState(.7f) else rememberInfiniteTransition(label="segmented-loading").animateFloat(0f,1.4f,infiniteRepeatable(tween(1300,easing=LinearEasing),RepeatMode.Restart),label="loading-position")
     androidx.compose.foundation.Canvas(modifier.fillMaxWidth().height(4.dp).then(Modifier.semantics{progressBarRangeInfo=androidx.compose.ui.semantics.ProgressBarRangeInfo.Indeterminate})) {
-        val gap=2.dp.toPx();val count=(size.width/10.dp.toPx()).toInt().coerceIn(6,40);val width=((size.width-gap*(count-1))/count).coerceAtLeast(0f)
-        repeat(count){index->val distance=kotlin.math.abs(index.toFloat()/count-phase.value+.2f);val tint=if(distance<.18f)app.stak.nativeapp.ui.theme.StakAccentInk.copy(alpha=(1-distance/.18f).coerceIn(.25f,1f)) else Color(0xFF292929);drawRoundRect(tint,androidx.compose.ui.geometry.Offset(index*(width+gap),0f),androidx.compose.ui.geometry.Size(width,size.height),androidx.compose.ui.geometry.CornerRadius.Zero)}
+        val step=9.dp.toPx();val radius=size.height/2
+        repeat(7){index->
+            val distance=kotlin.math.abs(index/6f-phase.value+.2f)
+            val emphasis=(1-distance/.3f).coerceIn(0f,1f)
+            val ink=if(index==3)app.stak.nativeapp.ui.theme.StakAccentInk else Color.White
+            drawCircle(ink.copy(alpha=.18f+.82f*emphasis),radius,androidx.compose.ui.geometry.Offset(size.width/2+(index-3)*step,size.height/2))
+        }
     }
 }
 
@@ -282,7 +287,8 @@ fun StakPosterCard(
     yearSize: Int = 0,
     yearColor: Color = Color(0xFF737373),
     rank:Int?=null,
-    showLibraryBadge:Boolean=true
+    showLibraryBadge:Boolean=true,
+    artworkModifier:Modifier=Modifier
 ) {
     val press=rememberPressMotion()
     var posterMenu by androidx.compose.runtime.remember(item.mediaKey){androidx.compose.runtime.mutableStateOf(false)}
@@ -299,13 +305,14 @@ fun StakPosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
+                .then(artworkModifier)
                 .clip(shape)
                 .background(StakSurface)
                 .border(1.dp, Color(0x21FFFFFF), shape)
                 .then(if(rank!=null)Modifier.testTag("ranked-artwork-${item.mediaKey}")else Modifier)
         ) {
             Icon(app.stak.nativeapp.ui.theme.Lucide.Film,null,tint=StakTextFaint,modifier=Modifier.align(Alignment.Center).size(24.dp))
-            AsyncImage(
+            StakArtwork(
                 model = item.poster ?: item.background,
                 contentDescription = item.name,
                 modifier = Modifier.fillMaxSize(),
@@ -467,7 +474,7 @@ fun StakEmpty(
 
 @Composable
 fun ShimmerBox(modifier: Modifier = Modifier, corner: Int = 16) {
-    val alpha=if(LocalReducedMotion.current)androidx.compose.runtime.rememberUpdatedState(.4f) else rememberInfiniteTransition(label="shimmer").animateFloat(.25f,.55f,infiniteRepeatable(tween(1100,easing=LinearEasing),RepeatMode.Reverse),label="alpha")
+    val alpha=if(!nothingLoopEnabled())androidx.compose.runtime.rememberUpdatedState(.4f) else rememberInfiniteTransition(label="shimmer").animateFloat(.25f,.55f,infiniteRepeatable(tween(1100,easing=LinearEasing),RepeatMode.Reverse),label="alpha")
     Box(modifier.clip(RoundedCornerShape(corner.dp)).drawBehind{drawRect(StakSurface3.copy(alpha=alpha.value))})
 }
 

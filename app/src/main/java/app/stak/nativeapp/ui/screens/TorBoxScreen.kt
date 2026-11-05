@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @Composable fun TorBoxScreen(
     onOpenTitle:(MediaItem)->Unit,onOpenLibrary:()->Unit,torboxKey:String,onOpenAccount:()->Unit,
-    viewModel:TorBoxViewModel=androidx.lifecycle.viewmodel.compose.viewModel(),onMediaCenter:()->Unit={}
+    viewModel:TorBoxViewModel=androidx.lifecycle.viewmodel.compose.viewModel(),onMediaCenter:()->Unit={},onOpenAutoAdd:()->Unit={}
 ) {
     val approvalIssue by LibraryApprovals.issue.collectAsState();val approvalAccount by LibraryApprovals.issueAccount.collectAsState()
     val rows by viewModel.rows.collectAsState();val loading by viewModel.loading.collectAsState();val matching by viewModel.matching.collectAsState();val error by viewModel.error.collectAsState();val filters by viewModel.filters.collectAsState()
@@ -60,7 +60,7 @@ import kotlinx.coroutines.launch
                     DropdownMenuItem(text={Text("Refresh torrents")},onClick={close();viewModel.refresh(torboxKey)},enabled=!actionBusy)
                     DropdownMenuItem(text={Text(if(selecting)"Cancel selection"else "Select torrents")},onClick={close();selecting=!selecting;viewModel.clearSelection()},enabled=torboxKey.isNotBlank()&&!actionBusy)
                 }
-                Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox"),"torbox",{if(it=="jellyfin")onOpenLibrary()},Modifier.fillMaxWidth())
+                Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Series"),"torbox",{if(it=="jellyfin")onOpenLibrary() else if(it=="autoadd")onOpenAutoAdd()},Modifier.fillMaxWidth())
                 Spacer(Modifier.height(14.dp))
                 if(torboxKey.isBlank()) {
                     Text("Connect TorBox to manage your library.",fontFamily=HankenFont,fontSize=14.sp,color=StakTextMuted)
@@ -69,10 +69,10 @@ import kotlinx.coroutines.launch
                     LibrarySearch(filters.query,{viewModel.setFilters(filters.copy(query=it))},{options=true},torbox=true)
                     Spacer(Modifier.height(8.dp))
                     val statuses=buildList{add("all" to "All ${rows.size}");add("active" to "Active ${counts["active"] ?: 0}");add("done" to "Ready ${counts["done"] ?: 0}");if((counts["error"] ?: 0)>0||filters.status=="error")add("error" to "Error ${counts["error"] ?: 0}")}
-                    StakTabs(statuses,filters.status,{viewModel.setFilters(filters.copy(status=it))},Modifier.fillMaxWidth())
+                    StakSegmented(statuses,filters.status,{viewModel.setFilters(filters.copy(status=it))},Modifier.fillMaxWidth(),fillWidth=true)
                     Spacer(Modifier.height(6.dp))
                     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
-                        Text("${shown.size} torrents · ${libraryBytes(shown.sumOf{it.torrent.size})}",Modifier.weight(1f),fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
+                        Text("${shown.size} torrents · ${libraryBytes(shown.sumOf{it.torrent.size})}",Modifier.weight(1f),fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
                         DiscoverySelect("",filters.sort,listOf("newest" to "Newest","name" to "Name A–Z","size" to "Largest first"),{viewModel.setFilters(filters.copy(sort=it))},Modifier.width(142.dp),accessibilityLabel="Sort torrents")
                     }
                     if(selecting)Row(verticalAlignment=Alignment.CenterVertically){
@@ -81,14 +81,14 @@ import kotlinx.coroutines.launch
                     }
                     if(picked.isNotEmpty()) {
                         Text("${picked.size} selected",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakText)
-                        Row {TorrentOperation.entries.filter{it!=TorrentOperation.Delete}.forEach{operation->TextButton(onClick={viewModel.control(torboxKey,picked.toList(),operation)},enabled=!actionBusy){Text(operation.label,fontFamily=SpaceMonoFont,fontSize=9.sp,color=StakText)}}}
+                        Row {TorrentOperation.entries.filter{it!=TorrentOperation.Delete}.forEach{operation->TextButton(onClick={viewModel.control(torboxKey,picked.toList(),operation)},enabled=!actionBusy){Text(operation.label,fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakText)}}}
                         StakButton("Delete selected",{deleteTargets=rows.filter{it.torrent.id in picked}.map{it.torrent}},enabled=!actionBusy,variant=StakButtonVariant.Destructive)
                     }
-                    if(actionBusy)Text("Applying TorBox operation…",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
+                    if(actionBusy)Text("Applying TorBox operation…",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
                     if(approvalAccount==credentialScope("torbox:$torboxKey"))approvalIssue?.let{Text(it,fontFamily=HankenFont,fontSize=12.sp,color=StakTextSoft)}
                     actionMessage?.let{Text(it,fontFamily=HankenFont,fontSize=12.sp,lineHeight=17.sp,color=StakTextMuted)}
-                    if(loading){Spacer(Modifier.height(8.dp));StakLoadingProgress(Modifier.fillMaxWidth());Text("Loading downloads…",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)}
-                    if(matching)Text("Matching posters…",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
+                    if(loading){Spacer(Modifier.height(8.dp));StakLoadingProgress(Modifier.fillMaxWidth());Text("Loading downloads…",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)}
+                    if(matching)Text("Matching posters…",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
                     if(error!=null){Spacer(Modifier.height(8.dp));Text(error.orEmpty(),fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=StakTextMuted);StakButton("Retry library",{viewModel.refresh(torboxKey)})}
                 }
             }
@@ -131,11 +131,11 @@ internal fun libraryBytes(bytes:Long):String=when {
             Text(entry.metadata?.name ?: torrent.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=14.sp,lineHeight=19.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
             val quality=remember(torrent.name){inferredQuality(torrent.name)}
             val tags=listOfNotNull(quality.value("resolution"),quality.value("hdr")?.takeIf{it!="HDR (unspecified)"},libraryBytes(torrent.size)).joinToString(" · ")
-            Text(tags,Modifier.semantics{contentDescription="Filename quality tags and TorBox reported size: $tags"},fontFamily=SpaceMonoFont,fontSize=9.sp,lineHeight=14.sp,color=StakTextMuted,maxLines=1,overflow=TextOverflow.Ellipsis)
-            if(status=="active")Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){StakProgress(torrent.progress,Modifier.weight(1f),height=2);Text("${(torrent.progress.coerceIn(0f,1f)*100).toInt()}%",fontFamily=SpaceMonoFont,fontSize=9.sp,color=StakTextMuted)}
+            Text(tags,Modifier.semantics{contentDescription="Filename quality tags and TorBox reported size: $tags"},fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=14.sp,color=StakTextMuted,maxLines=1,overflow=TextOverflow.Ellipsis)
+            if(status=="active")Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){StakProgress(torrent.progress,Modifier.weight(1f),height=2);Text("${(torrent.progress.coerceIn(0f,1f)*100).toInt()}%",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)}
             else Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){
                 Box(Modifier.size(4.dp).background(if(status=="done")Color(0xff10b981)else StakAccent,RoundedCornerShape(4.dp)))
-                Text(if(status=="done")"Ready"else "Error",fontFamily=HankenFont,fontSize=10.sp,color=StakTextSoft)
+                Text(if(status=="done")"Ready"else "Error",fontFamily=HankenFont,fontSize=11.sp,color=StakTextSoft)
             }
         }
         if(!selecting)StakIconButton(onActions){Icon(Icons.Default.MoreVert,"Torrent actions for ${torrent.name}",tint=StakTextMuted,modifier=Modifier.size(19.dp))}
@@ -163,13 +163,13 @@ internal fun libraryBytes(bytes:Long):String=when {
     }
     GlassAlertDialog(onDismissRequest=onDismiss,containerColor=StakSurface,title={Text(entry.metadata?.name ?: torrent.name,fontFamily=HankenFont,fontWeight=FontWeight.Bold,fontSize=18.sp,color=StakText,maxLines=3,overflow=TextOverflow.Ellipsis)},text={
         Column {
-            Text(torrent.name,fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
+            Text(torrent.name,fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
             Spacer(Modifier.height(10.dp))
             entry.metadata?.let{media->StakButton("Title details",{onDismiss();onOpenTitle(media)},variant=StakButtonVariant.Ghost)}
             StakTextField(fileQuery,{fileQuery=it},"Search files")
             Spacer(Modifier.height(8.dp))
             message?.let{Text(it,fontFamily=HankenFont,fontSize=12.sp,lineHeight=17.sp,color=StakTextMuted)}
-            StakButton("Include torrent in Jellyfin",{scope.launch{try{val saved=LibraryApprovals.capture(torrent.id,key,torrent.hash,torrent.name,entry.metadata);message=if(saved)"Approval saved for the whole torrent. Open Zurg → Library access to connect the server filter."else "Could not save library approval. TorBox content is unchanged."}catch(c:CancellationException){throw c}catch(_:Exception){message="Could not save library approval."}}},enabled=busy==null,compact=true)
+            StakButton("Include torrent in Jellyfin",{scope.launch{try{val saved=LibraryApprovals.capture(torrent.id,key,torrent.hash,torrent.name,entry.metadata);message=if(saved)"Approval saved for the whole torrent. Open Zurg → Library organization to connect the server filter."else "Could not save library approval. TorBox content is unchanged."}catch(c:CancellationException){throw c}catch(_:Exception){message="Could not save library approval."}}},enabled=busy==null,compact=true)
             Text("Includes all media files in this torrent. Existing Jellyfin paths must use the filter.",fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted)
             val files=torrent.files.filter{it.name.contains(fileQuery,true)}
             LazyColumn(Modifier.fillMaxWidth().heightIn(max=360.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
@@ -180,8 +180,8 @@ internal fun libraryBytes(bytes:Long):String=when {
                         Column(Modifier.weight(1f)) {
                             Text(file.name,fontFamily=HankenFont,fontSize=12.sp,lineHeight=17.sp,color=StakText)
                             StakButton("Media info",{quality=inferredQuality(file.name,file.size,"TorBox file API + filename")},variant=StakButtonVariant.Ghost,compact=true)
-                            Text(libraryBytes(file.size),fontFamily=SpaceMonoFont,fontSize=9.sp,lineHeight=14.sp,color=StakTextMuted)
-                            TextButton(onClick={busy=file.id;message=null;scope.launch{try{val url=DirectServices.download(key,torrent.id,file.id);clipboard.setText(AnnotatedString(url));message="Download link copied."}catch(cancelled:CancellationException){throw cancelled}catch(_:Exception){message="Could not get the file link. Retry when TorBox is ready."}finally{busy=null}}},enabled=busy==null&&torrent.finished&&file.id.isNotBlank()) {Text(if(busy==file.id)"Getting link…" else "Copy download link",fontFamily=SpaceMonoFont,fontSize=9.sp)}
+                            Text(libraryBytes(file.size),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=14.sp,color=StakTextMuted)
+                            TextButton(onClick={busy=file.id;message=null;scope.launch{try{val url=DirectServices.download(key,torrent.id,file.id);clipboard.setText(AnnotatedString(url));message="Download link copied."}catch(cancelled:CancellationException){throw cancelled}catch(_:Exception){message="Could not get the file link. Retry when TorBox is ready."}finally{busy=null}}},enabled=busy==null&&torrent.finished&&file.id.isNotBlank()) {Text(if(busy==file.id)"Getting link…" else "Copy download link",fontFamily=SpaceMonoFont,fontSize=11.sp)}
                         }
                     }
                 }

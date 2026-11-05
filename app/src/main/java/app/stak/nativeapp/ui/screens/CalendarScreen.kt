@@ -1,5 +1,8 @@
 package app.stak.nativeapp.ui.screens
 
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.semantics.selected
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,25 +31,47 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable internal fun CalendarMonth(selected:LocalDate,weekStart:Int=1,counts:Map<LocalDate,List<ReleaseEvent>> = emptyMap(),artwork:Boolean=false,onSelect:(LocalDate)->Unit) {
-    val month=YearMonth.from(selected);val today=LocalDate.now();val cells=calendarCells(month,weekStart)
+    val month=YearMonth.from(selected)
+    val reduced=LocalReducedMotion.current
     Column(Modifier.fillMaxWidth().padding(vertical=4.dp)) {
         Row(verticalAlignment=Alignment.CenterVertically) {
-            IconButton(onClick={onSelect(selected.minusMonths(1))}){Icon(Lucide.ChevronRight,"Previous month",modifier=Modifier.size(18.dp).rotate(180f),tint=StakText)}
+            StakIconButton(onClick={onSelect(selected.minusMonths(1))}){Icon(Lucide.ChevronRight,"Previous month",modifier=Modifier.size(18.dp).rotate(180f),tint=StakText)}
             Text(month.format(DateTimeFormatter.ofPattern("MMMM yyyy",Locale.ENGLISH)),fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=20.sp,color=StakText,modifier=Modifier.weight(1f))
-            IconButton(onClick={onSelect(selected.plusMonths(1))}){Icon(Lucide.ChevronRight,"Next month",modifier=Modifier.size(18.dp),tint=StakText)}
+            StakIconButton(onClick={onSelect(selected.plusMonths(1))}){Icon(Lucide.ChevronRight,"Next month",modifier=Modifier.size(18.dp),tint=StakText)}
         }
         val days=if(weekStart==0)listOf("SUN","MON","TUE","WED","THU","FRI","SAT") else listOf("MON","TUE","WED","THU","FRI","SAT","SUN")
-        Row {days.forEach{day->Box(Modifier.weight(1f).height(28.dp),contentAlignment=Alignment.Center){Text(day,fontFamily=SpaceMonoFont,fontSize=9.sp,color=StakTextMuted)}}}
-        cells.chunked(7).forEach{week->Row {
-            week.forEach{date->
-                val events=counts[date].orEmpty();val chosen=date==selected
-                Box(Modifier.weight(1f).height(48.dp).padding(2.dp).clip(RoundedCornerShape(8.dp)).background(if(chosen)Color.White else Color.Transparent).then(if(date==today&&!chosen)Modifier.border(1.dp,StakAccent,RoundedCornerShape(8.dp)) else Modifier).semantics{contentDescription="${date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy",Locale.ENGLISH))}, ${events.size} releases"}.clickable{onSelect(date)},contentAlignment=Alignment.Center) {
-                    if(artwork&&events.isNotEmpty()&&!chosen){AsyncImage(events.first().media.poster,null,contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize());Box(Modifier.fillMaxSize().background(Color(0x99000000)))}
-                    Text(date.dayOfMonth.toString(),fontFamily=SpaceMonoFont,fontSize=11.sp,color=if(chosen)Color.Black else if(date.month==month.month)StakText else StakTextFaint)
-                    if(events.isNotEmpty())Box(Modifier.align(Alignment.BottomCenter).padding(bottom=4.dp).size(4.dp).background(if(chosen)Color.Black else StakAccent,CircleShape))
+        Row {days.forEach{day->Box(Modifier.weight(1f).height(28.dp),contentAlignment=Alignment.Center){Text(day,fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)}}}
+        androidx.compose.animation.AnimatedContent(month,modifier=Modifier.clipToBounds(),transitionSpec={
+            val direction=if(targetState.isAfter(initialState))1 else -1
+            (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(if(reduced)100 else 180))+
+                androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(if(reduced)0 else StakMotion.Standard,easing=StakMotion.Ease)){if(reduced)0 else direction*it/7}) togetherWith
+                (androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if(reduced)100 else 130))+
+                androidx.compose.animation.slideOutHorizontally(androidx.compose.animation.core.tween(if(reduced)0 else StakMotion.Standard,easing=StakMotion.Ease)){if(reduced)0 else -direction*it/7})
+        },label="calendar-month"){visibleMonth->CalendarMonthGrid(visibleMonth,selected,weekStart,counts,artwork,onSelect)}
+    }
+}
+
+@Composable private fun CalendarMonthGrid(month:YearMonth,selected:LocalDate,weekStart:Int,counts:Map<LocalDate,List<ReleaseEvent>>,artwork:Boolean,onSelect:(LocalDate)->Unit){
+    val cells=remember(month,weekStart){calendarCells(month,weekStart)}
+    val today=LocalDate.now();val reduced=LocalReducedMotion.current
+    BoxWithConstraints(Modifier.fillMaxWidth()){
+        val cellWidth=maxWidth/7
+        val chosen=cells.indexOf(selected)
+        val x=androidx.compose.animation.core.animateDpAsState(cellWidth*(chosen.coerceAtLeast(0)%7),if(reduced)androidx.compose.animation.core.snap()else androidx.compose.animation.core.tween(StakMotion.Quick,easing=StakMotion.Ease),label="calendar-day-x")
+        val y=androidx.compose.animation.core.animateDpAsState(48.dp*(chosen.coerceAtLeast(0)/7),if(reduced)androidx.compose.animation.core.snap()else androidx.compose.animation.core.tween(StakMotion.Quick,easing=StakMotion.Ease),label="calendar-day-y")
+        if(chosen>=0)Box(Modifier.offset{x.value.roundToPx().let{left->androidx.compose.ui.unit.IntOffset(left,y.value.roundToPx())}}.width(cellWidth).height(48.dp).padding(2.dp).border(1.dp,StakText,RoundedCornerShape(8.dp)).background(Color.White.copy(alpha=.07f),RoundedCornerShape(8.dp)))
+        Column {
+            cells.chunked(7).forEach{week->Row {
+                week.forEach{date->
+                    val events=counts[date].orEmpty();val active=date==selected
+                    Box(Modifier.weight(1f).height(48.dp).padding(2.dp).clip(RoundedCornerShape(8.dp)).then(if(date==today&&!active)Modifier.border(1.dp,StakAccent.copy(alpha=.6f),RoundedCornerShape(8.dp))else Modifier).semantics{contentDescription="${date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy",Locale.ENGLISH))}, ${events.size} releases";this.selected=active}.clickable{onSelect(date)},contentAlignment=Alignment.Center){
+                        if(artwork&&events.isNotEmpty()&&!active){StakArtwork(events.first().media.poster,null,Modifier.fillMaxSize());Box(Modifier.fillMaxSize().background(Color(0x99000000)))}
+                        Text(date.dayOfMonth.toString(),fontFamily=SpaceMonoFont,fontWeight=if(active||date==today)FontWeight.Bold else FontWeight.Normal,fontSize=13.sp,color=if(active)StakText else if(date.month==month.month)StakTextSoft else StakTextFaint)
+                        if(events.isNotEmpty())Row(Modifier.align(Alignment.BottomCenter).padding(bottom=3.dp),horizontalArrangement=Arrangement.spacedBy(2.dp)){repeat(events.size.coerceAtMost(3)){Box(Modifier.size(3.dp).background(StakAccent,CircleShape))}}
+                    }
                 }
-            }
-        }}
+            }}
+        }
     }
 }
 
@@ -63,6 +88,7 @@ import java.util.Locale
             TextButton(onClick={onPreferences(preferences.copy(date=LocalDate.now().toString()))}){Text("Today",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakText)}
             IconButton(onClick={filters=true}){Icon(Lucide.Sliders,"Calendar filters",tint=StakText,modifier=Modifier.size(18.dp))}
         }
+        Text("Red dots show release days · outline marks today",fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted)
         CalendarMonth(selected,preferences.weekStart,dates,preferences.artwork,{onPreferences(preferences.copy(date=it.toString()))})
         if(loading)Text("Loading schedule…",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
         Text((if(selected==LocalDate.now())"Today · " else "")+selected.format(DateTimeFormatter.ofPattern("EEE, MMM d",Locale.ENGLISH)),fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=19.sp,color=StakText)

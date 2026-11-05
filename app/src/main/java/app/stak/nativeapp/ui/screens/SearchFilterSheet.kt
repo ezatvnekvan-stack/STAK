@@ -36,7 +36,7 @@ fun SearchFilterSheet(value: DiscoveryFilters, genres: List<DiscoveryOption>, on
             Spacer(Modifier.height(8.dp))
             Spacer(Modifier.height(24.dp))
             SearchFilterGroup("Sort") {
-                listOf("" to "Popular", "vote_average.desc" to "Rating", "primary_release_date.desc" to "Newest", "primary_release_date.asc" to "Oldest", "original_title.asc" to "A–Z").forEach { (id,label) -> StakChip(label, draft.sort == id, { draft = draft.copy(sort = id) }) }
+                listOf("" to "Popular", "primary_release_date.desc" to "Newest", "primary_release_date.asc" to "Oldest", "original_title.asc" to "A–Z").forEach { (id,label) -> StakChip(label, draft.sort == id, { draft = draft.copy(sort = id) }) }
             }
             SearchFilterGroup("Genre") {
                 StakChip("Any", draft.genre.isBlank(), { draft = draft.copy(genre = "") })
