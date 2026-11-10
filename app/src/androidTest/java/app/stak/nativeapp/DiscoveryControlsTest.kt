@@ -24,7 +24,7 @@ class DiscoveryControlsTest {
     private fun field(label: String) = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasContentDescription(label)))
 
     @Test fun reversedYearRangeBlocksApplyAndCorrectedRangePersists() {
-        compose.onNodeWithContentDescription("Filters").performClick()
+        compose.onNodeWithContentDescription("Discovery filters").performClick()
         compose.onNodeWithText("From year").performScrollTo()
         field("From year").performTextInput("2025")
         field("To year").performTextInput("2020")
@@ -39,11 +39,11 @@ class DiscoveryControlsTest {
     }
 
     @Test fun closingSheetDiscardsDraft() {
-        compose.onNodeWithContentDescription("Filters").performClick()
+        compose.onNodeWithContentDescription("Discovery filters").performClick()
         compose.onNodeWithText("From year").performScrollTo()
         field("From year").performTextInput("1990")
         compose.onNodeWithContentDescription("Close").performClick()
-        compose.onNodeWithContentDescription("Filters").performClick()
+        compose.onNodeWithContentDescription("Discovery filters").performClick()
         compose.onNodeWithText("From year").performScrollTo()
         field("From year").assertTextEquals("")
     }
@@ -64,7 +64,7 @@ class DiscoveryControlsTest {
         compose.onAllNodes(hasSetTextAction()).onFirst().performTextInput("Dune")
         compose.onAllNodes(hasSetTextAction()).onFirst().performImeAction()
         compose.onNodeWithText("RESULTS: “Dune”",substring=true).assertExists()
-        compose.onNodeWithContentDescription("Filters").performClick()
+        compose.onNodeWithContentDescription("Discovery filters").performClick()
         compose.onNodeWithText("Search movies and series together.").assertDoesNotExist()
         compose.onNodeWithText("A–Z").assertExists()
         compose.onNodeWithText("THIS YEAR").performScrollTo().performClick()

@@ -38,7 +38,7 @@ import app.stak.nativeapp.ui.theme.*
                     StakTextField(prefs.query,{viewModel.preferences(prefs.copy(query=it))},"Search watchlist",Modifier.weight(1f),leading={Icon(Lucide.Search,null,modifier=Modifier.size(16.dp),tint=StakTextMuted)})
                     IconButton(onClick={filters=true}){Icon(Lucide.Sliders,"Watchlist filters",tint=StakText)}
                 }
-                Spacer(Modifier.height(12.dp));StakSegmented(listOf("all" to "All","movie" to "Movies","series" to "Series"),prefs.type,{viewModel.preferences(prefs.copy(type=it))},Modifier.fillMaxWidth(),fillWidth=true,fontSize=10)
+                Spacer(Modifier.height(12.dp));MediaTypeSelector(listOf("all" to "All","movie" to "Movies","series" to "Series"),prefs.type,{viewModel.preferences(prefs.copy(type=it))},Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment=Alignment.CenterVertically){Text("${shown.size} titles · ${when(prefs.sort){"year"->"Newest year";"rating"->"IMDb rating";"name"->"Title A–Z";else->"Date added"}}",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted,modifier=Modifier.weight(1f));listOf("grid" to Lucide.Grid,"list" to Lucide.List).forEach{(layout,icon)->IconButton(onClick={viewModel.preferences(prefs.copy(layout=layout))}){Icon(icon,if(layout=="grid")"Poster grid" else "List view",tint=if(prefs.layout==layout)StakText else StakTextMuted,modifier=Modifier.size(18.dp))}}}
                 if(prefs.hideWatched)Text("Unwatched only",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)

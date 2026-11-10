@@ -47,7 +47,7 @@ import dev.chrisbanes.haze.*
     }
     val press=rememberPressMotion()
     val shape=RoundedCornerShape(14.dp)
-    Box(modifier.widthIn(min=176.dp,max=216.dp).heightIn(min=48.dp).pressMotion(press).clip(shape)
+    Box(modifier.widthIn(min=176.dp).heightIn(min=48.dp).pressMotion(press).clip(shape)
         .background(Color(0x99141618)).border(1.dp,Color.White.copy(alpha=.28f),shape)
         .clickable(interactionSource=press.source,indication=androidx.compose.foundation.LocalIndication.current,role=androidx.compose.ui.semantics.Role.Button,onClick=onSources)
         .testTag("detail-source-button"),contentAlignment=Alignment.CenterStart){
@@ -58,10 +58,9 @@ import dev.chrisbanes.haze.*
                 drawRect(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color.Transparent,Color.White.copy(alpha=.08f),Color.Transparent),startX=x-size.width*.22f,endX=x+size.width*.22f))
             }
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)){
+        Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp,Alignment.CenterHorizontally)){
             Icon(Lucide.Plus,null,tint=StakAccent.copy(alpha=.8f),modifier=Modifier.size(16.dp))
-            Text("FIND SOURCES",fontFamily=SpaceMonoFont,fontWeight=FontWeight.Bold,fontSize=11.sp,color=StakText,modifier=Modifier.weight(1f))
-            Icon(Lucide.ChevronRight,null,tint=StakTextMuted,modifier=Modifier.size(14.dp))
+            Text("FIND SOURCES",fontFamily=SpaceMonoFont,fontWeight=FontWeight.Bold,fontSize=11.sp,color=StakText)
         }
     }
 }

@@ -58,7 +58,7 @@ import coil.compose.AsyncImage
                     LibrarySearch(filters.query,{viewModel.setFilters(filters.copy(query=it))},{options=true})
                     Spacer(Modifier.height(10.dp))
                     LibraryScanControl(connected,refresh,scanModel,leading={LibraryChoice(parent?.name ?: "All libraries",connected,{catalogOpen=true},Modifier.weight(1f))})
-                    Spacer(Modifier.height(8.dp));StakSegmented(listOf("all" to "All","movie" to "Movies","series" to "Series"),filters.type,{viewModel.setFilters(filters.copy(type=it))},Modifier.fillMaxWidth(),fillWidth=true)
+                    Spacer(Modifier.height(8.dp));MediaTypeSelector(listOf("all" to "All","movie" to "Movies","series" to "Series"),filters.type,{viewModel.setFilters(filters.copy(type=it))},Modifier.fillMaxWidth())
                     Spacer(Modifier.height(10.dp));Text("${shown.size} titles"+(if(displayLoading) " · Loading${total?.let{" $it server items"} ?: "…"}" else ""),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
                     if(displayLoading) {Spacer(Modifier.height(8.dp));StakLoadingProgress(Modifier.fillMaxWidth())}
                     if(displayError!=null){Spacer(Modifier.height(10.dp));Text(displayError.orEmpty(),fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=StakTextMuted);StakButton("Retry library",{if(parent==null)viewModel.refresh() else browser.select(parent)})}

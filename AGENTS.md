@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.3 / versionCode 78**. Next distributable versionCode: **79+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.4 / versionCode 79**. Next distributable versionCode: **80+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -28,3 +28,6 @@ Owner explicitly restored original 1.4.0 Tracking and Discover. Read docs/RELEAS
 
 ## Android 1.5.3 — optional Glyph background
 Read docs/RELEASE-1.5.3.md. Current remains the default background. Glyph is an opt-in vector background with one-shot route/confirmed-add signals; preserve reduced motion, modal/scroll/lifecycle pausing and persisted backup-compatible preference. IMDb is compact and white; Dolby marks share other format badge styling. No Series Center shortcut on Details; Auto-add stays. The 1.5.2 original-page override still applies. Next distributable code79+.
+
+## Android 1.5.4 — approved cinematic refinements
+Read docs/RELEASE-1.5.4.md. The owner approved shared outline Movies/Series selectors, edge-to-edge centered Home hero, larger centered Details with animated seasonal entries, and shared filled classification stamps. Tracking/Discover retain 1.4 content, flows and data behavior; only their type-selector and age-rating presentation call sites adopt shared visual controls. Page tabs retain underlines. Current/Glyph settings and all acquisition/cloud/passive-tracking guards remain. No BetterPosters integration or backend changes. Next distributable code80+.

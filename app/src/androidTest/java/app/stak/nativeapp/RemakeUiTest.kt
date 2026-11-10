@@ -79,10 +79,10 @@ class RemakeUiTest{
         compose.runOnUiThread{vm=TitleViewModel(detailsLoader={_,_->TitleDetails(film,tmdbRating=8.2,certification="R")},sourceLoader={_,_,_->emptyList()})}
         compose.setContent{Frame{TitleScreen(film,{},false,false,{saves++},null,null,onMarkWatched={_,_->watchedWrites++},viewModel=vm)}}
         compose.waitUntil(5000){vm.detail.value?.tmdbRating!=null}
-        compose.onNodeWithTag("detail-source-button").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.right-it.left<=216.dp)}
+        compose.onNodeWithTag("detail-source-button").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.right-it.left>=280.dp)}
         val source=compose.onNodeWithTag("detail-source-button").fetchSemanticsNode().boundsInRoot
         val save=compose.onNodeWithContentDescription("Add to watchlist").fetchSemanticsNode().boundsInRoot
-        Assert.assertTrue(kotlin.math.abs(source.top-save.top)<2f)
+        Assert.assertTrue(save.top-source.bottom>=11f)
         compose.onNodeWithContentDescription("Add to watchlist").performClick();Assert.assertEquals(1,saves)
         compose.onNodeWithText("Auto-add").assertDoesNotExist();compose.onNodeWithText("SYNOPSIS").assertDoesNotExist()
         Assert.assertEquals(0,watchedWrites);capture("movie-top")

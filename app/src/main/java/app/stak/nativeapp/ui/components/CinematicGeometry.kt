@@ -1,0 +1,26 @@
+package app.stak.nativeapp.ui.components
+
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+/** Preserve shelf gutters while a single cinematic item reaches the viewport edges. */
+internal fun Modifier.edgeToEdge(inset: Dp = 16.dp): Modifier = layout { measurable, constraints ->
+    if (!constraints.hasBoundedWidth) {
+        val child = measurable.measure(constraints)
+        layout(child.width, child.height) { child.placeRelative(0, 0) }
+    } else {
+        val extra = inset.roundToPx()
+        val child = measurable.measure(constraints.copy(
+            minWidth = constraints.maxWidth + extra * 2, maxWidth = constraints.maxWidth + extra * 2))
+        layout(constraints.maxWidth, child.height) { child.placeRelative(-extra, 0) }
+    }
+}
+
+/** Bounded phone/tablet geometry; keep controls usable in landscape and large text. */
+internal fun homeHeroHeight(screenHeight: Int, fontScale: Float = 1f): Float =
+    (screenHeight * .44f + (fontScale - 1f).coerceIn(0f, 1f) * 70f).coerceIn(300f, 440f)
+
+internal fun detailArtworkHeight(screenHeight: Int): Float =
+    (screenHeight * .48f).coerceIn(280f, 480f)

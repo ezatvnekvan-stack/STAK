@@ -434,7 +434,7 @@ fun StakApp() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .statusBarsPadding()
+                        .then(if(dest==Dest.Home||dest is Dest.Title)Modifier else Modifier.statusBarsPadding())
                 ) {
                     when (dest) {
                         Dest.Home -> HomeScreen(

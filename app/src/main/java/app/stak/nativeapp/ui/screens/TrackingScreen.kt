@@ -92,7 +92,7 @@ import java.time.*
             item(key="controls"){
                 TrackingSection("IN PROGRESS")
                 if(search){StakTextField(query,{query=it},"Search Watching",height=44);Spacer(Modifier.height(8.dp))}
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("all" to "All","movie" to "Movies","series" to "Series").forEach{(value,label)->StakChip(label,type==value,{type=value})}}
+                MediaTypeSelector(listOf("all" to "All","movie" to "Movies","series" to "Series"),type,{type=it})
             }
             val visible=watching.filter{(type=="all"||it.media.type==type)&&librarySearchText(it.media.name).contains(librarySearchText(query))}
             if(visible.isEmpty())item{
@@ -119,7 +119,7 @@ import java.time.*
                 item(key="history-controls"){
                     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("${selected.size} ${if(selected.size==1)"entry"else "entries"}",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted,modifier=Modifier.weight(1f));IconButton(onClick={historySearch=!historySearch;if(!historySearch)viewModel.preferences(prefs.copy(query=""))}){Icon(Lucide.Search,"Search history",tint=StakTextMuted,modifier=Modifier.size(20.dp))}}
                     if(historySearch)StakTextField(prefs.query,{viewModel.preferences(prefs.copy(query=it))},"Search activity")
-                    StakSegmented(listOf("all" to "All","movie" to "Movies","episode" to "Episodes"),if(prefs.type=="series")"episode"else prefs.type,{viewModel.preferences(prefs.copy(type=it))})
+                    MediaTypeSelector(listOf("all" to "All","movie" to "Movies","episode" to "Episodes"),if(prefs.type=="series")"episode"else prefs.type,{viewModel.preferences(prefs.copy(type=it))})
                 }
                 if(selected.isEmpty())item{Text("No viewings in this selection.",fontFamily=HankenFont,fontSize=13.sp,color=StakTextMuted)}
                 historyDays(selected).forEach{day->item(key="day:${day.date}"){Text(historyDateLabel(day.date,today),fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft,modifier=Modifier.padding(top=10.dp))};items(day.groups,key={it.id}){group->HistoryCard(group,onOpenTitle,{details=it},Modifier)}}

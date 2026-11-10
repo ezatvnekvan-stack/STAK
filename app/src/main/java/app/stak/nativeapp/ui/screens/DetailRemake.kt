@@ -24,26 +24,25 @@ import java.util.Locale
 @Composable internal fun DetailActionRow(identity:String,saved:Boolean,busy:Boolean,trailer:Boolean,onSources:()->Unit,onTrailer:()->Unit,onWatchlist:()->Unit){
     val fontScale=androidx.compose.ui.platform.LocalDensity.current.fontScale
     BoxWithConstraints(Modifier.fillMaxWidth().testTag("detail-actions")){
-        val narrow=maxWidth<352.dp||fontScale>1.15f
-        val primaryWidth=if(narrow)minOf(216.dp,maxWidth-60.dp)else (maxWidth-176.dp).coerceAtMost(216.dp)
-        Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.CenterVertically){
-                DetailSourcesAction(identity,onSources,Modifier.width(primaryWidth))
-                if(!narrow)StakButton("Trailer",onTrailer,Modifier.width(104.dp).height(48.dp).semantics{contentDescription="Trailer"},icon=Lucide.Play,enabled=trailer,compact=true)
-                DetailIconAction(if(saved)Lucide.BookmarkFilled else Lucide.Bookmark,if(saved)"Remove from watchlist"else "Add to watchlist",!busy,saved,onWatchlist)
-            }
-            if(narrow)StakButton("Trailer",onTrailer,Modifier.height(48.dp).semantics{contentDescription="Trailer"},icon=Lucide.Play,enabled=trailer,compact=true)
+        val stacked=maxWidth<280.dp||fontScale>=1.7f
+        val trailerButton:@Composable (Modifier)->Unit={m->
+            StakButton("Trailer",onTrailer,m.heightIn(min=48.dp).semantics{contentDescription="Trailer"},icon=Lucide.Play,enabled=trailer,compact=true)
         }
-    }
-}
-
-@Composable private fun DetailIconAction(icon:ImageVector,label:String,enabled:Boolean,active:Boolean,onClick:()->Unit){
-    val press=rememberPressMotion(enabled)
-    Box(Modifier.size(48.dp).pressMotion(press).nothingSignal(active).clip(RoundedCornerShape(14.dp)).background(StakSurface.copy(alpha=.3f))
-        .border(1.dp,if(active)StakText.copy(alpha=.5f)else StakBorderSoft,RoundedCornerShape(14.dp))
-        .clickable(interactionSource=press.source,indication=LocalIndication.current,enabled=enabled,role=Role.Button,onClick=onClick)
-        .semantics{contentDescription=label;stateDescription=if(active)"Saved"else if(!enabled)"Unavailable"else "Available"},contentAlignment=Alignment.Center){
-        Icon(icon,null,tint=if(!enabled)StakTextFaint else if(active)StakAccent else StakText,modifier=Modifier.size(20.dp))
+        val watchlistButton:@Composable (Modifier)->Unit={m->
+            StakButton(if(saved)"Saved"else "Watchlist",onWatchlist,
+                m.heightIn(min=48.dp).nothingSignal(saved).semantics{
+                    contentDescription=if(saved)"Remove from watchlist"else "Add to watchlist"
+                    stateDescription=if(saved)"Saved"else "Not saved"
+                },icon=if(saved)Lucide.BookmarkFilled else Lucide.Bookmark,iconTint=if(saved)StakAccent else StakText,enabled=!busy,compact=true)
+        }
+        Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+            DetailSourcesAction(identity,onSources,Modifier.fillMaxWidth())
+            if(stacked)Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+                trailerButton(Modifier.fillMaxWidth());watchlistButton(Modifier.fillMaxWidth())
+            }else Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)){
+                trailerButton(Modifier.weight(1f));watchlistButton(Modifier.weight(1f))
+            }
+        }
     }
 }
 

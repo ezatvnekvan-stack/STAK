@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class,androidx.compose.animation.ExperimentalSharedTransitionApi::class)
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class,androidx.compose.animation.ExperimentalSharedTransitionApi::class,androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package app.stak.nativeapp.ui.screens
 
 import androidx.compose.animation.*
@@ -40,7 +40,7 @@ import kotlin.math.abs
 @Composable internal fun HeroCarousel(
     items:List<MediaItem>,onOpenTitle:(MediaItem)->Unit,
     sharedScope:SharedTransitionScope?,animatedScope:AnimatedVisibilityScope?,
-    reducedMotion:Boolean,autoPlay:Boolean=true
+    reducedMotion:Boolean,autoPlay:Boolean=true,topBar:@Composable ()->Unit={},modifier:Modifier=Modifier
 ){
     if(items.isEmpty())return
     val count=items.size
@@ -62,9 +62,8 @@ import kotlin.math.abs
     LaunchedEffect(autoAllowed,pager.settledPage,ids){
         if(autoAllowed){delay(8500);if(!pager.isScrollInProgress)pager.animateScrollToPage((pager.currentPage+1).coerceAtMost(count+1),animationSpec=tween(760,easing=StakMotion.Ease))}
     }
-    val height=(LocalConfiguration.current.screenWidthDp*.64f).coerceIn(232f,278f).dp
-    Box(Modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(20.dp)).background(Color(0xFF111518))
-        .border(1.dp,Color.White.copy(alpha=.10f),RoundedCornerShape(20.dp)).testTag("home-hero").clickable { onOpenTitle(current) }
+    val height=homeHeroHeight(LocalConfiguration.current.screenHeightDp,androidx.compose.ui.platform.LocalDensity.current.fontScale).dp
+    Box(modifier.fillMaxWidth().height(height).testTag("home-hero").clickable { onOpenTitle(current) }
         .semantics{stateDescription="Featured ${index+1} of $count"}){
         HorizontalPager(pager,Modifier.fillMaxSize(),beyondViewportPageCount=1,key={page->"$page:${itemAt(page).mediaKey}"}){page->
             val item=itemAt(page)
@@ -83,42 +82,46 @@ import kotlin.math.abs
                 })
             }
         }
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent,.30f to Color.Black.copy(alpha=.04f),.70f to Color.Black.copy(alpha=.55f),1f to Color(0xF4080A0C))))
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color.Black.copy(alpha=.24f),Color.Transparent))))
-        AnimatedContent(current.mediaKey,Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start=22.dp,end=22.dp,bottom=52.dp),
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.40f),.25f to Color.Transparent,.53f to Color.Black.copy(alpha=.12f),1f to Color(0xFF090A0B))))
+        AnimatedContent(current,Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start=28.dp,end=28.dp,bottom=46.dp),
+            contentKey={it.mediaKey},
             transitionSpec={
                 if(reduced)fadeIn(tween(100)) togetherWith fadeOut(tween(80))
-                else (fadeIn(tween(360,90))+slideInVertically(tween(460,easing=StakMotion.Ease)){it/7}) togetherWith
-                    (fadeOut(tween(150))+slideOutVertically(tween(220)){-it/10})
-            },label="hero-title-dissolve"){key->
-            val title=items.firstOrNull{it.mediaKey==key}?:current
-            Column{
+                else (fadeIn(tween(360,100))+slideInVertically(tween(460,easing=StakMotion.Ease)){it/9}) togetherWith
+                    (fadeOut(tween(150))+slideOutVertically(tween(200)){-it/12})
+            },label="hero-title-dissolve"){title->
+            Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(9.dp)){
                 var failed by remember(title.logo){mutableStateOf(false)}
-                Box(Modifier.fillMaxWidth(.88f).height(56.dp),contentAlignment=Alignment.BottomStart){
-                    if(title.logo!=null&&!failed)AsyncImage(title.logo,title.name,contentScale=ContentScale.Fit,alignment=Alignment.BottomStart,onError={failed=true},modifier=Modifier.fillMaxSize())
-                    else Text(title.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=23.sp,lineHeight=28.sp,color=Color.White,maxLines=2,overflow=TextOverflow.Ellipsis)
+                Box(Modifier.widthIn(max=288.dp).fillMaxWidth().height(62.dp).testTag("home-hero-brand"),contentAlignment=Alignment.Center){
+                    if(title.logo!=null&&!failed)AsyncImage(title.logo,title.name,contentScale=ContentScale.Fit,alignment=Alignment.Center,onError={failed=true},modifier=Modifier.fillMaxSize())
+                    else Text(title.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=26.sp,lineHeight=31.sp,color=Color.White,maxLines=2,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
                 }
-                Spacer(Modifier.height(12.dp))
-                Text((listOfNotNull(title.year,title.runtime)+title.genres.take(2)).joinToString(" · "),fontFamily=HankenFont,fontSize=12.sp,color=Color(0xDDFFFFFF),maxLines=1,overflow=TextOverflow.Ellipsis)
+                FlowRow(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp,Alignment.CenterHorizontally),verticalArrangement=Arrangement.spacedBy(5.dp)){
+                    Text((listOfNotNull(title.year,title.runtime)+title.genres.take(1)).joinToString(" · "),fontFamily=HankenFont,fontSize=12.sp,lineHeight=19.sp,color=Color(0xE8FFFFFF),textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+                    title.certification?.takeIf{it.isNotBlank()}?.let{CertificationBadge(it,Modifier.padding(top=1.dp))}
+                }
+                title.overview?.takeIf{it.isNotBlank()}?.let{Text(it,fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=Color(0xBFFFFFFF),maxLines=2,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)}
             }
         }
-        if(count>1)Row(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(52.dp).padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically){
-            items.forEachIndexed{position,_->
-                val width=animateDpAsState(if(index==position)22.dp else 4.dp,if(reduced)snap()else tween(320,easing=StakMotion.Ease),label="hero-page-mark")
+        if(count>1)androidx.compose.foundation.lazy.LazyRow(
+            Modifier.align(Alignment.BottomCenter).widthIn(max=320.dp).fillMaxWidth().height(44.dp),
+            horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically){
+            items(count){position->
+                val width=animateDpAsState(if(index==position)24.dp else 12.dp,if(reduced)snap()else tween(260,easing=StakMotion.Ease),label="hero-page-mark")
                 Box(Modifier.size(44.dp).semantics{contentDescription="Show featured title ${position+1}";selected=index==position}.clickable{
                     scope.launch{pager.animateScrollToPage(position+1,animationSpec=tween(if(reduced)0 else 760,easing=StakMotion.Ease))}
                 },contentAlignment=Alignment.Center){
-                    val ink=if(index==position)StakAccent else Color.White.copy(alpha=.40f)
-                    androidx.compose.foundation.Canvas(Modifier.width(24.dp).height(3.dp)){
+                    val ink=if(index==position)StakText else Color.White.copy(alpha=.26f)
+                    androidx.compose.foundation.Canvas(Modifier.width(26.dp).height(2.dp)){
                         val pixels=width.value.toPx()
-                        drawRect(ink,topLeft=androidx.compose.ui.geometry.Offset((size.width-pixels)/2,0f),size=androidx.compose.ui.geometry.Size(pixels,size.height))
+                        drawRoundRect(ink,topLeft=androidx.compose.ui.geometry.Offset((size.width-pixels)/2,0f),size=androidx.compose.ui.geometry.Size(pixels,size.height),cornerRadius=androidx.compose.ui.geometry.CornerRadius(1.dp.toPx()))
                     }
                 }
             }
-            Spacer(Modifier.weight(1f))
-            Text("%02d / %02d".format(index+1,count),Modifier.padding(end=10.dp),fontFamily=SpaceMonoFont,fontSize=10.sp,color=Color.White.copy(alpha=.65f))
         }
+        Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal=16.dp).statusBarsPadding()){topBar()}
     }
+
 }
 
 @Composable internal fun HomeSpotlight(item:MediaItem,onOpen:()->Unit,sharedScope:SharedTransitionScope?,animatedScope:AnimatedVisibilityScope?,elementKey:String){

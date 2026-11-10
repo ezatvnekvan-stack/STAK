@@ -61,7 +61,7 @@ class PremiumHomeUiTest {
         compose.mainClock.advanceTimeBy(320);capture("hero-dissolve-middle")
         compose.mainClock.advanceTimeBy(1400)
         compose.onNodeWithTag("home-hero").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription,"Featured 2 of 2"))
-        compose.onNodeWithText("VIEW DETAILS").assertDoesNotExist();compose.onNodeWithTag("home-hero").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.bottom-it.top<=278.dp)}
+        compose.onNodeWithText("VIEW DETAILS").assertDoesNotExist();compose.onNodeWithTag("home-hero").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.bottom-it.top in 300.dp..440.dp)}
         compose.mainClock.advanceTimeBy(800)
         compose.onNodeWithText("After hours").assertIsDisplayed()
         opened=null;compose.onNodeWithTag("home-hero").performTouchInput{click(androidx.compose.ui.geometry.Offset(center.x,center.y*.40f))};Assert.assertEquals(second.mediaKey,opened?.mediaKey)
@@ -115,7 +115,7 @@ class PremiumHomeUiTest {
         compose.onNodeWithText("Trakt ↗").assertDoesNotExist();compose.onNodeWithText("JELLYFIN →").assertDoesNotExist()
         capture("home-anticipated")
     }
-    @Test fun sourcesActionSharesARowWithSecondaryActionsAndOpensTheExistingSheet(){
+    @Test fun sourcesActionLeadsTheSecondaryRowAndOpensTheExistingSheet(){
         val movie=title("tt1000040","A quiet place")
         lateinit var vm:TitleViewModel
         compose.runOnUiThread{vm=TitleViewModel(detailsLoader={_,_->TitleDetails(movie)},sourceLoader={_,_,_->emptyList()})}
@@ -123,7 +123,7 @@ class PremiumHomeUiTest {
         compose.waitUntil(8000){vm.detail.value!=null}
         val action=compose.onNodeWithTag("detail-source-button").fetchSemanticsNode().boundsInRoot
         val secondary=compose.onNodeWithContentDescription("Add to watchlist").fetchSemanticsNode().boundsInRoot
-        Assert.assertTrue(kotlin.math.abs(action.top-secondary.top)<2f)
+        Assert.assertTrue(secondary.top-action.bottom>=11f)
         compose.onNodeWithTag("detail-source-dock").assertDoesNotExist();capture("details-primary-action")
         compose.onNodeWithTag("detail-source-button").performClick()
         compose.waitUntil(8000){compose.onAllNodesWithText("Configure TorBox",ignoreCase=true).fetchSemanticsNodes().isNotEmpty()}

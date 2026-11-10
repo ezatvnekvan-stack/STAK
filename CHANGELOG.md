@@ -1,3 +1,11 @@
+# 1.5.4 (code79) — Cinematic Home and Details
+
+- Shared transparent outline Movies/Series/All controls across browsing surfaces, including Home anticipated shelves and Tracking.
+- Edge-to-edge Home hero with overlay header, centered title branding and facts, compact synopsis and touch-driven cinematic dissolves.
+- Larger Details artwork, centered metadata/IMDb, separate primary and secondary action rows, bounded parallax and season-entry motion.
+- Shared compact off-white film-classification stamps replace outline age chips, preserving exact provider values.
+- Current/Glyph backgrounds, original Tracking/Discover functionality, original signing/cloud settings and all acquisition/passive-tracking guards retained. No poster-provider or server changes.
+
 # 1.5.3 (code78) — Optional Glyph background
 
 - Settings → Appearance adds Current / Glyph. Existing installations keep Current.

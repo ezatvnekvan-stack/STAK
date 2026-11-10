@@ -36,7 +36,7 @@ import app.stak.nativeapp.ui.theme.*
     Column(Modifier.fillMaxWidth().testTag("discover-browse-header")){
         StakTextField(query,onQuery,"Movie, series or IMDb ID",height=46,leading={Icon(Lucide.Search,null,tint=StakTextFaint,modifier=Modifier.size(16.dp))},trailing=if(query.isNotEmpty()){{Box(Modifier.size(44.dp).clickable{onQuery("")},contentAlignment=Alignment.Center){Icon(Lucide.X,"Clear search",tint=StakTextMuted,modifier=Modifier.size(18.dp))}}}else null)
         if(query.isBlank()){
-            Spacer(Modifier.height(6.dp));StakSegmented(listOf("movie" to "Movies","series" to "Series"),type,onType,Modifier.fillMaxWidth(),fillWidth=true)
+            Spacer(Modifier.height(6.dp));MediaTypeSelector(listOf("movie" to "Movies","series" to "Series"),type,onType,Modifier.fillMaxWidth())
         }
         val extraChips=chips.filter{it.first !in listOf("provider","sort")}
         if(extraChips.isNotEmpty()){

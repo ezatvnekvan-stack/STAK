@@ -34,17 +34,18 @@ import coil.compose.AsyncImage
 import java.util.Locale
 
 @Composable
-fun DiscoverySelect(label: String, value: String, options: List<Pair<String,String>>, onChange: (String) -> Unit, modifier: Modifier = Modifier, fieldHeight: Int = 48, labelSize: Int = 13, enabled: Boolean = true, accessibilityLabel:String?=null, selectedText:String?=null) {
+fun DiscoverySelect(label: String, value: String, options: List<Pair<String,String>>, onChange: (String) -> Unit, modifier: Modifier = Modifier, fieldHeight: Int = 48, labelSize: Int = 13, enabled: Boolean = true, accessibilityLabel:String?=null, selectedText:String?=null, classification:Boolean=false) {
     var open by remember { mutableStateOf(false) }
     Column(modifier) {
         if (label.isNotBlank()) { Text(label, fontFamily = HankenFont, fontSize = labelSize.sp, color = if (labelSize < 13) StakTextMuted else StakTextSoft); Spacer(Modifier.height(7.dp)) }
         Box {
             Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(alpha=.025f)).border(1.dp,Color.White.copy(alpha=.30f),RoundedCornerShape(10.dp)).clickable(enabled = enabled) { open = true }.semantics { contentDescription = accessibilityLabel ?: label.ifBlank { "Sort" }; role=androidx.compose.ui.semantics.Role.Button }.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(selectedText ?: options.find { it.first == value }?.second ?: value, fontFamily = HankenFont, fontSize = 14.sp, color = StakText, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if(classification&&value.isNotBlank())Box(Modifier.weight(1f)){CertificationBadge(value)}
+                else Text(selectedText ?: options.find { it.first == value }?.second ?: value, fontFamily = HankenFont, fontSize = 14.sp, color = StakText, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.width(8.dp)); Icon(Lucide.ChevronDown, null, tint = StakTextMuted, modifier = Modifier.size(18.dp))
             }
             GlassDropdownMenu(expanded = open, onDismissRequest = { open = false }, modifier = Modifier.heightIn(max = 320.dp)) {
-                options.forEach { (id,name) -> DropdownMenuItem(text = { Text(name, fontFamily = HankenFont, fontSize = 14.sp, color = if (id == value) StakText else StakTextMuted) }, onClick = { open = false; onChange(id) }) }
+                options.forEach { (id,name) -> DropdownMenuItem(text = { if(classification&&id.isNotBlank())CertificationBadge(name) else Text(name, fontFamily = HankenFont, fontSize = 14.sp, color = if (id == value) StakText else StakTextMuted) }, onClick = { open = false; onChange(id) }) }
             }
         }
     }
@@ -80,7 +81,7 @@ fun DiscoveryFilterSheet(type: String, value: DiscoveryFilters, genres: List<Dis
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DiscoverySelect("Genre", draft.genre, listOf("" to "All genres") + genres.map { it.id to it.name }, { draft = draft.copy(genre = it) }, Modifier.weight(1f))
                     val ratings = if (type == "series") listOf("TV-Y","TV-Y7","TV-G","TV-PG","TV-14","TV-MA") else listOf("G","PG","PG-13","R","NC-17")
-                    DiscoverySelect("US age rating", draft.certification, listOf("" to "Any") + ratings.map { it to it }, { draft = draft.copy(certification = it) }, Modifier.weight(1f))
+                    DiscoverySelect("US age rating", draft.certification, listOf("" to "Any") + ratings.map { it to it }, { draft = draft.copy(certification = it) }, Modifier.weight(1f),classification=true)
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("Find a language", fontFamily = HankenFont, fontSize = 13.sp, color = StakTextSoft)

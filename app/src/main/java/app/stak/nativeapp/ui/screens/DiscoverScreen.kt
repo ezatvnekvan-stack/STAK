@@ -60,7 +60,7 @@ import app.stak.nativeapp.ui.theme.*
                 StakTextField(query,viewModel::setQuery,"Movie, series or IMDb ID",height=48,leading={Icon(Lucide.Search,null,tint=StakTextMuted,modifier=Modifier.size(17.dp))},trailing=if(query.isNotBlank()){{StakIconButton({viewModel.setQuery("")}){Icon(Lucide.X,"Clear discovery search",tint=StakTextMuted,modifier=Modifier.size(16.dp))}}}else null)
             }}
             if(query.isBlank()){
-                StakTabs(listOf("movie" to "Movies","series" to "Series"),type,viewModel::setType,Modifier.padding(horizontal=16.dp))
+                MediaTypeSelector(listOf("movie" to "Movies","series" to "Series"),type,viewModel::setType,Modifier.padding(horizontal=16.dp))
                 Box(Modifier.padding(horizontal=16.dp,vertical=12.dp)){DiscoveryServices(viewModel)}
             }
         }
@@ -83,7 +83,7 @@ import app.stak.nativeapp.ui.theme.*
     LazyVerticalGrid(GridCells.Fixed(3),state=rememberLazyGridState(),contentPadding=PaddingValues(16.dp,4.dp,16.dp,120.dp),horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(18.dp),modifier=Modifier.fillMaxSize().testTag("discover-results")){
         item(span={GridItemSpan(maxLineSpan)}){Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
             Row(verticalAlignment=Alignment.CenterVertically){DiscoverCategoryPicker(category,vm::setCategory);Spacer(Modifier.weight(1f));DiscoverSortMenu(filters.sort){vm.applyFilters(filters.copy(sort=it))}}
-            if(chips.isNotEmpty())LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){items(chips,key={it.first}){(id,label)->StakButton("$label ×",{vm.clearFilter(id)},compact=true)};item{StakButton("Reset",onReset,compact=true,variant=StakButtonVariant.Ghost)}}
+            if(chips.isNotEmpty())LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){items(chips,key={it.first}){(id,label)->if(id=="certification")CertificationFilterChip(label){vm.clearFilter(id)}else StakButton("$label ×",{vm.clearFilter(id)},compact=true)};item{StakButton("Reset",onReset,compact=true,variant=StakButtonVariant.Ghost)}}
             Text("${titles.size} ${if(titles.size==1)"title"else "titles"}",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
             if(filters.imdbRating.isNotBlank())Text("Verified IMDb ratings · unrated titles excluded",fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted)
         }}

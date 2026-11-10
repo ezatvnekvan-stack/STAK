@@ -2,10 +2,15 @@
 
 package app.stak.nativeapp.ui.screens
 
+import app.stak.nativeapp.ui.components.edgeToEdge
+import app.stak.nativeapp.ui.components.MediaTypeSelector
 import app.stak.nativeapp.data.WatchRules
 import app.stak.nativeapp.data.followingMedia
 import app.stak.nativeapp.data.followingUpcomingEvents
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import app.stak.nativeapp.ui.components.recordGlassSource
 import app.stak.nativeapp.ui.components.stakItemMotion
@@ -150,6 +155,7 @@ fun HomeScreen(
     val hasTrakt=!settings.traktClientId.isNullOrBlank()
     val watchIds = remember(watchlist) { watchlist.map { it.mediaKey }.toSet() }
 
+    val showPlainHeader=searchOpen||search.isNotBlank()||feed?.hero.isNullOrEmpty()
     val homeScroll=androidx.compose.foundation.lazy.rememberLazyListState()
     val heroVisible by remember{androidx.compose.runtime.derivedStateOf{homeScroll.layoutInfo.visibleItemsInfo.any{it.key=="home-hero"}}}
     val pairStart=remember(sections){anticipatedPairStart(sections)}
@@ -160,7 +166,8 @@ fun HomeScreen(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        item {
+        if(showPlainHeader)item(key="home-topbar") {
+            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
             HomeTopBar(onOpenAccount = onOpenAccount, torboxConnected = torboxConnected,searchOpen=searchOpen,onSearch={
                 searchOpen=!searchOpen
                 if(!searchOpen){searchViewModel.setQuery("");focus.clearFocus()}
@@ -206,12 +213,14 @@ fun HomeScreen(
             item { RowSkeleton("Trending movies") }
         } else {
             val data = feed!!
-            if (data.hero.isNotEmpty()) item(key="home-hero") {
-                HeroCarousel(data.hero, { onOpenTitle(it, "hero-${it.mediaKey}") }, sharedScope, animatedScope, reducedMotion,autoPlay=heroVisible&&!homeScroll.isScrollInProgress)
+            if (data.hero.isNotEmpty()&&!searchOpen) item(key="home-hero") {
+                HeroCarousel(data.hero, { onOpenTitle(it, "hero-${it.mediaKey}") }, sharedScope, animatedScope, reducedMotion,autoPlay=heroVisible&&!homeScroll.isScrollInProgress,topBar={
+                    HomeTopBar(onOpenAccount,torboxConnected,searchOpen){searchOpen=true}
+                },modifier=Modifier.edgeToEdge())
                 Spacer(Modifier.height(22.dp))
             }
             if(data.hero.isEmpty()&&loading&&!settings.tmdbKey.isNullOrBlank())item(key="home-hero"){
-                ShimmerBox(Modifier.fillMaxWidth().height((androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp*.64f).coerceIn(232f,278f).dp));Spacer(Modifier.height(22.dp))
+                ShimmerBox(Modifier.fillMaxWidth().height(app.stak.nativeapp.ui.components.homeHeroHeight(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp).dp));Spacer(Modifier.height(22.dp))
             }
             if(!hasTrakt&&sections.any{it.enabled&&it.id !in listOf("continue","watchlist","coming_up")&&it.category in listOf("trending","anticipated")})item(key="trakt-setup"){
                 Row(Modifier.fillMaxWidth().padding(bottom=24.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
@@ -226,7 +235,7 @@ fun HomeScreen(
                         val row=data.rows.find{it.id==selectedId}
                         Column{
                             StakSectionHeader("Most anticipated",actionLabel="See all",onAction={onBrowseSection(selectedId)})
-                            app.stak.nativeapp.ui.components.StakTabs(listOf("movie" to "Movies","series" to "Series"),anticipatedType,{anticipatedType=it})
+                            app.stak.nativeapp.ui.components.MediaTypeSelector(listOf("movie" to "Movies","series" to "Series"),anticipatedType,{anticipatedType=it})
                             Spacer(Modifier.height(12.dp))
                             if(loading&&row?.items.isNullOrEmpty()&&row?.error==null)RowSkeleton("")
                             else HomeShelf("",row?.items.orEmpty(),"home-$selectedId",onOpenTitle,{onBrowseSection(selectedId)},sharedScope,animatedScope,error=row?.error,onRetry={viewModel.refresh()},watchIds=watchIds,showHeading=false)
@@ -490,12 +499,8 @@ private fun TonightCard(pool: List<MediaItem>, onOpenTitle: (MediaItem) -> Unit)
             Text("Tonight", fontFamily = DotoFont, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = StakText)
         }
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            listOf("any" to "Any", "movie" to "Movies", "series" to "Series").forEach { (value, label) ->
-                StakChip(label, selected = type == value, onClick = { type = value })
-            }
-            StakChip("≤ 90", selected = short, onClick = { short = !short })
-        }
+        MediaTypeSelector(listOf("any" to "Any", "movie" to "Movies", "series" to "Series"), type, { type = it })
+        StakChip("≤ 90", selected = short, onClick = { short = !short })
         Spacer(Modifier.height(12.dp))
         if (pick == null) {
             Text(

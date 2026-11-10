@@ -57,7 +57,7 @@ fun SearchScreen(viewModel: DiscoverViewModel, onOpenTitle: (MediaItem, String) 
                 }
                 if(notice!=null) { Text(notice.orEmpty(),fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=StakTextMuted);Spacer(Modifier.height(12.dp)) }
                 if(chips.isNotEmpty()) {
-                    LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) { items(chips,key={it.first}) { (id,label)->StakButton("$label ×",{viewModel.clearFilter(id)},compact=true) } }
+                    LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) { items(chips,key={it.first}) { (id,label)->if(id=="certification")CertificationFilterChip(label){viewModel.clearFilter(id)}else StakButton("$label ×",{viewModel.clearFilter(id)},compact=true) } }
                     Spacer(Modifier.height(12.dp))
                 }
                 if(browsing) Text(if(query.isBlank()) "BROWSE · ${items.size}" else "RESULTS: “$query” · ${items.size}",fontFamily=SpaceMonoFont,fontWeight=FontWeight.Bold,fontSize=10.sp,letterSpacing=1.1.sp,color=StakTextMuted)

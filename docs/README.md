@@ -1,4 +1,4 @@
-Current Android release: [1.5.3 — Optional Glyph background and presentation refinements](RELEASE-1.5.3.md).
+Current Android release: [1.5.4 — Cinematic Home/Details and shared controls](RELEASE-1.5.4.md).
 
 
 # Documentation

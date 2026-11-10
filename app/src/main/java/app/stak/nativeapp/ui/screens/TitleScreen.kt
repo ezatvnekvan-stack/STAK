@@ -157,7 +157,7 @@ fun TitleScreen(
     LaunchedEffect(data?.item?.mediaKey,item.season,item.episode) {data?.episodes?.firstOrNull{it.season==item.season&&it.episode==item.episode}?.let{viewModel.selectEpisode(it)}}
     var episodeDialog by remember(media.mediaKey) { mutableStateOf<Episode?>(null) }
     val seasonEpisodes=episodes.filter{it.season==selectedSeason}
-    val topInset = 0.dp // StakApp already reserves the system status bar.
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     val scroll=androidx.compose.foundation.lazy.rememberLazyListState()
     val chromeHaze=remember{HazeState()}
@@ -165,7 +165,8 @@ fun TitleScreen(
     val backgroundStyle=app.stak.nativeapp.ui.components.LocalBackgroundStyle.current
     val backgroundSource=remember(backgroundLayer,backgroundStyle){app.stak.nativeapp.ui.components.GlassSource(backgroundLayer,preBlurred=true,static=backgroundStyle!=app.stak.nativeapp.data.BackgroundStyle.Glyph,hazeState=chromeHaze)}
     val backgroundView=androidx.compose.ui.platform.LocalView.current
-    val stickyThreshold=with(androidx.compose.ui.platform.LocalDensity.current){200.dp.roundToPx()}
+    val artHeight=app.stak.nativeapp.ui.components.detailArtworkHeight(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp).dp
+    val stickyThreshold=with(androidx.compose.ui.platform.LocalDensity.current){(artHeight-40.dp).roundToPx()}
     val showHeader by remember{androidx.compose.runtime.derivedStateOf{scroll.firstVisibleItemIndex>0||scroll.firstVisibleItemScrollOffset>stickyThreshold}}
     val artworkTint=app.stak.nativeapp.ui.components.rememberArtworkTint(media.background ?: media.poster)
     val fallbackMotion=app.stak.nativeapp.ui.components.rememberCinematicMotion()
@@ -178,7 +179,7 @@ fun TitleScreen(
         app.stak.nativeapp.ui.components.ArtworkAtmosphere(atmosphere,Modifier.recordGlassSource(backgroundSource,backgroundView){titlePalette.glow},paused={scroll.isScrollInProgress||showSources||trailerOpen||episodeDialog!=null})
         Column(Modifier.fillMaxSize()) {
         androidx.compose.animation.AnimatedVisibility(visible=showHeader,enter=androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(if(app.stak.nativeapp.ui.components.LocalReducedMotion.current)0 else 160)),exit=androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(if(app.stak.nativeapp.ui.components.LocalReducedMotion.current)0 else 100))){
-            DetailHeader(media.name,chromeHaze,onBack)
+            Column(Modifier.statusBarsPadding()){DetailHeader(media.name,chromeHaze,onBack)}
         }
         LazyColumn(
             state=scroll,modifier = Modifier.fillMaxWidth().weight(1f).testTag("detail-content"),
@@ -225,7 +226,7 @@ fun TitleScreen(
                     }
                 }
                 items(seasonEpisodes,key={"episode:${media.mediaKey}:${it.season}:${it.episode}"},contentType={"episode-row"}){episode->
-                    Box(Modifier.padding(horizontal=16.dp)){DetailEpisodeRow(episode,next=seasonEpisodes.any{it.watched}&&episode==seasonEpisodes.filterNot{it.watched}.minByOrNull{it.episode}){viewModel.selectEpisode(episode);episodeDialog=episode}}
+                    Box(Modifier.padding(horizontal=16.dp).nothingReveal("season-entry:${media.mediaKey}:${episode.season}:${episode.episode}",1)){DetailEpisodeRow(episode,next=seasonEpisodes.any{it.watched}&&episode==seasonEpisodes.filterNot{it.watched}.minByOrNull{it.episode}){viewModel.selectEpisode(episode);episodeDialog=episode}}
                 }
             }
 
@@ -258,27 +259,32 @@ private fun TitleHero(
     sharedKey:String,sharedScope:SharedTransitionScope?,animatedScope:AnimatedVisibilityScope?,parallax:()->Float={0f}
 ){
     val reduced=app.stak.nativeapp.ui.components.LocalReducedMotion.current
-    val heroLayer=androidx.compose.ui.graphics.rememberGraphicsLayer()
-    val heroSource=remember(heroLayer){app.stak.nativeapp.ui.components.GlassSource(heroLayer,static=true)}
-    val heroView=androidx.compose.ui.platform.LocalView.current
-    Box(Modifier.fillMaxWidth().heightIn(min=282.dp)){
-        Box(Modifier.matchParentSize().stakSharedElement(sharedScope,animatedScope,sharedKey).recordGlassSource(heroSource,heroView).graphicsLayer{compositingStrategy=CompositingStrategy.Offscreen}.drawWithCache{
-            val mask=Brush.verticalGradient(0f to Color.White,.42f to Color.White,.70f to Color.White.copy(alpha=.55f),1f to Color.Transparent)
-            onDrawWithContent{drawContent();drawRect(mask,blendMode=BlendMode.DstIn)}
-        }){
-            StakArtwork(media.background?:media.poster,media.name,Modifier.matchParentSize().graphicsLayer{translationY=if(reduced)0f else parallax();scaleX=1.04f;scaleY=1.04f})
-            Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha=.08f),Color.Black.copy(alpha=.22f),Color.Black.copy(alpha=.5f)))))
+    val imageHeight=app.stak.nativeapp.ui.components.detailArtworkHeight(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp).dp
+    Column(Modifier.fillMaxWidth().testTag("detail-hero"),horizontalAlignment=Alignment.CenterHorizontally){
+        Box(Modifier.fillMaxWidth().height(imageHeight).testTag("detail-hero-artwork")){
+            Box(Modifier.matchParentSize().stakSharedElement(sharedScope,animatedScope,sharedKey)
+                .graphicsLayer{compositingStrategy=CompositingStrategy.Offscreen}.drawWithCache{
+                    val mask=Brush.verticalGradient(0f to Color.White,.48f to Color.White,.78f to Color.White.copy(alpha=.65f),1f to Color.Transparent)
+                    onDrawWithContent{drawContent();drawRect(mask,blendMode=BlendMode.DstIn)}
+                }){
+                StakArtwork(media.background?:media.poster,null,Modifier.matchParentSize().graphicsLayer{
+                    translationY=if(reduced)0f else parallax().coerceAtMost(32.dp.toPx())
+                    scaleX=if(reduced)1f else 1.08f;scaleY=scaleX
+                })
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.18f),.4f to Color.Transparent,1f to Color.Black.copy(alpha=.68f))))
+            }
+            app.stak.nativeapp.ui.components.StakIconButton(onBack,Modifier.align(Alignment.TopStart).padding(start=12.dp,top=topInset+8.dp)){
+                Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back",tint=StakText,modifier=Modifier.size(21.dp))
+            }
+            val logo=details?.logo?:media.logo
+            var logoFailed by remember(logo){mutableStateOf(false)}
+            Box(Modifier.align(Alignment.BottomCenter).padding(horizontal=28.dp).padding(bottom=14.dp)
+                .fillMaxWidth().heightIn(min=72.dp).nothingReveal("title-brand:${media.mediaKey}",1).testTag("detail-title-brand"),contentAlignment=Alignment.Center){
+                if(logo!=null&&!logoFailed)AsyncImage(logo,media.name,onError={logoFailed=true},contentScale=ContentScale.Fit,alignment=Alignment.Center,modifier=Modifier.widthIn(max=300.dp).fillMaxWidth().height(80.dp))
+                else Text(media.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=30.sp,lineHeight=36.sp,color=StakText,maxLines=3,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+            }
         }
-        app.stak.nativeapp.ui.components.MatteSurface(source=heroSource,modifier=Modifier.align(Alignment.TopStart).padding(start=16.dp,top=topInset+12.dp).size(44.dp).clip(CircleShape).clickable{onBack()}){
-            Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back",tint=StakText,modifier=Modifier.align(Alignment.Center).size(18.dp))
-        }
-        Column(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=158.dp,bottom=12.dp).nothingReveal("title-copy:${media.mediaKey}",1),verticalArrangement=Arrangement.spacedBy(8.dp)){
-            var logoFailed by remember(details?.logo){mutableStateOf(false)}
-            if(details?.logo!=null&&!logoFailed)AsyncImage(details.logo,media.name,onError={logoFailed=true},contentScale=ContentScale.Fit,modifier=Modifier.widthIn(max=248.dp).height(54.dp))
-            else Text(media.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=28.sp,lineHeight=33.sp,color=StakText,maxLines=3,overflow=TextOverflow.Ellipsis)
-            Spacer(Modifier.height(4.dp))
-            TitleMetadata(media,details)
-        }
+        TitleMetadata(media,details,Modifier.padding(horizontal=20.dp).padding(top=2.dp,bottom=18.dp).nothingReveal("title-copy:${media.mediaKey}",2))
     }
 }
 
