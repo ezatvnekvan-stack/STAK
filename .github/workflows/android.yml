@@ -30,6 +30,13 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:testDebugUnitTest :app:testPreviewUnitTest :app:assemblePreview --no-daemon --console=plain
+      - name: Preserve JVM failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-failure-reports
+          path: app/build/test-results/**/TEST-*.xml
+          retention-days: 3
   server:
     runs-on: ubuntu-latest
     timeout-minutes: 10

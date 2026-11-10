@@ -38,3 +38,6 @@ SHA-256: 5513063544ec1b3d1197bdb3ee78665a578b3d9939d6d89b4a1e2216b45754c1
 Certificate SHA-256: bd9c33ebf4a4a62fc034cbb363635ed8d4d55f081ce43fcaff59706d2230c430
 
 Workflow finish was attempted; Windows retained locked temporary 0001.log (WinError32). Build/test results are unaffected; temporary-log deletion is not claimed. Next distributable versionCode: 76+.
+
+### CI portability follow-up
+Initial GitHub Linux validation passed all server tests but failed the legacy watcher dropout fixture. The test previously closed an ephemeral listener before further HTTP requests. It now keeps ownership of the port and closes accepted real TCP connections to deterministically simulate interruption; all existing pending-state, no-false-confirmation and readable-error assertions remain. Production code/APK is unchanged. Failure-only JVM XML artifacts now aid CI diagnosis. Managed question: "Does real TCP interruption preserve pending watcher rules and readable errors without relying on ephemeral port reuse?" PASS in debug and preview round-trip suites.

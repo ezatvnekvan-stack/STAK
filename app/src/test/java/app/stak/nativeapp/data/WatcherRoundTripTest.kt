@@ -28,6 +28,7 @@ class WatcherRoundTripTest {
         val rules=LinkedHashMap<String,JsonObject>()
         val episodeRows=LinkedHashMap<String,MutableList<JsonObject>>()
         val calls=MutableList(0){Triple("","","")}
+        @Volatile var dropConnections=false
         private lateinit var server:ServerSocket
         private val pool=Executors.newFixedThreadPool(2)
         lateinit var base:String;private set
@@ -45,6 +46,7 @@ class WatcherRoundTripTest {
         fun rulesOnServerCount():Int=rules.size
 
         private fun serve(client:Socket){
+            if(dropConnections){client.close();return} // real TCP dropout; port remains owned by this fixture
             client.use{socket->
                 val input=socket.getInputStream().buffered()
                 val requestLine=input.readLine()?:return@use
@@ -195,11 +197,11 @@ class WatcherRoundTripTest {
         stub.start();val persistence=paired()
         try{
             WatchRules.saveRule(rule(),consent=true,persistence=persistence,clientFactory=clientFactory())
-            stub.stop() // the watcher went offline
+            stub.dropConnections=true // preserve ownership of the ephemeral port while interrupting real HTTP
             WatchRules.setPaused(key,true,persistence=persistence,clientFactory=clientFactory())
             val issue=WatchRules.issue.value
             assertNotNull("The dropout must be explained to the user",issue)
-            assertTrue(issue!!.lowercase().contains("watcher"))
+            assertTrue("Expected a watcher connection explanation, got: $issue",issue!!.lowercase().contains("watcher"))
             assertTrue(issue.none{it.code<32}) // readable text, no control characters
             // An unacknowledged pause remains visible as pending.
             assertEquals(WatchRuleModel.STATE_SAVED_LOCAL,persistence.doc.rules.single().state)
@@ -207,7 +209,7 @@ class WatcherRoundTripTest {
             val offline=WatchRules.saveRule(
                 rule().copy(ruleId=watchRuleIdFor("tvdb:1"),seriesTvdb="1",seriesName="Other Series"),
                 consent=true,persistence=persistence,clientFactory=clientFactory())
-            assertFalse(offline.confirmed)
+            assertFalse("A dropped connection must never confirm a rule",offline.confirmed)
             assertEquals(WatchRuleModel.STATE_SAVED_LOCAL,offline.rule.state)
         }finally{try{stub.stop()}catch(_:Exception){}}
     }
