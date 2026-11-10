@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import com.skydoves.flexible.bottomsheet.material3.FlexibleBottomSheet
 import com.skydoves.flexible.core.*
 import dev.chrisbanes.haze.HazeState
@@ -75,59 +76,44 @@ import kotlinx.coroutines.launch
     }) {
         app.stak.nativeapp.ui.components.SmoothDialogWindow()
         val sheetContentView=androidx.compose.ui.platform.LocalView.current
-        if(manageSources)Box(Modifier.fillMaxWidth().height(panelHeight)){SourcesSettings(onBack={manageSources=false;refresh()})} else LazyColumn(Modifier.fillMaxWidth().height(panelHeight).recordGlassSource(sheetSource,sheetContentView).background(Color(0xFF101010)),contentPadding=PaddingValues(14.dp,6.dp,14.dp,32.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+        if(manageSources)Box(Modifier.fillMaxWidth().height(panelHeight)){SourcesSettings(onBack={manageSources=false;refresh()})} else LazyColumn(Modifier.fillMaxWidth().height(panelHeight).recordGlassSource(sheetSource,sheetContentView).background(Color(0xFF101010)),contentPadding=PaddingValues(14.dp,6.dp,14.dp,32.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             item {
                 Row(horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.CenterVertically) {
-                    AsyncImage(media.poster,null,contentScale=ContentScale.Crop,modifier=Modifier.width(44.dp).height(64.dp).clip(RoundedCornerShape(7.dp)).background(StakSurface))
+                    AsyncImage(media.poster,null,contentScale=ContentScale.Crop,modifier=Modifier.width(34.dp).height(50.dp).clip(RoundedCornerShape(7.dp)).background(StakSurface))
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-                        Text(media.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=19.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
+                        Text(media.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=17.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
                         Text(listOfNotNull(media.year,if(media.isSeries)"Series" else "Movie",media.runtime).joinToString(" · "),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
-                        Text(if(media.isSeries)"S$season · ${if(packs)"Season pack" else "E${episode?.episode ?: 1}"}" else media.genres.take(2).joinToString(" · "),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
+
                     }
-                    Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                    Row {
                         SourceCircle(Lucide.X,"Close",onDismiss)
                         SourceCircle(Lucide.Refresh,"Refresh torrent sources",::refresh,!loading&&!checking)
                     }
                 }
-                Row(Modifier.fillMaxWidth().padding(top=8.dp),verticalAlignment=Alignment.CenterVertically){
-                    Text(activeAddons.ifBlank{"No sources enabled"},fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted,modifier=Modifier.weight(1f),maxLines=1,overflow=TextOverflow.Ellipsis)
-                    StakButton("Sources",{manageSources=true},variant=StakButtonVariant.Ghost,compact=true,icon=Lucide.Radio)
-                }
-                Spacer(Modifier.height(8.dp));HorizontalDivider(color=Color(0x10FFFFFF))
             }
             if(media.isSeries)item {
                 val seasons=(viewModel.detail.value?.seasons.orEmpty()+episodes.map{it.season}+season).distinct().sorted()
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                    Text("SEASON",fontFamily=SpaceMonoFont,fontSize=11.sp,letterSpacing=1.sp,color=StakTextMuted)
                     SourceSelect("Season $season",seasons.map{it.toString() to "Season $it"},{viewModel.selectSeason(it.toInt())},Modifier.weight(1f),true)
                 }
-                Spacer(Modifier.height(8.dp));Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    SourceChip("SEASON PACKS",packs,{viewModel.setPackMode(true)})
-                    SourceChip("EPISODE",!packs,{viewModel.setPackMode(false)})
-                }
+                Spacer(Modifier.height(6.dp))
+                StakTabs(listOf("packs" to "Season packs","episode" to "Episode"),if(packs)"packs"else "episode",{viewModel.setPackMode(it=="packs")})
                 if(!packs){Spacer(Modifier.height(8.dp));SourceSelect("E${episode?.episode ?: 1}",episodes.filter{it.season==season}.map{it.episode.toString() to "E${it.episode} · ${it.name}"},{number->episodes.firstOrNull{it.season==season&&it.episode.toString()==number}?.let{viewModel.selectEpisode(it)}},Modifier.fillMaxWidth(),true)}
             }
             item {
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
                     listOf("2160p" to "4K","1080p" to "1080P").forEach{(value,label)->SourceChip("$label ${all.count{it.resolution==value&&(!filters.cachedOnly||it.infoHash in cached)}}",filters.resolution==value,{filters=filters.copy(resolution=if(filters.resolution==value)"All" else value)},Lucide.Monitor)}
-                    Spacer(Modifier.weight(1f));SourceCircle(Lucide.Sliders,"Filters and sorting",{advanced=true})
+                    Spacer(Modifier.weight(1f));SourceCircle(Lucide.Radio,"Source providers",{manageSources=true});SourceCircle(Lucide.Sliders,"Filters and sorting",{advanced=true})
                 }
-                Spacer(Modifier.height(14.dp));Row(horizontalArrangement=Arrangement.spacedBy(7.dp)) {
+                Spacer(Modifier.height(8.dp));Row(horizontalArrangement=Arrangement.spacedBy(7.dp)) {
                     SourceChip("HDR",filters.hdr,{filters=filters.copy(hdr=!filters.hdr)},Lucide.Sun,Modifier.weight(1f))
                     SourceChip("ATMOS",filters.atmos,{filters=filters.copy(atmos=!filters.atmos)},Lucide.Volume,Modifier.weight(1f))
                     SourceChip("WEB-DL",filters.webdl,{filters=filters.copy(webdl=!filters.webdl)},Lucide.Globe,Modifier.weight(1.25f))
                     SourceChip("REMUX",filters.remux,{filters=filters.copy(remux=!filters.remux)},Lucide.Layers,Modifier.weight(1.2f))
                 }
-                Spacer(Modifier.height(18.dp));Row(verticalAlignment=Alignment.CenterVertically) {
+                Spacer(Modifier.height(8.dp));Row(verticalAlignment=Alignment.CenterVertically) {
                     Text("${shown.size} ${if(filters.cachedOnly)"cached " else ""}releases",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=16.sp,color=StakTextMuted,modifier=Modifier.weight(1f))
                     SourceSelect(when(filters.sort){"size"->"Largest size";else->"Quality first"},listOf("best" to "Quality first","size" to "Largest size"),{filters=filters.copy(sort=it)})
-                }
-            }
-            if(media.isSeries&&packs)item {
-                val hidden=filteredSources(all,cached,filters,season,false,true).count{!seasonPackMatches(it.name,season)}
-                Row(verticalAlignment=Alignment.CenterVertically) {
-                    Text(if(showAll)"All matching releases" else "$hidden single episodes hidden",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=16.sp,color=StakTextMuted,modifier=Modifier.weight(1f))
-                    Text(if(showAll)"Packs only" else "Show all",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakText,modifier=Modifier.clickable{showAll=!showAll}.padding(vertical=10.dp))
                 }
             }
             if(key.isBlank())item {Text("Set your TorBox API key in Settings to check cache and add torrents.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted);StakButton("Configure TorBox",{onDismiss();onOpenSettings()})}
@@ -147,6 +133,13 @@ import kotlinx.coroutines.launch
                     if(torrentId!=null){fileId=torrentId;files=emptyList();fileBusy=true;fileError=null;scope.launch{try{files=DirectServices.torrents(key).firstOrNull{it.id==torrentId}?.files.orEmpty()}catch(cancelled:CancellationException){throw cancelled}catch(_:Exception){fileError="Could not load the added release. Open your TorBox library or retry."}finally{fileBusy=false}}}
 
                 },canAdd=key.isNotBlank()&&source.canImport&&source.infoHash in cached,suggested=index==0&&filters.sort=="best",season=if(media.isSeries)season else null,episodeCount=episodes.count{it.season==season},onInspect={qualityReport=sourceQualityReport(source.copy(cached=source.infoHash in cached))})
+            }
+            if(media.isSeries&&packs)item {
+                val hidden=filteredSources(all,cached,filters,season,false,true).count{!seasonPackMatches(it.name,season)}
+                Row(verticalAlignment=Alignment.CenterVertically) {
+                    Text(if(showAll)"All matching releases" else "Show individual episodes ($hidden)",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=16.sp,color=StakTextMuted,modifier=Modifier.weight(1f))
+                    Text(if(showAll)"Packs only" else "Show all",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakText,modifier=Modifier.clickable{showAll=!showAll}.padding(vertical=10.dp))
+                }
             }
         }
     }
@@ -172,7 +165,12 @@ import kotlinx.coroutines.launch
 }
 
 @Composable private fun SourceChip(label:String,selected:Boolean,onClick:()->Unit,icon:ImageVector?=null,modifier:Modifier=Modifier) {
-    StakChip(label,selected,onClick,modifier,leading=if(icon==null)null else {{Icon(icon,null,tint=StakTextMuted,modifier=Modifier.size(14.dp))}})
+    if(label in listOf("HDR","ATMOS","WEB-DL","REMUX")){
+        Box(modifier.heightIn(min=44.dp).clip(RoundedCornerShape(9.dp)).then(if(selected)Modifier.border(1.dp,StakTextSoft,RoundedCornerShape(9.dp))else Modifier).semantics{this.selected=selected}.clickable(onClick=onClick).padding(horizontal=2.dp),contentAlignment=Alignment.Center){
+            FormatBadge(if(label=="ATMOS")"Atmos"else label)
+            if(selected)Box(Modifier.align(Alignment.BottomCenter).padding(bottom=2.dp).size(3.dp).background(StakAccent,CircleShape))
+        }
+    }else StakChip(label,selected,onClick,modifier,leading=if(icon==null)null else {{Icon(icon,null,tint=StakTextMuted,modifier=Modifier.size(14.dp))}})
 }
 
 @Composable private fun SourceSelect(label:String,options:List<Pair<String,String>>,onSelect:(String)->Unit,modifier:Modifier=Modifier,outlined:Boolean=false) {
@@ -190,31 +188,31 @@ import kotlinx.coroutines.launch
     Text(label,fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=13.sp,color=StakTextMuted,modifier=Modifier.border(1.dp,Color(0x24FFFFFF),RoundedCornerShape(7.dp)).padding(horizontal=7.dp,vertical=4.dp))
 }
 
-@Composable private fun SourceReleaseCard(source:SourceRelease,cached:Boolean,added:Boolean,adding:Boolean,onAdd:()->Unit,onFiles:()->Unit,canAdd:Boolean,suggested:Boolean,season:Int?,episodeCount:Int,onInspect:()->Unit) {
+@Composable internal fun SourceReleaseCard(source:SourceRelease,cached:Boolean,added:Boolean,adding:Boolean,onAdd:()->Unit,onFiles:()->Unit,canAdd:Boolean,suggested:Boolean,season:Int?,episodeCount:Int,onInspect:()->Unit) {
+    var expanded by remember(source.sourceIdentity){mutableStateOf(false)}
     val pack=season!=null&&seasonPackMatches(source.name,season)
-    Column(Modifier.fillMaxWidth().background(Color(0xFF111111),RoundedCornerShape(12.dp)).border(1.dp,if(suggested)Color(0xFFAAAAAA) else Color(0x30FFFFFF),RoundedCornerShape(12.dp)).padding(15.dp)) {
-        if(suggested) {Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){Icon(Lucide.Sparkles,null,tint=StakTextMuted,modifier=Modifier.size(13.dp));Text("Best quality",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakText)};Spacer(Modifier.height(10.dp))}
-        if(suggested)Text(sourceQualitySummary(source),fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted,modifier=Modifier.padding(bottom=8.dp))
-        Text(source.name.replace('.', ' ').replace('_',' '),fontFamily=HankenFont,fontWeight=FontWeight.Bold,fontSize=14.sp,lineHeight=21.sp,color=StakText,maxLines=3,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        Spacer(Modifier.height(10.dp))
-        FlowRow(horizontalArrangement=Arrangement.spacedBy(7.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-            SourceTag(if(source.resolution=="2160p")"4K" else source.resolution.uppercase())
-            if(source.hdr)SourceTag("HDR");if(source.dolbyVision)SourceTag("DOLBY VISION");if(source.webdl)SourceTag("WEB-DL");if(source.atmos)SourceTag("ATMOS");if(source.remux)SourceTag("REMUX")
-            (if(pack)source.torrentSizeBytes else source.sizeBytes)?.let{Text("%.2f GB".format(java.util.Locale.US,it/1073741824.0),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)}
-            if(pack&&source.torrentSizeBytes==null)Text("Pack size unavailable",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
-            if(season!=null&&seasonPackMatches(source.name,season)) {SourceTag("S%02d PACK".format(season))}
+    val bytes=if(pack)source.torrentSizeBytes else source.sizeBytes
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFF151515)).border(1.dp,if(suggested)Color(0xFF797979)else Color(0x2AFFFFFF),RoundedCornerShape(14.dp)).clickable{expanded=!expanded}.padding(13.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
+            Text(sourceQualityHeading(source),Modifier.weight(1f),fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=16.sp,color=StakText)
+            Text(bytes?.let{"%.2f GB".format(java.util.Locale.US,it/1073741824.0)}?:"Size unknown",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
         }
-        Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.weight(1f).padding(vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                Icon(Lucide.Zap,null,modifier=Modifier.size(15.dp),tint=if(cached)Color(0xFF8BE0B9) else StakTextMuted)
-                Text(if(cached)"Cached on TorBox" else "Cache unconfirmed",fontFamily=SpaceMonoFont,fontWeight=FontWeight.Medium,fontSize=11.sp,lineHeight=15.sp,color=if(cached)Color(0xFFB9D3C6) else StakTextMuted)
-            }
-            SourceCircle(Lucide.Film,"Inspect release",onInspect)
-            if(added)StakIconButton(onFiles,Modifier.semantics{contentDescription="View files"}){StakLottie(StakAnimation.Success,Modifier.size(32.dp))}
-            else if(adding)Box(Modifier.size(44.dp),contentAlignment=Alignment.Center){StakLottie(StakAnimation.Search,Modifier.size(28.dp),loop=true)}
-            else SourceCircle(Lucide.Plus,"Add to TorBox",onAdd,canAdd)
+        FlowRow(horizontalArrangement=Arrangement.spacedBy(5.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+            releaseBadges(source).forEach{FormatBadge(it)}
         }
-        source.indexer?.let{Text(it,fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=13.sp,color=StakTextMuted,modifier=Modifier.padding(top=7.dp))}
+        Text(source.name.replace('_',' '),fontFamily=HankenFont,fontSize=12.sp,lineHeight=17.sp,color=StakTextSoft,maxLines=2,overflow=TextOverflow.Ellipsis)
+        if(pack)Text("Season $season pack",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
+        if(suggested)Text("Recommended",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
+        NothingExpand(expanded){Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
+            Text(source.name,fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=17.sp,color=StakText)
+            source.indexer?.let{Text(it,fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted)}
+            StakButton("Release details",onInspect,compact=true)
+        }}
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            Icon(Lucide.Zap,null,tint=if(cached)Color(0xFFB9D3C6)else StakTextMuted,modifier=Modifier.size(14.dp))
+            Text(if(cached)"Cached on TorBox"else "Cache unconfirmed",Modifier.weight(1f),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=if(cached)Color(0xFFB9D3C6)else StakTextMuted)
+            if(adding)StakLottie(StakAnimation.Search,Modifier.size(24.dp),loop=true)
+            StakButton(if(added)"Added · Files"else if(adding)"Adding…"else "Add",if(added)onFiles else onAdd,compact=true,enabled=added||(!adding&&canAdd),icon=if(added)Lucide.Check else Lucide.Plus)
+        }
     }
 }

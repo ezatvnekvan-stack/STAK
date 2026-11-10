@@ -1,3 +1,5 @@
+Current Android release: [1.5.0 — Following, Sources and Activity](RELEASE-1.5.0.md).
+
 # Documentation
 
 ## Current

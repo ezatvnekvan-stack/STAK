@@ -49,7 +49,6 @@ import kotlinx.coroutines.launch
     val paired=doc.connection.enabled&&doc.connection.url.isNotBlank()&&doc.connection.token.isNotBlank()
     val scope=rememberCoroutineScope()
     val owner=LocalLifecycleOwner.current
-    var filter by rememberSaveable{mutableStateOf("all")}
     var query by rememberSaveable{mutableStateOf("")}
     var selected by rememberSaveable{mutableStateOf<String?>(null)}
     var editing by remember{mutableStateOf<WatchRuleModel?>(null)}
@@ -59,47 +58,32 @@ import kotlinx.coroutines.launch
             while(true){WatchRules.refresh();now=System.currentTimeMillis();delay(60000)}
         }
     }
-    val attention=doc.rules.count{watchNeedsAttention(it,statuses[it.ruleId])}
-    val progress=doc.rules.count{watchInProgress(it,statuses[it.ruleId])}
-    val shown=displayRules.filter { rule ->
-        rule.seriesName.contains(query,true)&&when(filter){
-            "progress"->watchInProgress(rule,statuses[rule.ruleId])
-            "attention"->watchNeedsAttention(rule,statuses[rule.ruleId])||issue!=null
-            else->true
-        }
-    }.sortedWith(compareByDescending<WatchRuleModel>{watchNeedsAttention(it,statuses[it.ruleId])}.thenBy{it.seriesName.lowercase()})
+    val shown=displayRules.filter{it.seriesName.contains(query,true)}
+        .sortedWith(compareByDescending<WatchRuleModel>{watchNeedsAttention(it,statuses[it.ruleId])}.thenBy{it.seriesName.lowercase()})
     LibraryRefresh(busy,{scope.launch{WatchRules.refresh()}},paired){
         LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp,22.dp,16.dp,120.dp),verticalArrangement=Arrangement.spacedBy(0.dp)){
             item(key="header"){
                 Column(Modifier.nothingReveal("autoadd-header")){
                     LibraryHeader(onMediaCenter){close->DropdownMenuItem(text={Text("STAK Server settings")},onClick={close();onSettings()})}
                     Spacer(Modifier.height(10.dp))
-                    StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Series"),"autoadd",{when(it){"jellyfin"->onLibrary();"torbox"->onTorBox()}},Modifier.fillMaxWidth())
+                    StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Following"),"autoadd",{when(it){"jellyfin"->onLibrary();"torbox"->onTorBox()}},Modifier.fillMaxWidth())
                     Spacer(Modifier.height(20.dp))
-                    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-                        Text("AUTO-ADD",fontFamily=DotoFont,fontWeight=FontWeight.Bold,fontSize=22.sp,color=StakText,modifier=Modifier.weight(1f))
-                        StakIconButton(onSettings){Icon(Lucide.Settings,"STAK Server settings",tint=StakTextMuted,modifier=Modifier.size(19.dp))}
-                    }
-                    Text("${doc.rules.size} series · $progress in progress · ${if(issue!=null)"Connection needs attention" else "$attention need attention"}",fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=StakTextMuted)
+                    Text("${doc.rules.size} followed series",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)
                     Spacer(Modifier.height(12.dp))
                     if(!paired){
                         AutoAddMessage("Connect your watcher","Pair once to manage automatic cached-only additions.","Set up",onSettings)
                     }else if(issue!=null){
                         AutoAddMessage("Watcher could not update","Showing the last known state. Your server may still be running.","Connection settings",onSettings)
-                    }else{
-                        Text("Runs on STAK Server · Live status refreshes here",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
                     }
                     Spacer(Modifier.height(14.dp))
-                    StakTextField(query,{query=it},"Search auto-added series",height=46)
-                    Spacer(Modifier.height(10.dp))
-                    StakSegmented(listOf("all" to "All","progress" to "In progress","attention" to "Needs attention"),filter,{filter=it},Modifier.fillMaxWidth(),fillWidth=true)
+                    StakTextField(query,{query=it},"Search followed series",height=46)
                     Spacer(Modifier.height(14.dp))
                 }
             }
             if(shown.isEmpty())item(key="empty"){
-                Column(Modifier.padding(vertical=28.dp).nothingReveal("autoadd-empty:$filter"),verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Column(Modifier.padding(vertical=28.dp).nothingReveal("autoadd-empty"),verticalArrangement=Arrangement.spacedBy(10.dp)){
                     Text(if(doc.rules.isEmpty())"Your series, automatically" else "Nothing here",fontFamily=DotoFont,fontSize=21.sp,color=StakText)
-                    Text(if(doc.rules.isEmpty())"Open a series and choose Auto-add. You decide the quality; only cached releases can be added." else "No series match this search or filter.",fontFamily=HankenFont,fontSize=13.sp,lineHeight=20.sp,color=StakTextMuted)
+                    Text(if(doc.rules.isEmpty())"Open a series and choose Auto-add. You decide the quality; only cached releases can be added." else "No series match this search.",fontFamily=HankenFont,fontSize=13.sp,lineHeight=20.sp,color=StakTextMuted)
                 }
             }
             items(shown,key={it.ruleId}){rule->
@@ -143,11 +127,8 @@ private fun ruleMedia(rule:WatchRuleModel)=MediaItem(id=rule.seriesImdb?:rule.se
                     Text(rule.seriesName,Modifier.weight(1f),fontFamily=HankenFont,fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
                     AutoAddBadge(autoAddMode(rule),watchNeedsAttention(rule,status))
                 }
-                Text(watchQuality(rule),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted,maxLines=2,overflow=TextOverflow.Ellipsis)
-                Text(when{rule.pendingAction=="off"->"Stop requested · awaiting confirmation";rule.state!=WatchRuleModel.STATE_SERVER_CONFIRMED->"Changes have not been confirmed";rule.paused->"Automatic additions are paused";featured!=null->"${featured.label} · ${watchStatusLabel(featured.status)}";else->"Waiting for the first episode update"},
-                    fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=StakText)
-                if(featured!=null&&rule.pendingAction==null&&!rule.paused&&featured.status in setOf("waiting_release_match","connection_unavailable"))Text(watchEpisodeReason(featured),fontFamily=HankenFont,fontSize=11.sp,lineHeight=17.sp,color=StakTextMuted,maxLines=2,overflow=TextOverflow.Ellipsis)
-                Text("Updated: ${watchRelative(status?.fetchedAt?:0L,now)}",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
+                Text(followingSummary(rule,status,episodes),fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=StakTextMuted,maxLines=2,overflow=TextOverflow.Ellipsis)
+
             }
             Icon(Lucide.ChevronRight,null,tint=StakTextMuted,modifier=Modifier.padding(top=4.dp).size(16.dp))
         }

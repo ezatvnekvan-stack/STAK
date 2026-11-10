@@ -52,7 +52,7 @@ import coil.compose.AsyncImage
                     DropdownMenuItem(text={Text("Refresh library")},onClick={close();refresh()})
                     DropdownMenuItem(text={Text("Connection settings")},onClick={close();onOpenAccount()})
                 }
-                Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Series"),"jellyfin",{if(it=="torbox")onOpenTorBox() else if(it=="autoadd")onOpenAutoAdd()},Modifier.fillMaxWidth())
+                Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Following"),"jellyfin",{if(it=="torbox")onOpenTorBox() else if(it=="autoadd")onOpenAutoAdd()},Modifier.fillMaxWidth())
                 Spacer(Modifier.height(14.dp))
                 if(connected) {
                     LibrarySearch(filters.query,{viewModel.setFilters(filters.copy(query=it))},{options=true})

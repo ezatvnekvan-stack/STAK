@@ -2,6 +2,10 @@
 
 package app.stak.nativeapp.ui.screens
 
+import app.stak.nativeapp.data.WatchRules
+import app.stak.nativeapp.data.followingMedia
+import app.stak.nativeapp.data.followingUpcomingEvents
+
 import androidx.compose.foundation.shape.RoundedCornerShape
 import app.stak.nativeapp.ui.components.recordGlassSource
 import app.stak.nativeapp.ui.components.stakItemMotion
@@ -130,6 +134,9 @@ fun HomeScreen(
     val focus=androidx.compose.ui.platform.LocalFocusManager.current
     androidx.activity.compose.BackHandler(enabled=searchOpen||search.isNotBlank()){searchViewModel.setQuery("");searchOpen=false;focus.clearFocus()}
 
+    val followingRevision by WatchRules.revision.collectAsState()
+    val followingRules=remember(followingRevision){WatchRules.store.read().rules}
+    val followingTitles=remember(followingRules){followingMedia(followingRules)}
     val comingFeed by viewModel.comingUp.collectAsState()
     val comingLoading by viewModel.comingLoading.collectAsState()
     val comingError by viewModel.comingError.collectAsState()
@@ -138,8 +145,8 @@ fun HomeScreen(
     LaunchedEffect(lifecycle){lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(true){today=java.time.LocalDate.now();delay(60_000)}}}
     val comingEnabled=sections.any{it.id=="coming_up"&&it.enabled}
     val tmdbKey=settings.tmdbKey.orEmpty()
-    LaunchedEffect(watchlist,tmdbKey,today,comingEnabled){viewModel.refreshUpcoming(if(comingEnabled)watchlist else emptyList(),today)}
-    val comingEvents=remember(comingFeed,today){comingFeed?.let{app.stak.nativeapp.data.upcomingHomeEvents(it,today)}.orEmpty()}
+    LaunchedEffect(followingTitles,tmdbKey,today,comingEnabled){viewModel.refreshUpcoming(if(comingEnabled)followingTitles else emptyList(),today)}
+    val comingEvents=remember(comingFeed,followingRules,today){comingFeed?.let{followingUpcomingEvents(it,followingRules,today)}.orEmpty()}
     val hasTrakt=!settings.traktClientId.isNullOrBlank()
     val watchIds = remember(watchlist) { watchlist.map { it.mediaKey }.toSet() }
 
@@ -241,8 +248,8 @@ fun HomeScreen(
                         }
                         Spacer(Modifier.height(24.dp))
                     }
-                    "coming_up" -> if(watchlist.isNotEmpty()&&(comingEvents.isNotEmpty()||comingLoading||comingError!=null||comingFeed?.issues?.isNotEmpty()==true))item(key="coming-up"){
-                        ComingUpShelf(comingEvents,today,comingLoading,comingError ?: comingFeed?.issues?.takeIf{it.isNotEmpty()}?.let{"Some release dates could not load."},{viewModel.refreshUpcoming(watchlist,today,true)}){onOpenTitle(it,"coming-${it.mediaKey}")}
+                    "coming_up" -> if(comingEvents.isNotEmpty())item(key="coming-up"){
+                        ComingUpShelf(comingEvents,today,comingLoading,comingError ?: comingFeed?.issues?.takeIf{it.isNotEmpty()}?.let{"Some release dates could not load."},{viewModel.refreshUpcoming(followingTitles,today,true)}){onOpenTitle(it,"coming-${it.mediaKey}")}
                     }
                     "watchlist" -> if (watchlist.isNotEmpty()) item {
                         HomeShelf("Your watchlist", watchlist, "home-watchlist", onOpenTitle, onOpenWatchlist, sharedScope, animatedScope, showProgress = false, watchIds = watchIds)

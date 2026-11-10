@@ -54,10 +54,10 @@ class AutoAddOverviewUiTest {
         seed()
         compose.setContent{StakTheme{AutoAddOverviewScreen({},{},{},refreshEnabled=false)}}
         compose.onNodeWithText("Carrie").assertIsDisplayed()
-        compose.onNodeWithText("S01E04 · Waiting for TorBox cache").assertIsDisplayed()
+        compose.onNodeWithText("FOLLOWING").assertIsDisplayed()
         capture("overview")
-        compose.onNodeWithText("IN PROGRESS").performClick()
-        compose.onNodeWithText("Common Side Effects").assertDoesNotExist()
+        compose.onNodeWithText("IN PROGRESS").assertDoesNotExist()
+        compose.onNodeWithText("Common Side Effects").assertExists()
         compose.onNodeWithText("Carrie").performClick()
         compose.onNodeWithText("S01E04").performClick()
         compose.onAllNodesWithText("A release must be cached before it can be added.").onLast().assertIsDisplayed()

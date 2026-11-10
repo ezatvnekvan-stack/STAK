@@ -90,7 +90,7 @@ import java.time.*
         }
         if(tab=="watching"){
             item(key="controls"){
-                TrackingSection("IN PROGRESS")
+                TrackingSection("CONTINUE WATCHING")
                 if(search){StakTextField(query,{query=it},"Search Watching",height=44);Spacer(Modifier.height(8.dp))}
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("all" to "All","movie" to "Movies","series" to "Series").forEach{(value,label)->StakChip(label,type==value,{type=value})}}
             }
@@ -101,11 +101,10 @@ import java.time.*
                 if(account=="local")StakButton("Connect Jellyfin",onOpenAccount)
             }
             items(visible,key={"watching:${it.key}"}){row->WatchingTitleRow(row,onOpen={if(row.media.isSeries&&row.series!=null)episodes=row.media else onOpenTitle(row.media)},onMark={},onMenu={title=row.media})}
-            item(key="recent-heading"){Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){TrackingSection("WATCH HISTORY");Spacer(Modifier.weight(1f));TextButton(onClick={history()}){Text("View all",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft)}}}
+            item(key="activity-grid"){WatchingActivityGrid(entries,today,onOpenTitle,{stats()})}
+            item(key="recent-heading"){Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){TrackingSection("RECENTLY WATCHED");Spacer(Modifier.weight(1f));TextButton(onClick={history()}){Text("View all",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft)}}}
             if(recent.isEmpty())item{Text("No Jellyfin history yet.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)}
             else item(key="recent-rail"){LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.semantics{contentDescription="Recent viewing cards"}){items(recent,key={it.id}){group->RecentlyWatchedCard(group){if(group.first.isEpisode)history()else onOpenTitle(group.first.media)}}}}
-            item(key="month"){WatchingMonthSummary(month,recent.firstOrNull()?.first?.media,today){stats()}}
-            item(key="habits"){WatchingHabits(entries,today){stats("week")}}
         }else if(tab=="calendar")item{ReleaseCalendar(trackedCalendar,prefs,{viewModel.preferences(it)},onOpenTitle,calendarViewModel)}
         else{
             item(key="period"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){DiscoverySelect("",period,listOf("week" to "Last 7 days","this_month" to "This month","all" to "All time"),{viewModel.preferences(prefs.copy(period=it))},Modifier.width(165.dp),accessibilityLabel="Tracking period")}}

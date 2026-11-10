@@ -1,3 +1,11 @@
+# 1.5.0 (code75)
+
+- Simplified rule-only Following in Library.
+- Compact Find Sources, Nothing format marks and explicit Add feedback.
+- Coming Up from Auto-add series only.
+- Twelve-week daily activity grid and cleaner monthly release calendar.
+- Existing original signing, account isolation, passive tracking and cached-only protections retained.
+
 # 1.4.0 (Android code70)
 
 - Library Series tab replaces the Auto-add entry point with a unified series list: library titles and existing Auto-add rules, search, library/automation/attention filters.

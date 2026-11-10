@@ -2,11 +2,11 @@
 
 Native Android media companion built with **Kotlin and Jetpack Compose**.
 
-**Current source:** Android **1.4.0 / versionCode 70** · optional STAK Server **1.2.3**.
+**Current source:** Android **1.5.0 / versionCode 75** · optional STAK Server **1.2.3**.
 
 [Official APK releases](https://github.com/ezatvnekvan-stack/STAK/releases/latest) · [Source verification](docs/SOURCE-VERIFICATION.md)
 
-Browse films and series, find cached sources, manage a personal library, and follow Jellyfin playback. Library → **Series** combines library series and Auto-add rules with season/episode availability, known release quality and version selection.
+Browse films and series, find cached sources, manage your library and follow Jellyfin playback. Library > **Following** is dedicated to Auto-add rules. Find Sources has compact Nothing-style format marks; Coming Up follows Auto-add series; Tracking includes a twelve-week activity grid. See [1.5.0 details](docs/RELEASE-1.5.0.md).
 
 ## Start developing
 

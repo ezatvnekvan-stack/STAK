@@ -26,3 +26,6 @@ Answer: **PASS** through the project-local managed `gradle-run` wrapper with `:a
 - Public Windows build helpers tolerate absent private cloud/signing files for contributor builds. The previously corrupted Unix update script was replaced and syntax checked; official export still requires and validates the original key and package identity. The export scripts' full native Linux/macOS signing flow was not executed here.
 
 The official release APK is the previously verified owner-signed 1.4.0 artifact, not the contributor build produced by this checkout. Real-device/live-service claims remain limited to the original release verification notes. GitHub Actions status is separate from these local results.
+
+## 1.5.0 update
+Based on b86505d (published 1.4.0); contains only the four approved UI/data-presentation refinements. Read RELEASE-1.5.0.md for validation and limitations. Private signing/configuration, generated APKs and local data remain excluded from the source tree.

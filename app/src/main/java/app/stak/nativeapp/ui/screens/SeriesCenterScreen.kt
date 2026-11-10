@@ -100,7 +100,7 @@ class SeriesCenterViewModel(private val loader:suspend(MediaItem)->SeriesCenterS
     LazyColumn(Modifier.fillMaxSize().testTag("series-center-list"),contentPadding=PaddingValues(16.dp,22.dp,16.dp,120.dp)){
         item(key="header"){
             LibraryHeader(onMediaCenter){close->DropdownMenuItem(text={Text("STAK Server settings")},onClick={close();onSettings()})}
-            Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Series"),"autoadd",{when(it){"jellyfin"->onLibrary();"torbox"->onTorBox()}},Modifier.fillMaxWidth())
+            Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Following"),"autoadd",{when(it){"jellyfin"->onLibrary();"torbox"->onTorBox()}},Modifier.fillMaxWidth())
             Spacer(Modifier.height(22.dp));Text("SERIES CENTER",fontFamily=DotoFont,fontSize=22.sp,fontWeight=FontWeight.Bold,color=StakText)
             Text("${entries.size} series · ${entries.count{it.rule!=null}} with Auto-add",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted,modifier=Modifier.padding(top=8.dp,bottom=16.dp))
             StakTextField(query,onQuery,"Search series",height=46)

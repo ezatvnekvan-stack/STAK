@@ -60,7 +60,7 @@ import kotlinx.coroutines.launch
                     DropdownMenuItem(text={Text("Refresh torrents")},onClick={close();viewModel.refresh(torboxKey)},enabled=!actionBusy)
                     DropdownMenuItem(text={Text(if(selecting)"Cancel selection"else "Select torrents")},onClick={close();selecting=!selecting;viewModel.clearSelection()},enabled=torboxKey.isNotBlank()&&!actionBusy)
                 }
-                Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Series"),"torbox",{if(it=="jellyfin")onOpenLibrary() else if(it=="autoadd")onOpenAutoAdd()},Modifier.fillMaxWidth())
+                Spacer(Modifier.height(10.dp));StakTabs(listOf("jellyfin" to "Jellyfin","torbox" to "TorBox","autoadd" to "Following"),"torbox",{if(it=="jellyfin")onOpenLibrary() else if(it=="autoadd")onOpenAutoAdd()},Modifier.fillMaxWidth())
                 Spacer(Modifier.height(14.dp))
                 if(torboxKey.isBlank()) {
                     Text("Connect TorBox to manage your library.",fontFamily=HankenFont,fontSize=14.sp,color=StakTextMuted)

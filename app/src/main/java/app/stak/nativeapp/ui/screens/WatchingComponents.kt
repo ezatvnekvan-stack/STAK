@@ -66,9 +66,8 @@ import kotlinx.coroutines.CancellationException
 @Composable internal fun RecentlyWatchedCard(group:HistoryGroup,onOpen:()->Unit){
     val media=group.first.media
     Column(Modifier.width(166.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick=onOpen).semantics{contentDescription="Recent viewing: ${media.name}, ${group.subtitle}, ${historyDateLabel(journalDay(group.first.watchedAt))}"}){
-        Box(Modifier.fillMaxWidth().height(96.dp).clip(RoundedCornerShape(12.dp)).border(1.dp,Color(0x25FFFFFF),RoundedCornerShape(12.dp))){
+        Box(Modifier.fillMaxWidth().height(86.dp).clip(RoundedCornerShape(12.dp)).border(1.dp,Color(0x25FFFFFF),RoundedCornerShape(12.dp))){
             TrackingArtwork(media,Modifier.fillMaxSize())
-            Icon(Lucide.Check,null,tint=StakText,modifier=Modifier.align(Alignment.TopEnd).padding(8.dp).size(18.dp))
             Text(group.subtitle,fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakText,modifier=Modifier.align(Alignment.BottomStart).padding(10.dp),maxLines=1,overflow=TextOverflow.Ellipsis)
         }
         Text(media.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=14.sp,lineHeight=18.sp,color=StakText,modifier=Modifier.padding(top=8.dp),maxLines=1,overflow=TextOverflow.Ellipsis)

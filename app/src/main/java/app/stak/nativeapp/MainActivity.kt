@@ -525,7 +525,9 @@ fun StakApp() {
                             onOpenAccount = {accountSection="jellyfin";switchTab(Dest.Account)}
                         )
 
-                        Dest.SeriesTracking, is Dest.SeriesCenter -> app.stak.nativeapp.ui.screens.SeriesCenterScreen(
+                        Dest.SeriesTracking -> app.stak.nativeapp.ui.screens.AutoAddOverviewScreen(onLibrary={switchTab(Dest.Library)},onTorBox={switchTab(Dest.TorBox)},onSettings={accountSection="tracking";switchTab(Dest.Account)},onMediaCenter={push(Dest.MediaCenter)},onOpenTitle={push(Dest.Title(it))},knownSeries=jellyfinItems)
+
+                        is Dest.SeriesCenter -> app.stak.nativeapp.ui.screens.SeriesCenterScreen(
                             onLibrary={switchTab(Dest.Library)},onTorBox={switchTab(Dest.TorBox)},
                             onSettings={accountSection="tracking";switchTab(Dest.Account)},
                             onMediaCenter={push(Dest.MediaCenter)},onOpenTitle={push(Dest.Title(it))},knownSeries=jellyfinItems,
