@@ -22,8 +22,8 @@ import java.util.Locale
 
 /** Monochrome native wordmark, deliberately separate from the rating digits. */
 @Composable private fun ImdbMark(){
-    Box(Modifier.border(1.dp,StakTextMuted.copy(alpha=.5f),RoundedCornerShape(4.dp)).padding(horizontal=4.dp,vertical=1.dp),contentAlignment=Alignment.Center){
-        Text("IMDb",fontFamily=FontFamily.SansSerif,fontWeight=FontWeight.Bold,fontSize=10.sp,lineHeight=14.sp,letterSpacing=(-.55).sp,color=StakTextMuted,maxLines=1)
+    Box(Modifier.border(1.dp,StakText.copy(alpha=.72f),RoundedCornerShape(4.dp)).padding(horizontal=4.dp,vertical=1.dp),contentAlignment=Alignment.Center){
+        Text("IMDb",fontFamily=FontFamily.SansSerif,fontWeight=FontWeight.Bold,fontSize=10.sp,lineHeight=14.sp,letterSpacing=(-.55).sp,color=StakText,maxLines=1)
     }
 }
 
@@ -32,7 +32,7 @@ import java.util.Locale
     Row(modifier.semantics(mergeDescendants=true){contentDescription="IMDb $value"}.testTag("imdb-rating"),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)){
         ImdbMark()
         Box(Modifier.size(3.dp).background(Color(0xFFD71921),CircleShape).testTag("imdb-accent-dot"))
-        Text(value,fontFamily=SpaceMonoFont,fontWeight=FontWeight.Normal,fontSize=14.sp,lineHeight=18.sp,color=StakTextMuted,maxLines=1)
+        Text(value,fontFamily=SpaceMonoFont,fontWeight=FontWeight.Normal,fontSize=14.sp,lineHeight=18.sp,color=StakText,maxLines=1)
     }
 }
 

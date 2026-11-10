@@ -46,6 +46,12 @@ import kotlinx.coroutines.launch
     val cached by viewModel.cached.collectAsState();val checking by viewModel.cacheLoading.collectAsState();val cacheError by viewModel.cacheError.collectAsState()
     val season by viewModel.season.collectAsState();val episode by viewModel.episode.collectAsState();val packs by viewModel.packMode.collectAsState()
     val added by viewModel.added.collectAsState();val adding by viewModel.adding.collectAsState();val addError by viewModel.addError.collectAsState()
+    val glyphSignals=LocalGlyphSignals.current
+    var acknowledgedAdds by remember(media.mediaKey){mutableStateOf(added.toMap())}
+    LaunchedEffect(added){
+        if(added.any{(source,id)->acknowledgedAdds[source]!=id})glyphSignals?.added()
+        acknowledgedAdds=added.toMap()
+    }
     var filters by remember(media.mediaKey){mutableStateOf(SourceFilters())};var advanced by remember{mutableStateOf(false)};var showAll by remember(season){mutableStateOf(false)}
     var fileId by remember{mutableStateOf<String?>(null)};var files by remember{mutableStateOf<List<TorBoxFile>>(emptyList())};var fileBusy by remember{mutableStateOf(false)};var fileError by remember{mutableStateOf<String?>(null)}
     val scope=rememberCoroutineScope();val context=LocalContext.current

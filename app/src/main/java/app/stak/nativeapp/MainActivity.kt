@@ -256,6 +256,7 @@ fun StakApp() {
     val reducedOverride by accountViewModel.reducedMotion.collectAsState()
     val haptics by accountViewModel.haptics.collectAsState()
     val ambient by accountViewModel.ambient.collectAsState()
+    val backgroundStyle by accountViewModel.backgroundStyle.collectAsState()
     val allLocalTracking by trackingRepository.observe().collectAsState(initial = emptyList())
     val journalScope=if(settings.jellyfinConnected)app.stak.nativeapp.data.jellyfinScope(settings) else "local"
     LaunchedEffect(personalTracker,journalScope){trackingViewModel.attach(personalTracker,journalScope)}
@@ -361,12 +362,18 @@ fun StakApp() {
     }
     val backdrop=rememberGraphicsLayer()
     val glassSource=remember(backdrop){app.stak.nativeapp.ui.components.GlassSource(backdrop,crossWindow=true,hazeState=HazeState()).also{it.ownerView=rootView}}
+    val glyphSignals=remember{app.stak.nativeapp.ui.components.GlyphSignals()}
+    val glyphLayout=when(current){
+        Dest.Home -> app.stak.nativeapp.ui.components.GlyphLayout.Home
+        is Dest.Title -> app.stak.nativeapp.ui.components.GlyphLayout.Detail
+        else -> app.stak.nativeapp.ui.components.GlyphLayout.General
+    }
     val cinemaMotion=app.stak.nativeapp.ui.components.rememberCinematicMotion()
     val cinemaPalette=remember{mutableStateOf<String?>(null)}
     val ambientLayer=rememberGraphicsLayer()
-    // The ambient gradient never changes while it is on screen, so its layer is recorded
-    // once per size instead of every frame.
-    val inlineSource=remember(ambientLayer,ambient){app.stak.nativeapp.ui.components.GlassSource(ambientLayer,preBlurred=true,static=true)}
+    // Keep the original static glass capture. Glyph records only its small vector
+    // background when a glass consumer requests it, including brief light signals.
+    val inlineSource=remember(ambientLayer,ambient,backgroundStyle){app.stak.nativeapp.ui.components.GlassSource(ambientLayer,preBlurred=true,static=backgroundStyle!=app.stak.nativeapp.data.BackgroundStyle.Glyph)}
     // Predictive back: while the system back gesture runs, the screen recedes with
     // the gesture instead of waiting for the finger to lift.
     var backProgress by remember { mutableFloatStateOf(0f) }
@@ -385,7 +392,7 @@ fun StakApp() {
             }
         }
     }
-    androidx.compose.runtime.CompositionLocalProvider(app.stak.nativeapp.ui.components.LocalPosterActions provides posterActions, LocalReducedMotion provides reduced,app.stak.nativeapp.ui.components.LocalGlassSource provides glassSource,app.stak.nativeapp.ui.components.LocalInlineGlassSource provides inlineSource,app.stak.nativeapp.ui.components.LocalCinematicMotion provides cinemaMotion,app.stak.nativeapp.ui.components.LocalCinematicPalette provides cinemaPalette,app.stak.nativeapp.ui.components.LocalCinematicHome provides (current==Dest.Home),app.stak.nativeapp.ui.components.LocalCinematicEnabled provides ambient) {
+    androidx.compose.runtime.CompositionLocalProvider(app.stak.nativeapp.ui.components.LocalPosterActions provides posterActions, LocalReducedMotion provides reduced,app.stak.nativeapp.ui.components.LocalGlassSource provides glassSource,app.stak.nativeapp.ui.components.LocalInlineGlassSource provides inlineSource,app.stak.nativeapp.ui.components.LocalCinematicMotion provides cinemaMotion,app.stak.nativeapp.ui.components.LocalCinematicPalette provides cinemaPalette,app.stak.nativeapp.ui.components.LocalCinematicHome provides (current==Dest.Home),app.stak.nativeapp.ui.components.LocalCinematicEnabled provides ambient,app.stak.nativeapp.ui.components.LocalBackgroundStyle provides backgroundStyle,app.stak.nativeapp.ui.components.LocalGlyphLayout provides glyphLayout,app.stak.nativeapp.ui.components.LocalGlyphRoute provides current,app.stak.nativeapp.ui.components.LocalGlyphSignals provides glyphSignals) {
     Box(modifier = Modifier.fillMaxSize().nestedScroll(cinemaMotion.connection).background(StakBackground).then(
         if (!reduced && backGestureActive) Modifier.graphicsLayer {
             // Follow the system back gesture: the screen recedes while the finger drags.
@@ -403,7 +410,8 @@ fun StakApp() {
             }
         }.haze(glassSource.hazeState!!)) {
         Box(Modifier.fillMaxSize().recordGlassSource(inlineSource,rootView).background(StakBackground)) {
-            if(ambient)Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()){AmbientBackground()}
+            if(backgroundStyle==app.stak.nativeapp.data.BackgroundStyle.Glyph)Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()){app.stak.nativeapp.ui.components.GlyphBackground()}
+            else if(ambient)Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()){AmbientBackground()}
         }
         SharedTransitionLayout {
             val sharedScope = this

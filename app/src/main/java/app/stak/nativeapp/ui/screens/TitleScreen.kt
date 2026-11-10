@@ -162,7 +162,8 @@ fun TitleScreen(
     val scroll=androidx.compose.foundation.lazy.rememberLazyListState()
     val chromeHaze=remember{HazeState()}
     val backgroundLayer=androidx.compose.ui.graphics.rememberGraphicsLayer()
-    val backgroundSource=remember(backgroundLayer){app.stak.nativeapp.ui.components.GlassSource(backgroundLayer,preBlurred=true,static=true,hazeState=chromeHaze)}
+    val backgroundStyle=app.stak.nativeapp.ui.components.LocalBackgroundStyle.current
+    val backgroundSource=remember(backgroundLayer,backgroundStyle){app.stak.nativeapp.ui.components.GlassSource(backgroundLayer,preBlurred=true,static=backgroundStyle!=app.stak.nativeapp.data.BackgroundStyle.Glyph,hazeState=chromeHaze)}
     val backgroundView=androidx.compose.ui.platform.LocalView.current
     val stickyThreshold=with(androidx.compose.ui.platform.LocalDensity.current){200.dp.roundToPx()}
     val showHeader by remember{androidx.compose.runtime.derivedStateOf{scroll.firstVisibleItemIndex>0||scroll.firstVisibleItemScrollOffset>stickyThreshold}}
@@ -208,10 +209,7 @@ fun TitleScreen(
                     if(media.isSeries){
                         val autoRevision by WatchRules.revision.collectAsState()
                         val rule=remember(autoRevision,media.mediaKey){WatchRules.seriesKeyOf(media)?.let{WatchRules.ruleFor(it)}}
-                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-                            DetailAutoAdd(rule){showAutoAdd=true}
-                            onOpenSeriesCenter?.let{open->StakButton("Series center",{open(media)},compact=true)}
-                        }
+                        DetailAutoAdd(rule){showAutoAdd=true}
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(media.overview?:"No synopsis available yet.",fontFamily=HankenFont,fontSize=14.sp,lineHeight=22.sp,color=StakTextSoft,maxLines=if(synopsisExpanded)Int.MAX_VALUE else 3,overflow=TextOverflow.Ellipsis)

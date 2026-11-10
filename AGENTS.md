@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.2 / versionCode 77**. Next distributable versionCode: **78+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.3 / versionCode 78**. Next distributable versionCode: **79+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -25,3 +25,6 @@ Read docs/RELEASE-1.5.1.md. Tracking Activity is a month-scoped dated viewing di
 
 ## Android 1.5.2 — current override
 Owner explicitly restored original 1.4.0 Tracking and Discover. Read docs/RELEASE-1.5.2.md. Do not reintroduce the 1.5 diary, heatmap hub or Discover redesign. Following, source badges and Auto-add Coming Up remain. Original signing/cloud configuration preserved; next distributable code78+.
+
+## Android 1.5.3 — optional Glyph background
+Read docs/RELEASE-1.5.3.md. Current remains the default background. Glyph is an opt-in vector background with one-shot route/confirmed-add signals; preserve reduced motion, modal/scroll/lifecycle pausing and persisted backup-compatible preference. IMDb is compact and white; Dolby marks share other format badge styling. No Series Center shortcut on Details; Auto-add stays. The 1.5.2 original-page override still applies. Next distributable code79+.

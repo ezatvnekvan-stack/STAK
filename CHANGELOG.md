@@ -1,3 +1,11 @@
+# 1.5.3 (code78) — Optional Glyph background
+
+- Settings → Appearance adds Current / Glyph. Existing installations keep Current.
+- Glyph uses a matte black canvas, quiet broken graphite arcs/lines and short signals on navigation or confirmed source additions. No continuous loop; respects reduced motion, scrolling, modal surfaces and lifecycle.
+- Details removes the Series Center shortcut while retaining Auto-add. Compact IMDb marks/scores are whiter.
+- Dolby Vision and Atmos badges share the same typography, contrast and surfaces as other format badges, with a smaller Dolby mark.
+- Original 1.4 Tracking and Discover pages remain restored. No server, acquisition, watched-state or database behavior changes.
+
 # 1.5.2 (code77)
 
 - Restore exact original 1.4.0 Tracking and Discover pages, including calendar, list cards and discovery behavior.

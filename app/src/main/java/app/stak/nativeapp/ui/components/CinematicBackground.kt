@@ -58,6 +58,10 @@ private val softLight:ImageBitmap by lazy {
 }
 private class LightPhase(var value:Float=.22f)
 @Composable fun CinematicBackground(tint:State<Color>,modifier:Modifier=Modifier,paused:()->Boolean={false},intensity:Float=1f){
+    if(LocalBackgroundStyle.current == app.stak.nativeapp.data.BackgroundStyle.Glyph){
+        GlyphBackground(modifier, paused)
+        return
+    }
     val memory=remember{LightPhase()}
     val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val global=LocalCinematicMotion.current

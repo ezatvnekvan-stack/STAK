@@ -21,10 +21,10 @@ import app.stak.nativeapp.ui.theme.*
 @Composable fun FormatBadge(label:String,modifier:Modifier=Modifier){
     val dolby=label=="Dolby Vision"||label=="Atmos"
     Row(modifier.heightIn(min=25.dp).background(Color(0xFF202020),RoundedCornerShape(5.dp)).border(1.dp,Color(0xFF424242),RoundedCornerShape(5.dp)).padding(horizontal=7.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)){
-        if(dolby)Canvas(Modifier.width(15.dp).height(11.dp)){
-            drawArc(Color(0xFFE4E4E4),-90f,180f,true,Offset.Zero,Size(size.width*.46f,size.height))
-            drawArc(Color(0xFFE4E4E4),90f,180f,true,Offset(size.width*.54f,0f),Size(size.width*.46f,size.height))
+        if(dolby)Canvas(Modifier.width(11.dp).height(8.dp)){
+            drawArc(StakTextSoft,-90f,180f,true,Offset.Zero,Size(size.width*.46f,size.height))
+            drawArc(StakTextSoft,90f,180f,true,Offset(size.width*.54f,0f),Size(size.width*.46f,size.height))
         }
-        Text(label.uppercase(),fontFamily=if(dolby)SpaceMonoFont else DotoFont,fontWeight=FontWeight.Bold,fontSize=10.sp,lineHeight=13.sp,color=StakText)
+        Text(label.uppercase(),fontFamily=DotoFont,fontWeight=FontWeight.Bold,fontSize=10.sp,lineHeight=13.sp,color=StakTextSoft)
     }
 }

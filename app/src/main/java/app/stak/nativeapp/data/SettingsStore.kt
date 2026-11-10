@@ -157,6 +157,10 @@ class SettingsStore(context: Context, namespace:String = "") {
 
     val jellyfinConnected: Boolean get() = !jellyfinUrl.isNullOrBlank() && !jellyfinToken.isNullOrBlank() && !jellyfinUserId.isNullOrBlank()
 
+    var backgroundStyle: BackgroundStyle
+        get() = BackgroundStyle.fromKey(prefs.getString("background_style", null))
+        set(value) = prefs.edit().putString("background_style", value.key).apply()
+
     var reducedMotion: Boolean
         get() = prefs.getBoolean("reduced_motion", false)
         set(value) = prefs.edit().putBoolean("reduced_motion", value).apply()

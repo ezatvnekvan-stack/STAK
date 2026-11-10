@@ -1321,6 +1321,9 @@ private fun SettingsDetail(
 
 
 
+                        val backgroundStyle by viewModel.backgroundStyle.collectAsState()
+                        app.stak.nativeapp.ui.components.BackgroundStylePicker(backgroundStyle, viewModel::setBackgroundStyle)
+                        Spacer(Modifier.height(18.dp))
                         AppearancePreview(accent)
 
 
@@ -1435,7 +1438,7 @@ private fun SettingsDetail(
 
 
 
-                        SettingsToggle("Atmosphere", "Ambient mesh and dot field", ambient) { viewModel.setAmbient(it) }
+                        SettingsToggle("Atmosphere", "Decorative background and subtle lighting", ambient) { viewModel.setAmbient(it) }
 
 
 

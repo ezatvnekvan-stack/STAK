@@ -37,6 +37,12 @@ class AccountViewModel(private val settings: SettingsStore, private val onDailyR
     val reducedMotion: StateFlow<Boolean> = _reducedMotion
     private val _haptics = MutableStateFlow(settings.haptics)
     val haptics: StateFlow<Boolean> = _haptics
+    private val _backgroundStyle = MutableStateFlow(settings.backgroundStyle)
+    val backgroundStyle: StateFlow<app.stak.nativeapp.data.BackgroundStyle> = _backgroundStyle
+    fun setBackgroundStyle(value: app.stak.nativeapp.data.BackgroundStyle) {
+        settings.backgroundStyle = value
+        _backgroundStyle.value = value
+    }
     private val _ambient = MutableStateFlow(settings.ambientEnabled)
     val ambient: StateFlow<Boolean> = _ambient
     private val _dailyReminder = MutableStateFlow(settings.dailyReminder)

@@ -1,4 +1,4 @@
-Current Android release: [1.5.2 — Restore original Tracking and Discover](RELEASE-1.5.2.md).
+Current Android release: [1.5.3 — Optional Glyph background and presentation refinements](RELEASE-1.5.3.md).
 
 
 # Documentation
