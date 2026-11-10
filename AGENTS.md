@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.0 / versionCode 75**. Next distributable versionCode: **76+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.1 / versionCode 76**. Next distributable versionCode: **77+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -19,3 +19,6 @@ The portable private development folder may also contain owner-only signing/conf
 
 ## Android 1.5.0
 Read docs/RELEASE-1.5.0.md. Following is rule-only; Jellyfin library browsing stays separate. Coming Up uses explicit Auto-add rules, never watchlist consent. Preserve source cache checks and original release metadata. Activity grid counts only dated individual Jellyfin observations. No Terminal rewrite or backend changes. Next distributable code76+.
+
+## Android 1.5.1
+Read docs/RELEASE-1.5.1.md. Tracking Activity is a month-scoped dated viewing diary; Continue Watching stays on Home. Preserve legacy preference keys, full history and passive tracking. Curated Discover requests/cache include provider/type/region; never present global shelves under a selected provider or claim public lists are service-filtered. Next release code77+.

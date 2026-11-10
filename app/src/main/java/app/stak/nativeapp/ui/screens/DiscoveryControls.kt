@@ -158,6 +158,10 @@ fun DiscoveryServices(viewModel: DiscoverViewModel) {
     Column {
         DiscoveryServiceStrip(shortcuts,filters.provider,!loading,{value->viewModel.applyFilters(filters.copy(provider=value))},{sheet=true})
 
+        if(filters.provider.isNotBlank())Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
+            Text(selected?.name?:"Selected service",Modifier.weight(1f),fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft)
+            TextButton(onClick={viewModel.clearFilter("provider")}){Text("Clear",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)}
+        }
         if (error != null) {
             Spacer(Modifier.height(6.dp))
             InlineRetry(error.orEmpty(), "Retry services") { viewModel.refreshServices() }

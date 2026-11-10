@@ -89,7 +89,7 @@ fun ListsScreen(onOpenTitle:(MediaItem,String)->Unit,sharedScope:SharedTransitio
     val press=rememberPressMotion()
     Column(Modifier.fillMaxWidth().pressMotion(press).clip(shape).background(Color.White.copy(alpha=.025f))
         .border(1.dp,Color.White.copy(alpha=.18f),shape).clickable(interactionSource=press.source,indication=androidx.compose.foundation.LocalIndication.current,onClick=onOpen)){
-        Row(Modifier.fillMaxWidth().height(138.dp),horizontalArrangement=Arrangement.spacedBy(3.dp)){
+        Row(Modifier.fillMaxWidth().height(104.dp),horizontalArrangement=Arrangement.spacedBy(3.dp)){
             repeat(3){index->Box(Modifier.weight(1f).fillMaxHeight().background(Color.White.copy(alpha=.035f))){
                 val artwork=previews.getOrNull(index)?.poster
                 if(artwork==null)Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Text("STAK",fontFamily=DotoFont,fontSize=18.sp,color=StakTextFaint)}
@@ -101,7 +101,7 @@ fun ListsScreen(onOpenTitle:(MediaItem,String)->Unit,sharedScope:SharedTransitio
                 Text(list.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=17.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
                 Text("${list.owner} · ${list.count} items",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted,maxLines=1,overflow=TextOverflow.Ellipsis)
             }
-            StakButton(if(saved)"Saved"else "Save",onSave,compact=true,icon=Lucide.Bookmark,iconTint=if(saved)StakAccent else StakTextMuted)
+            StakIconButton(onSave){Icon(Lucide.Bookmark,if(saved)"Unsave ${list.name}"else "Save ${list.name}",tint=if(saved)StakAccent else StakTextMuted,modifier=Modifier.size(19.dp))}
         }
     }
 }

@@ -1,3 +1,10 @@
+# 1.5.1 (code76)
+
+- Month-selectable poster viewing diary replaces the Tracking hub heatmap and duplicate Continue Watching section.
+- Same-day series episode groups expand in place; monthly statistics follow the selected month.
+- Cinematic Discover genres, shorter featured cards, compact list bookmarks and deduplicated shelves.
+- Service selection scopes curated requests, cache and streaming verification.
+
 # 1.5.0 (code75)
 
 - Simplified rule-only Following in Library.

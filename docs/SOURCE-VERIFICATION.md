@@ -29,3 +29,6 @@ The official release APK is the previously verified owner-signed 1.4.0 artifact,
 
 ## 1.5.0 update
 Based on b86505d (published 1.4.0); contains only the four approved UI/data-presentation refinements. Read RELEASE-1.5.0.md for validation and limitations. Private signing/configuration, generated APKs and local data remain excluded from the source tree.
+
+## 1.5.1
+Current UI release: docs/RELEASE-1.5.1.md. Native monthly viewing diary and service-scoped cinematic Discover; original account, read-only tracking and cached-only acquisition protections retained.

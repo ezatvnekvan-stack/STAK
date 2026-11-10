@@ -55,11 +55,11 @@ class RemakeUiTest{
         compose.setContent{Frame{DiscoverExplore(deck,ListsState(lists=listOf(list)),mapOf(1L to listOf(film,other)),listOf(DiscoveryOption("mystery","Mystery")),{item,_->opened=item.id},{},{genre=it.id},{collection=true},{collection=true},{},{},{},{})}}
         compose.onNodeWithText("FOR TONIGHT").assertIsDisplayed();compose.onNodeWithText("TITLES").assertDoesNotExist()
         compose.onNodeWithTag("discover-feature").performClick();Assert.assertEquals(film.id,opened)
-        compose.onNodeWithText("MYSTERY").performClick();Assert.assertEquals("mystery",genre)
+        compose.onNodeWithText("Mystery",ignoreCase=true).performClick();Assert.assertEquals("mystery",genre)
         capture("discover-top")
-        compose.onNodeWithTag("discover-explore").performScrollToNode(hasText("BROWSE COLLECTIONS"))
+        compose.onNodeWithTag("discover-explore").performScrollToNode(hasText("EXPLORE LISTS"))
         compose.onNodeWithText("A quiet weekend").assertIsDisplayed();capture("discover-collections")
-        compose.onNodeWithText("Browse all lists",ignoreCase=true).performScrollTo().performClick();Assert.assertTrue(collection)
+        compose.onNodeWithText("A quiet weekend").performClick();Assert.assertTrue(collection)
     }
     @Test fun continueCardsStayConsistentAndRemainBelowTheViewport(){
         val short=media("tt2000003","Up").copy(nextUp=true,season=1,episode=2)
