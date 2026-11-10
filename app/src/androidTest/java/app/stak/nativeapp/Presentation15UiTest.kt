@@ -78,14 +78,6 @@ class Presentation15UiTest{
 
  }
 
- @Test fun monthlyCalendarHasTodayAndSelectableDates(){
-  var selected=LocalDate.of(2026,11,10)
-  compose.setContent{StakTheme{CalendarMonth(selected,onSelect={selected=it},onToday={selected=LocalDate.of(2026,11,10)})}}
-  compose.onNodeWithText("Today").assertIsDisplayed()
-  compose.onNodeWithContentDescription("Friday, November 6, 2026, 0 releases").performClick()
-  assertEquals(6,selected.dayOfMonth)
-  capture("calendar")
- }
  @Test fun sourceCardRemainsUsableAtLargeFontScale(){
   compose.setContent{
    androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f,1.4f)){

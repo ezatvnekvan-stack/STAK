@@ -15,11 +15,10 @@ class StreamingPicks(
         val token=key();require(token.isNotBlank()){"Streaming selections need TMDb metadata."}
         return request("https://api.themoviedb.org/3$path",if(token.contains('.'))params else params+("api_key" to token),if(token.contains('.'))token else null)
     }
-    suspend fun load(type:String,region:String,provider:String=""):DiscoverResult=withContext(Dispatchers.IO){
+    suspend fun load(type:String,region:String):DiscoverResult=withContext(Dispatchers.IO){
         require(type in listOf("movie","series")&&region.matches(Regex("[A-Z]{2}")))
         val kind=if(type=="series")"tv"else "movie"
         val params=mutableMapOf("page" to "1","include_adult" to "false","sort_by" to "popularity.desc","watch_region" to region,"with_watch_monetization_types" to "flatrate|free|ads")
-        if(provider.isNotBlank())params["with_watch_providers"]=provider
         if(type=="movie"){params["region"]=region;params["with_release_type"]="4";params["release_date.lte"]=today().toString()}
         else params["first_air_date.lte"]=today().toString()
         val candidates=get("/discover/$kind",params).objects("results").take(12)
@@ -32,7 +31,7 @@ class StreamingPicks(
                     val detail=get("/$kind/$id",mapOf("append_to_response" to if(type=="movie")"images,external_ids,release_dates"else "images,external_ids","include_image_language" to "en,null"))
                     if(detail.text("id")!=id)return@async null
                     val providers=get("/$kind/$id/watch/providers").objectOrNull("results")?.objectOrNull(region)
-                    if(!streamingConfirmed(detail,providers,type,region,today(),provider))return@async null
+                    if(!streamingConfirmed(detail,providers,type,region,today()))return@async null
                     val logos=detail.objectOrNull("images")?.objects("logos").orEmpty()
                     val logo=(logos.firstOrNull{it.text("iso_639_1")=="en"}?:logos.firstOrNull{it.text("iso_639_1")==null})?.text("file_path")
                     DirectCatalog.tmdbItem(detail,type).copy(imdbId=detail.objectOrNull("external_ids")?.text("imdb_id"),logo=logo?.takeIf{it.startsWith('/')&&!it.startsWith("//")}?.let{"https://image.tmdb.org/t/p/w500$it"})
@@ -46,9 +45,8 @@ class StreamingPicks(
     }
 }
 
-internal fun streamingConfirmed(detail:JsonObject,providers:JsonObject?,type:String,region:String,today:LocalDate,provider:String=""):Boolean{
+internal fun streamingConfirmed(detail:JsonObject,providers:JsonObject?,type:String,region:String,today:LocalDate):Boolean{
     if(providers==null||listOf("flatrate","free","ads").none{providers.objects(it).any{p->(p.number("provider_id")?:0.0)>0}})return false
-    if(provider.isNotBlank()&&listOf("flatrate","free","ads").none{bucket->providers.objects(bucket).any{it.text("provider_id") in provider.split('|')}})return false
     fun released(raw:String?):Boolean=raw?.take(10)?.let{runCatching{!LocalDate.parse(it).isAfter(today)}.getOrDefault(false)}?:false
     if(type=="series")return released(detail.text("first_air_date"))
     if(detail.text("status")!="Released")return false

@@ -1,8 +1,8 @@
 # OpenCode handoff
 
-Continue this repository: **STAK Android 1.5.1 / code76**, **STAK Server 1.2.3**. The next distributable Android update must use code77 or greater.
+Continue this repository: **STAK Android 1.5.2 / code77**, **STAK Server 1.2.3**. The next distributable Android update must use code78 or greater.
 
-Start with [README](README.md), [contributor setup](CONTRIBUTING.md), [agent rules](AGENTS.md), [architecture](docs/ARCHITECTURE.md) and [Series Center notes](docs/RELEASE-1.5.1.md).
+Start with [README](README.md), [contributor setup](CONTRIBUTING.md), [agent rules](AGENTS.md), [architecture](docs/ARCHITECTURE.md) and [Series Center notes](docs/RELEASE-1.5.2.md).
 
 All current application source, tests, resources, unified server/cloud deployment source and project-local skills are included. No SDK, cache, private signing key, completed service configuration or owner database is included.
 
@@ -12,4 +12,4 @@ Following is Library's rule-only Auto-add entry point; library browsing remains 
 
 Historical rollout/verification notes are in `docs/history/`. Treat older phase ledgers as history, not current incomplete task instructions.
 
-Current changes: docs/RELEASE-1.5.1.md. Original 1.4.0 source plus the four approved refinements; no Terminal mode.
+Current changes: docs/RELEASE-1.5.2.md. Original 1.4.0 source plus the four approved refinements; no Terminal mode.

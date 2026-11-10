@@ -2,11 +2,11 @@
 
 Native Android media companion built with **Kotlin and Jetpack Compose**.
 
-**Current source:** Android **1.5.1 / versionCode 76** · optional STAK Server **1.2.3**.
+**Current source:** Android **1.5.2 / versionCode 77** · optional STAK Server **1.2.3**.
 
 [Official APK releases](https://github.com/ezatvnekvan-stack/STAK/releases/latest) · [Source verification](docs/SOURCE-VERIFICATION.md)
 
-Browse films and series, find cached sources, manage Following and follow Jellyfin playback. Tracking is a monthly viewing diary; Discover has cinematic genres, compact lists and service-scoped recommendations. See [1.5.1 details](docs/RELEASE-1.5.1.md).
+Browse films and series, find cached sources and follow Jellyfin playback. Tracking and Discover use their original 1.4.0 pages; Following, source badges and Auto-add Coming Up are retained. See [1.5.2 details](docs/RELEASE-1.5.2.md).
 
 ## Start developing
 

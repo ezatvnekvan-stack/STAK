@@ -50,31 +50,26 @@ import java.time.*
     var search by rememberSaveable{mutableStateOf(false)};var query by rememberSaveable{mutableStateOf("")};var type by rememberSaveable{mutableStateOf("all")}
     var historySearch by rememberSaveable{mutableStateOf(false)}
     var details by remember{mutableStateOf<JournalEntry?>(null)};var title by remember{mutableStateOf<MediaItem?>(null)};var episodes by remember{mutableStateOf<MediaItem?>(null)}
-    var diaryMonth by rememberSaveable{mutableStateOf(YearMonth.from(today).toString())}
-    var statsMonth by rememberSaveable{mutableStateOf<String?>(null)}
-    val monthSelection=YearMonth.parse(diaryMonth)
-    val diary=remember(entries,diaryMonth,today,query){diaryEntries(entries,monthSelection,today).filter{librarySearchText(it.media.name).contains(librarySearchText(query))}}
-    val diaryDays=remember(diary){historyDays(diary)}
     val primary=if(prefs.view=="calendar")"calendar"else "watching";val tab=panel?:primary
     val hubScroll=rememberLazyListState();val historyScroll=rememberLazyListState();val statsScroll=rememberLazyListState();val calendarScroll=rememberLazyListState()
     fun history(old:Boolean=false){earlier=old;historySearch=false;viewModel.preferences(prefs.copy(period="all",type="all",query=""));panel="history"}
-    fun stats(period:String="this_month",month:YearMonth?=null){statsMonth=month?.toString();viewModel.preferences(prefs.copy(period=period));panel="stats"}
+    fun stats(period:String="this_month"){viewModel.preferences(prefs.copy(period=period));panel="stats"}
     androidx.activity.compose.PredictiveBackHandler(enabled=panel!=null){events->events.collect{};panel=null}
     val month=remember(entries,today){viewingInsights(individualWatches(filterJournal(entries,JournalPreferences(period="this_month"),today)),today=today)}
     val recent=remember(entries){historyDays(entries).flatMap{it.groups}.take(10)}
     val source=if(panel=="history"&&earlier)archive else entries
     val period=if(panel=="stats"&&prefs.period !in setOf("all","week","this_month"))"this_month"else prefs.period
     val selected=remember(source,prefs,period,today){filterJournal(source,prefs.copy(period=period,type=if(prefs.type=="series")"episode"else prefs.type),today)}
-    val watches=remember(entries,period,today,statsMonth,panel){if(panel=="stats"&&statsMonth!=null)diaryEntries(entries,YearMonth.parse(statsMonth),today)else individualWatches(filterJournal(entries,JournalPreferences(period=period),today))}
+    val watches=remember(entries,period,today){individualWatches(filterJournal(entries,JournalPreferences(period=period),today))}
     val insights=remember(watches,today){viewingInsights(watches,today=today)}
     LazyColumn(state=when(tab){"stats"->statsScroll;"history"->historyScroll;"calendar"->calendarScroll;else->hubScroll},modifier=Modifier.fillMaxSize().semantics{contentDescription="Tracking content"},contentPadding=PaddingValues(16.dp,20.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
         item(key="header"){
             Column{
                 Row(Modifier.fillMaxWidth().padding(bottom=12.dp),verticalAlignment=Alignment.CenterVertically){
-                    if(panel!=null)IconButton(onClick={panel=null}){Icon(Lucide.ChevronRight,"Back to Activity",tint=StakText,modifier=Modifier.size(20.dp).rotate(180f))}
+                    if(panel!=null)IconButton(onClick={panel=null}){Icon(Lucide.ChevronRight,"Back to Watching",tint=StakText,modifier=Modifier.size(20.dp).rotate(180f))}
                     StakPageHeader(if(panel=="history"&&earlier)"Earlier records"else when(panel){"history"->"History";"stats"->"Stats";else->"Tracking"},modifier=Modifier.weight(1f))
                     if(panel==null&&primary=="watching"){
-                        IconButton(onClick={search=!search;if(!search)query=""}){Icon(if(search)Lucide.X else Lucide.Search,if(search)"Close activity search"else "Search activity",tint=StakTextMuted,modifier=Modifier.size(20.dp))}
+                        IconButton(onClick={search=!search;if(!search)query=""}){Icon(if(search)Lucide.X else Lucide.Search,if(search)"Close Watching search"else "Search Watching",tint=StakTextMuted,modifier=Modifier.size(20.dp))}
                         Box{
                             IconButton(onClick={more=true}){Icon(Lucide.Sliders,"Tracking options",tint=StakTextMuted,modifier=Modifier.size(20.dp))}
                             GlassDropdownMenu(more,{more=false}){
@@ -90,31 +85,33 @@ import java.time.*
                         if(panel==null)IconButton(onClick={calendarViewModel.refresh(trackedCalendar,YearMonth.from(runCatching{LocalDate.parse(prefs.date)}.getOrDefault(today)),prefs.weekStart,true)}){Icon(Lucide.Refresh,"Refresh release calendar",tint=StakText,modifier=Modifier.size(18.dp))}
                     }
                 }
-                if(panel==null)StakTabs(listOf("watching" to "Activity","calendar" to "Calendar"),primary,{viewModel.preferences(prefs.copy(view=it))})
+                if(panel==null)StakTabs(listOf("watching" to "Watching","calendar" to "Calendar"),primary,{viewModel.preferences(prefs.copy(view=it))})
             }
         }
         if(tab=="watching"){
-            item(key="diary-summary"){
-                if(search){StakTextField(query,{query=it},"Search activity",height=44);Spacer(Modifier.height(12.dp))}
-                ActivityMonthHeader(monthSelection,diaryMonths(entries,today),viewingInsights(diaryEntries(entries,monthSelection,today),today=today),{diaryMonth=it.toString()},{stats(month=monthSelection)})
+            item(key="controls"){
+                TrackingSection("IN PROGRESS")
+                if(search){StakTextField(query,{query=it},"Search Watching",height=44);Spacer(Modifier.height(8.dp))}
+                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("all" to "All","movie" to "Movies","series" to "Series").forEach{(value,label)->StakChip(label,type==value,{type=value})}}
             }
-            if(diaryDays.isEmpty())item(key="diary-empty"){
-                Column(Modifier.padding(vertical=24.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-                    Text(if(query.isBlank())"No viewings this month"else "No matching viewings",fontFamily=HankenFont,fontSize=16.sp,color=StakText)
-                    Text("Your Jellyfin viewing history appears here.",fontFamily=HankenFont,fontSize=13.sp,color=StakTextMuted)
-                    if(account=="local")StakButton("Connect Jellyfin",onOpenAccount)
-                }
+            val visible=watching.filter{(type=="all"||it.media.type==type)&&librarySearchText(it.media.name).contains(librarySearchText(query))}
+            if(visible.isEmpty())item{
+                Text(if(watching.isEmpty())"Nothing in progress"else "No matching titles",fontFamily=HankenFont,fontSize=14.sp,color=StakTextSoft,modifier=Modifier.padding(top=8.dp))
+                if(watching.isEmpty())Text("Jellyfin playback appears here.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted,modifier=Modifier.padding(top=5.dp,bottom=10.dp))
+                if(account=="local")StakButton("Connect Jellyfin",onOpenAccount)
             }
-            diaryDays.forEach{day->
-                item(key="diary-day:${day.date}"){Text(historyDateLabel(day.date,today),fontFamily=SpaceMonoFont,fontSize=12.sp,color=StakTextMuted,modifier=Modifier.padding(top=10.dp))}
-                items(day.groups,key={"diary:${it.id}"}){group->DiaryHistoryRow(group,onOpenTitle)}
-            }
+            items(visible,key={"watching:${it.key}"}){row->WatchingTitleRow(row,onOpen={if(row.media.isSeries&&row.series!=null)episodes=row.media else onOpenTitle(row.media)},onMark={},onMenu={title=row.media})}
+            item(key="recent-heading"){Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){TrackingSection("WATCH HISTORY");Spacer(Modifier.weight(1f));TextButton(onClick={history()}){Text("View all",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft)}}}
+            if(recent.isEmpty())item{Text("No Jellyfin history yet.",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)}
+            else item(key="recent-rail"){LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.semantics{contentDescription="Recent viewing cards"}){items(recent,key={it.id}){group->RecentlyWatchedCard(group){if(group.first.isEpisode)history()else onOpenTitle(group.first.media)}}}}
+            item(key="month"){WatchingMonthSummary(month,recent.firstOrNull()?.first?.media,today){stats()}}
+            item(key="habits"){WatchingHabits(entries,today){stats("week")}}
         }else if(tab=="calendar")item{ReleaseCalendar(trackedCalendar,prefs,{viewModel.preferences(it)},onOpenTitle,calendarViewModel)}
         else{
-            item(key="period"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){DiscoverySelect("",period,listOf("week" to "Last 7 days","this_month" to "This month","all" to "All time"),{statsMonth=null;viewModel.preferences(prefs.copy(period=it))},Modifier.width(190.dp),accessibilityLabel="Tracking period",selectedText=statsMonth?.let{YearMonth.parse(it).format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy",java.util.Locale.ENGLISH))})}}
+            item(key="period"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End){DiscoverySelect("",period,listOf("week" to "Last 7 days","this_month" to "This month","all" to "All time"),{viewModel.preferences(prefs.copy(period=it))},Modifier.width(165.dp),accessibilityLabel="Tracking period")}}
             if(tab=="stats"){
                 item(key="summary"){JournalSummary(insights)}
-                item(key="activity"){SimpleTrackingActivity(watches,period,statsMonth?.let{YearMonth.parse(it).atEndOfMonth().coerceAtMost(today)}?:today,onOpenTitle)}
+                item(key="activity"){SimpleTrackingActivity(watches,period,today,onOpenTitle)}
                 item(key="streak"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Current streak",fontFamily=HankenFont,fontSize=13.sp,color=StakTextMuted);Text(viewingInsights(individualWatches(entries),today=today).streakDays.let{"$it ${if(it==1)"day"else "days"}"},fontFamily=SpaceMonoFont,fontSize=12.sp,color=StakText)}}
                 val top=topWatchedSeries(watches).take(3)
                 if(top.isNotEmpty()){item{TrackingSection("TOP SERIES")};items(top,key={"top:${journalSeriesIdentity(it.media)}"}){TopSeriesRow(it,onOpenTitle)}}

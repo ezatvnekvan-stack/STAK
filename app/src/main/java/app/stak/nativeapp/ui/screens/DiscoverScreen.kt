@@ -38,20 +38,19 @@ import app.stak.nativeapp.ui.theme.*
     var collections by rememberSaveable{mutableStateOf(false)}
     var filterOpen by remember{mutableStateOf(false)}
     val states=rememberSaveableStateHolder()
-    val results=query.isNotBlank()||filters.copy(provider="")!=DiscoveryFilters()||requestedResults
+    val results=query.isNotBlank()||filters!=DiscoveryFilters()||requestedResults
     val chips=filters.chips(genres,providers+streamingShortcuts(providers))
     val reduced=LocalReducedMotion.current
-    fun explore(){requestedResults=false;searchOpen=false;val service=filters.provider;viewModel.clearSearch();if(service.isNotBlank())viewModel.applyFilters(DiscoveryFilters(provider=service))}
+    fun explore(){requestedResults=false;searchOpen=false;viewModel.clearSearch()}
     fun browse(category:String){requestedResults=true;viewModel.setCategory(category)}
     LaunchedEffect(initialQuery){if(initialQuery.isNotBlank()){searchOpen=true;viewModel.setQuery(initialQuery)}}
-    LaunchedEffect(type,region,filters.provider,results,collections){if(!results&&!collections)deckModel.load(type,region,provider=filters.provider)}
+    LaunchedEffect(type,region,results,collections){if(!results&&!collections)deckModel.load(type,region)}
     BackHandler(results||searchOpen||collections){if(collections){if(lists.selected!=null)listsModel.back()else collections=false}else explore()}
     Column(Modifier.fillMaxSize().testTag("discover-remake")){
         Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){
             if(collections||results)StakIconButton({if(collections){if(lists.selected!=null)listsModel.back()else collections=false}else explore()}){Icon(Lucide.ChevronRight,"Back to discovery",Modifier.size(18.dp).graphicsLayer{rotationZ=180f},tint=StakText)}
             StakPageHeader(if(collections)"Collections"else "Discover",modifier=Modifier.weight(1f))
             if(!collections){
-                StakButton("Browse",{browse("popular")},compact=true,variant=StakButtonVariant.Ghost)
                 StakIconButton({searchOpen=!searchOpen},Modifier.testTag("discover-search-toggle")){Icon(if(searchOpen)Lucide.X else Lucide.Search,if(searchOpen)"Close discovery search"else "Search Discover",Modifier.size(20.dp),tint=StakText)}
                 StakIconButton({filterOpen=true}){Icon(Lucide.Sliders,"Discovery filters",Modifier.size(20.dp),tint=StakText);if(chips.isNotEmpty())Box(Modifier.align(Alignment.TopEnd).padding(6.dp).size(5.dp).background(StakAccent,RoundedCornerShape(5.dp)))}
             }
@@ -69,7 +68,7 @@ import app.stak.nativeapp.ui.theme.*
             states.SaveableStateProvider(mode){when(mode){
                 "lists"->ListsScreen(onOpenTitle,sharedScope,animatedScope,watchIds,listsModel)
                 "results"->DiscoverResults(viewModel,onOpenTitle,sharedScope,animatedScope,watchIds,{requestedResults=false;viewModel.clearSearch()})
-                else->DiscoverExplore(if(deck.selection=="$type:$region:${filters.provider}")deck else DiscoverDeck(),lists,previews,genres,onOpenTitle,{browse(it)},{option->viewModel.applyFilters(filters.copy(genre=option.id))},{collections=true},{list->listsModel.open(list);collections=true},listsModel::toggleSaved,{list->listsModel.preview(list)},{deckModel.load(type,region,true,filters.provider)},{listsModel.reload()},sharedScope,animatedScope,watchIds,filters.provider.isBlank())
+                else->DiscoverExplore(deck,lists,previews,genres,onOpenTitle,{browse(it)},{option->viewModel.applyFilters(filters.copy(genre=option.id))},{collections=true},{list->listsModel.open(list);collections=true},listsModel::toggleSaved,{list->listsModel.preview(list)},{deckModel.load(type,region,true)},{listsModel.reload()},sharedScope,animatedScope,watchIds)
             }}
         }
     }
@@ -110,48 +109,48 @@ import app.stak.nativeapp.ui.theme.*
 @Composable internal fun DiscoverExplore(
     deck:DiscoverDeck,lists:ListsState,previews:Map<Long,List<MediaItem>>,genres:List<DiscoveryOption>,onOpen:(MediaItem,String)->Unit,
     onBrowse:(String)->Unit,onGenre:(DiscoveryOption)->Unit,onCollections:()->Unit,onList:(PublicTraktList)->Unit,onSave:(PublicTraktList)->Unit,
-    preview:suspend(PublicTraktList)->Unit,onRetry:()->Unit,onRetryLists:()->Unit,shared:SharedTransitionScope?=null,animated:AnimatedVisibilityScope?=null,watchIds:Set<String> = emptySet(),showLists:Boolean=true
+    preview:suspend(PublicTraktList)->Unit,onRetry:()->Unit,onRetryLists:()->Unit,shared:SharedTransitionScope?=null,animated:AnimatedVisibilityScope?=null,watchIds:Set<String> = emptySet()
 ){
-    val uniqueDeck=remember(deck){distinctDiscoverDeck(deck)}
-    val top=uniqueDeck.shelves.first{it.id=="top"}
+    val top=deck.shelves.first{it.id=="top"};val featured=top.items.firstOrNull()
     LazyColumn(state=rememberLazyListState(),modifier=Modifier.fillMaxSize().testTag("discover-explore"),contentPadding=PaddingValues(16.dp,4.dp,16.dp,120.dp),verticalArrangement=Arrangement.spacedBy(26.dp)){
         item(key="tonight"){Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
-            DiscoverySection("FOR TONIGHT")
+            DiscoverySection("FOR TONIGHT","Popular on streaming")
             if(top.items.isNotEmpty())BoxWithConstraints(Modifier.fillMaxWidth()){
                 val cardWidth=if(top.items.size>1)maxWidth*.94f else maxWidth
                 LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)){
                     items(top.items,key={it.mediaKey}){pick->
                         val key="discover-feature-${pick.mediaKey}"
-                        Box(Modifier.width(cardWidth).height(178.dp).clip(RoundedCornerShape(20.dp)).background(StakSurface).clickable{onOpen(pick,key)}.testTag("discover-feature")){
+                        Box(Modifier.width(cardWidth).height(206.dp).clip(RoundedCornerShape(20.dp)).background(StakSurface).clickable{onOpen(pick,key)}.testTag("discover-feature")){
                             StakArtwork(pick.background?:pick.poster,null,Modifier.fillMaxSize().stakSharedElement(shared,animated,key))
                             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent,Color(0xF008090B)))))
                             Column(Modifier.align(Alignment.BottomStart).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
                                 TitleBrand(pick,Modifier.widthIn(max=248.dp).fillMaxWidth())
-                                Text((listOfNotNull(pick.year,pick.runtime)+pick.genres.take(2)).joinToString(" · "),fontFamily=HankenFont,fontSize=12.sp,color=StakTextSoft,maxLines=1,overflow=TextOverflow.Ellipsis)
+                                Text((listOfNotNull(pick.year)+pick.genres.take(2)).joinToString(" · "),fontFamily=HankenFont,fontSize=12.sp,color=StakTextSoft,maxLines=1,overflow=TextOverflow.Ellipsis)
                             }
                         }
                     }
                 }
-            }else if(top.loading)ShimmerBox(Modifier.fillMaxWidth().height(178.dp))
+            }else if(top.loading)ShimmerBox(Modifier.fillMaxWidth().height(206.dp))
             else if(top.error!=null)InlineRetry(top.error,onClick=onRetry)
             else Text("No streaming picks could be confirmed for your region.",fontFamily=HankenFont,fontSize=13.sp,color=StakTextMuted)
         }}
         val moods=genres.filter{it.name.lowercase() in setOf("thriller","comedy","mystery","horror","science fiction","sci-fi & fantasy","drama")}.distinctBy{it.id}.take(6)
         if(moods.isNotEmpty())item(key="moods"){Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
-            Text("GENRES",fontFamily=DotoFont,fontWeight=FontWeight.Bold,fontSize=16.sp,color=StakText)
-            LazyRow(horizontalArrangement=Arrangement.spacedBy(8.dp)){items(moods,key={it.id}){genre->val art=deck.shelves.flatMap{it.items}.firstOrNull{m->m.genres.any{it.equals(genre.name,true)}};GenreTile(genre,art){onGenre(genre)}}}
+            Text("FIND YOUR MOOD",fontFamily=DotoFont,fontWeight=FontWeight.Bold,fontSize=16.sp,color=StakText)
+            LazyRow(horizontalArrangement=Arrangement.spacedBy(8.dp)){items(moods,key={it.id}){genre->StakChip(genre.name,false,{onGenre(genre)})}}
         }}
-        item(key="trending"){DiscoverShelfRow("TRENDING NOW",uniqueDeck.shelves.first{it.id=="trending"},onOpen,{onBrowse("trending")},onRetry,shared,animated,watchIds)}
-        if(showLists)item(key="collections"){Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
-            DiscoverySection("EXPLORE LISTS",onMore=onCollections)
+        item(key="trending"){DiscoverShelfRow("TRENDING NOW",deck.shelves.first{it.id=="trending"},onOpen,{onBrowse("trending")},onRetry,shared,animated,watchIds)}
+        item(key="collections"){Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+            DiscoverySection("BROWSE COLLECTIONS","Community film lists",onCollections)
             val available=lists.lists.take(4)
             if(available.isNotEmpty())LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)){
                 items(available,key={it.id}){list->LaunchedEffect(list.id){preview(list)};Box(Modifier.width(264.dp)){PublicListCard(list,previews[list.id].orEmpty(),lists.saved.any{it.id==list.id},{onList(list)},{onSave(list)})}}
             }else if(lists.loading)ShimmerBox(Modifier.fillMaxWidth().height(160.dp))
             else if(lists.error!=null)InlineRetry(lists.error,onClick=onRetryLists)
+            StakButton("Browse all lists",onCollections,compact=true,variant=StakButtonVariant.Ghost,icon=Lucide.ChevronRight)
         }}
-        item(key="hidden"){DiscoverShelfRow("WORTH DISCOVERING",uniqueDeck.shelves.first{it.id=="hidden"},onOpen,{onBrowse("hidden")},onRetry,shared,animated,watchIds)}
-
+        item(key="hidden"){DiscoverShelfRow("WORTH DISCOVERING",deck.shelves.first{it.id=="hidden"},onOpen,{onBrowse("hidden")},onRetry,shared,animated,watchIds)}
+        item(key="browse-all"){StakButton("Browse all titles",{onBrowse("popular")},Modifier.fillMaxWidth(),icon=Lucide.ChevronRight)}
     }
 }
 
@@ -159,7 +158,7 @@ import app.stak.nativeapp.ui.theme.*
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
         Text(title,fontFamily=DotoFont,fontWeight=FontWeight.Bold,fontSize=16.sp,color=StakText)
         subtitle?.let{Text(it,fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)}
-    };if(onMore!=null)TextButton(onClick=onMore){Text("View all",color=StakTextMuted,fontFamily=SpaceMonoFont,fontSize=10.sp)}}
+    };if(onMore!=null)StakIconButton(onMore){Icon(Lucide.ChevronRight,"Browse $title",tint=StakTextMuted,modifier=Modifier.size(19.dp))}}
 }
 
 @Composable private fun DiscoverShelfRow(title:String,shelf:DiscoverShelf,onOpen:(MediaItem,String)->Unit,onMore:()->Unit,onRetry:()->Unit,shared:SharedTransitionScope?,animated:AnimatedVisibilityScope?,watchIds:Set<String>){
@@ -171,18 +170,5 @@ import app.stak.nativeapp.ui.theme.*
         }}else if(shelf.loading)Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){repeat(3){ShimmerBox(Modifier.weight(1f).aspectRatio(2f/3f))}}
         if(shelf.error!=null)InlineRetry(shelf.error,onClick=onRetry)
         else if(!shelf.loading&&shelf.items.isEmpty())Text("No titles available in this selection.",fontFamily=HankenFont,fontSize=13.sp,color=StakTextMuted)
-    }
-}
-
-/** De-duplicate only curated shelves, preserving their order and loading/error state. */
-internal fun distinctDiscoverDeck(deck:DiscoverDeck):DiscoverDeck{
-    val seen=mutableSetOf<String>()
-    return deck.copy(shelves=deck.shelves.map{s->s.copy(items=s.items.filter{seen.add("${it.type}:${it.mediaKey}")})})
-}
-@Composable internal fun GenreTile(genre:DiscoveryOption,art:MediaItem?,onClick:()->Unit){
-    Box(Modifier.width(138.dp).height(76.dp).clip(RoundedCornerShape(12.dp)).background(StakSurface).clickable(onClick=onClick)){
-        art?.let{StakArtwork(it.background?:it.poster,null,Modifier.fillMaxSize())}
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha=.15f),Color.Black.copy(alpha=.8f)))))
-        Text(genre.name,Modifier.align(Alignment.BottomStart).padding(10.dp),fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=14.sp,color=StakText,maxLines=2)
     }
 }

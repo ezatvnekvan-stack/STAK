@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.1 / versionCode 76**. Next distributable versionCode: **77+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.2 / versionCode 77**. Next distributable versionCode: **78+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -22,3 +22,6 @@ Read docs/RELEASE-1.5.0.md. Following is rule-only; Jellyfin library browsing st
 
 ## Android 1.5.1
 Read docs/RELEASE-1.5.1.md. Tracking Activity is a month-scoped dated viewing diary; Continue Watching stays on Home. Preserve legacy preference keys, full history and passive tracking. Curated Discover requests/cache include provider/type/region; never present global shelves under a selected provider or claim public lists are service-filtered. Next release code77+.
+
+## Android 1.5.2 — current override
+Owner explicitly restored original 1.4.0 Tracking and Discover. Read docs/RELEASE-1.5.2.md. Do not reintroduce the 1.5 diary, heatmap hub or Discover redesign. Following, source badges and Auto-add Coming Up remain. Original signing/cloud configuration preserved; next distributable code78+.

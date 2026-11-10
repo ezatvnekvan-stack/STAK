@@ -1,3 +1,9 @@
+# 1.5.2 (code77)
+
+- Restore exact original 1.4.0 Tracking and Discover pages, including calendar, list cards and discovery behavior.
+- Retain Following, source badges and Auto-add Coming Up.
+- Increasing versionCode and original signer allow updating existing installations without uninstalling.
+
 # 1.5.1 (code76)
 
 - Month-selectable poster viewing diary replaces the Tracking hub heatmap and duplicate Continue Watching section.
