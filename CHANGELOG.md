@@ -1,3 +1,9 @@
+# 1.5.8 (code83) — Continue Watching Nothing panel
+
+- A shared rounded outline joins 16:9 artwork and a matte information footer with a small play mark.
+- Larger episode/time text, no repeated title or blur; short red segmented progress remains on the image.
+- Existing English show artwork, half-next-card rail, long-press, reduced motion and data/signing/cloud guards retained. Home hero unchanged.
+
 # 1.5.7 (code82) — Compact Home and Continue Watching
 
 - Home hero uses approximately half the screen; retains seamless fade, textless high-resolution art, logo and facts.

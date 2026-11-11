@@ -59,11 +59,13 @@ class Cinematic156UiTest {
         val progress=compose.onNodeWithTag("continue-progress",useUnmergedTree=true).getUnclippedBoundsInRoot()
         assertTrue(progress.width<firstBounds.width*.4f)
         val imageBounds=compose.onAllNodesWithTag("continue-image",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
-        val info=compose.onNodeWithText("S02 · E03 · 30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        val info=compose.onNodeWithText("S02 · E03\n30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
         assertTrue(info.top>=imageBounds.bottom+6.dp)
+        val footer=compose.onAllNodesWithTag("continue-panel-footer",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
+        assertTrue(info.bottom<=footer.bottom);assertTrue(footer.bottom<=firstBounds.bottom)
         assertTrue(progress.bottom<imageBounds.bottom)
         compose.waitUntil(5000){compose.onAllNodesWithText(first.name,useUnmergedTree=true).fetchSemanticsNodes().isEmpty()}
-        compose.onNodeWithText("S02 · E03 · 30 min left").assertIsDisplayed()
+        compose.onNodeWithText("S02 · E03\n30 min left").assertIsDisplayed()
         compose.onNodeWithText("NEXT UP").assertDoesNotExist();compose.onNodeWithText("IN PROGRESS").assertDoesNotExist()
         cards[0].performClick();assertEquals(first.id,opened);capture("continue-english-art")
     }
@@ -87,7 +89,7 @@ class Cinematic156UiTest {
             }
         }}
         val title=compose.onNodeWithText(item.name,useUnmergedTree=true).getUnclippedBoundsInRoot()
-        val info=compose.onNodeWithText("S02 · E03 · 30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        val info=compose.onNodeWithText("S02 · E03\n30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
         val imageBounds=compose.onNodeWithTag("continue-image",useUnmergedTree=true).getUnclippedBoundsInRoot()
         assertTrue(title.bottom<=imageBounds.bottom);assertTrue(info.top>=imageBounds.bottom+6.dp)
         capture("continue-large-text")

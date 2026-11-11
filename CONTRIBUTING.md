@@ -6,7 +6,7 @@ This checkout is the current native Android source, not the retired web app. Rea
 
 - Use the `preview` variant for `app.stak.nativeapp.parity`; the `release` variant has a different application ID.
 - Contributor builds work without private files. Official updates require the original private signing key. Never commit it or generate a replacement while claiming update compatibility.
-- Current versionCode is 82. Use 83 or higher for the next distributable update.
+- Current versionCode is 83. Use 84 or higher for the next distributable update.
 - Preserve encrypted settings, Room schema/migrations and cloud restore/backup behavior. Do not recreate the existing hosted deployment or blindly reapply migrations for an app update.
 - Cloud URL and publishable client key are build inputs. Privileged keys, tokens, completed environment files, private addon/Torznab URLs and databases stay out of Git.
 

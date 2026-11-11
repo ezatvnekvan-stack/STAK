@@ -105,7 +105,7 @@ class PremiumHomeUiTest {
         compose.onNodeWithTag("home-feed").performScrollToNode(hasTestTag("continue-card"))
         val continueWidth=compose.onNodeWithTag("continue-card").fetchSemanticsNode().boundsInRoot.width
         Assert.assertTrue(continueWidth<compose.onRoot().fetchSemanticsNode().boundsInRoot.width*.80f)
-        compose.onNodeWithTag("continue-card").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.bottom-it.top<=190.dp)}
+        compose.onNodeWithTag("continue-card").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.bottom-it.top<=220.dp)}
         capture("home-continue")
         compose.onNodeWithTag("home-feed").performScrollToNode(hasTestTag("home-spotlight"))
         compose.onNodeWithTag("home-spotlight").assertIsDisplayed();capture("home-trending")

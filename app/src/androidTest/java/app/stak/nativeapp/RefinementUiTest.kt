@@ -49,7 +49,7 @@ class RefinementUiTest{
         val a=nodes[0].getUnclippedBoundsInRoot();val b=nodes[1].getUnclippedBoundsInRoot()
         Assert.assertEquals((a.bottom-a.top).value,(b.bottom-b.top).value,.5f)
         val image=compose.onAllNodesWithTag("continue-image",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
-        Assert.assertEquals(((a.right-a.left)/1.6f).value,(image.bottom-image.top).value,.5f)
+        Assert.assertEquals(((a.right-a.left)*9f/16f).value,(image.bottom-image.top).value,.5f)
         compose.onNodeWithText("90 min left").assertIsDisplayed();compose.onNodeWithText("25%").assertDoesNotExist();capture("continue-landscapes")
     }
     @Test fun bothFeaturedSurfacesRenderARealTitleLogo(){

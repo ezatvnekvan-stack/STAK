@@ -36,8 +36,8 @@ android {
         applicationId = "app.stak.nativeapp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 82
-        versionName = "1.5.7"
+        versionCode = 83
+        versionName = "1.5.8"
         buildConfigField("String", "STAK_CLOUD_URL", configString(stakCloudUrl))
         buildConfigField("String", "STAK_CLOUD_PUBLIC_KEY", configString(stakCloudKey))
         manifestPlaceholders["appLabel"] = "STAK"

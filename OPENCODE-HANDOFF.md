@@ -1,6 +1,6 @@
 # OpenCode handoff
 
-Continue this repository: **STAK Android 1.5.7 / code82**, **STAK Server 1.2.3**. The next distributable Android update must use code83 or greater.
+Continue this repository: **STAK Android 1.5.8 / code83**, **STAK Server 1.2.3**. The next distributable Android update must use code84 or greater.
 
 Start with [README](README.md), [contributor setup](CONTRIBUTING.md), [agent rules](AGENTS.md), [architecture](docs/ARCHITECTURE.md) and [Series Center notes](docs/RELEASE-1.5.5.md).
 
@@ -12,7 +12,7 @@ Following is Library's rule-only Auto-add entry point; library browsing remains 
 
 Historical rollout/verification notes are in `docs/history/`. Treat older phase ledgers as history, not current incomplete task instructions.
 
-Current changes: docs/RELEASE-1.5.7.md. Original 1.4.0 Tracking/Discover remain restored. Optional Current/Glyph background, compact white IMDb and uniform Dolby badges; Details keeps Auto-add without a Series Center shortcut. No Terminal mode.
+Current changes: docs/RELEASE-1.5.8.md. Original 1.4.0 Tracking/Discover remain restored. Optional Current/Glyph background, compact white IMDb and uniform Dolby badges; Details keeps Auto-add without a Series Center shortcut. No Terminal mode.
 
 1.5.4 implements the four owner-approved visual refinements. Shared MediaTypeSelector and CertificationBadge are the single sources for these visual rules. Home/Details alone draw under the status bar and reserve their own insets. Do not reintroduce the rejected Tracking diary/Discover redesign or add a poster provider.
 

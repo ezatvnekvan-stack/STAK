@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +35,7 @@ import kotlinx.coroutines.sync.withPermit
     val permits=remember{Semaphore(3)}
     BoxWithConstraints(Modifier.fillMaxWidth().testTag("continue-rail")){
         val width=continueCardWidth(maxWidth.value).dp
-        val height=width/1.6f
+        val height=width*9f/16f
         LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)){
             items(items,key={it.jellyfinId?:it.mediaKey}){item->
                 val fallback=ContinueArtwork(item.continueBackground,item.logo)
@@ -65,10 +66,10 @@ private suspend fun continueSeriesMetadata(id:String):MediaItem? {
     var artFailed by remember(art.image){mutableStateOf(false)}
     val press=rememberPressMotion()
     Column(Modifier.width(width).testTag("continue-card").semantics{contentDescription=item.name}
-        .pressMotion(press)
+        .pressMotion(press).clip(RoundedCornerShape(16.dp)).background(StakSurface2)
+        .border(1.dp,Color.White.copy(alpha=.20f),RoundedCornerShape(16.dp))
         .combinedClickable(interactionSource=press.source,indication=LocalIndication.current,onClick=onOpen,onLongClick={menu=true})){
-        Box(Modifier.fillMaxWidth().height(height).testTag("continue-image").clip(RoundedCornerShape(16.dp)).background(StakSurface)
-            .border(1.dp,Color.White.copy(alpha=.14f),RoundedCornerShape(16.dp))){
+        Box(Modifier.fillMaxWidth().height(height).testTag("continue-image").background(StakSurface)){
         val fallback=item.continueBackground?.takeIf{it!=art.image}
         StakArtwork(art.image,null,Modifier.fillMaxSize(),fallbackModel=fallback,onLoadFailure={artFailed=true})
         if(!art.embeddedTitle||artFailed)Box(Modifier.align(Alignment.CenterStart)
@@ -80,10 +81,13 @@ private suspend fun continueSeriesMetadata(id:String):MediaItem? {
             StakProgress(item.progress,Modifier.width((width*.28f).coerceIn(60.dp,100.dp)).testTag("continue-progress"),height=3)
         }
         }
-        Column(Modifier.fillMaxWidth().padding(horizontal=2.dp,vertical=8.dp)){
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha=.06f)))
+        Row(Modifier.fillMaxWidth().heightIn(min=52.dp).testTag("continue-panel-footer").padding(horizontal=12.dp,vertical=10.dp),
+            horizontalArrangement=Arrangement.spacedBy(10.dp),verticalAlignment=Alignment.CenterVertically){
+            Icon(Lucide.Play,null,tint=StakText,modifier=Modifier.size(16.dp))
             val episode=if(item.isSeries)listOfNotNull(item.season?.let{"S${it.toString().padStart(2,'0')}"},item.episode?.let{"E${it.toString().padStart(2,'0')}"}).joinToString(" · ")else ""
             val remaining=if(!item.nextUp&&item.durationMs>item.positionMs)"${((item.durationMs-item.positionMs+59999)/60000)} min left"else null
-            Text(listOfNotNull(episode.takeIf{it.isNotBlank()},remaining).joinToString(" · ").ifBlank{if(item.isSeries)"Episode"else "Continue watching"},Modifier.testTag("continue-info"),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextMuted,maxLines=2,overflow=TextOverflow.Ellipsis)
+            Text(listOfNotNull(episode.takeIf{it.isNotBlank()},remaining).joinToString("\n").ifBlank{if(item.isSeries)"Episode"else "Continue watching"},Modifier.weight(1f).testTag("continue-info"),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=16.sp,color=StakText,maxLines=3,overflow=TextOverflow.Ellipsis)
         }
         PosterContextMenu(item,menu,{menu=false},onOpen)
     }
