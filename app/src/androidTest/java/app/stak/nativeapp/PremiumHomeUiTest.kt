@@ -61,7 +61,10 @@ class PremiumHomeUiTest {
         compose.mainClock.advanceTimeBy(320);capture("hero-dissolve-middle")
         compose.mainClock.advanceTimeBy(1400)
         compose.onNodeWithTag("home-hero").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription,"Featured 2 of 2"))
-        compose.onNodeWithText("VIEW DETAILS").assertDoesNotExist();compose.onNodeWithTag("home-hero").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.bottom-it.top in 300.dp..440.dp)}
+        compose.onNodeWithText("VIEW DETAILS").assertDoesNotExist()
+        compose.onNodeWithTag("home-hero").getUnclippedBoundsInRoot().let{
+            Assert.assertEquals(context.resources.configuration.screenHeightDp*.5f,(it.bottom-it.top).value,2f)
+        }
         compose.mainClock.advanceTimeBy(800)
         compose.onNodeWithText("After hours").assertIsDisplayed()
         opened=null;compose.onNodeWithTag("home-hero").performTouchInput{click(androidx.compose.ui.geometry.Offset(center.x,center.y*.40f))};Assert.assertEquals(second.mediaKey,opened?.mediaKey)
@@ -80,7 +83,7 @@ class PremiumHomeUiTest {
         compose.onNodeWithContentDescription("Show featured title 2").performClick();compose.mainClock.advanceTimeBy(200)
         compose.onNodeWithTag("home-hero").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription,"Featured 2 of 2"))
     }
-    @Test fun fullHomeHasCompactSearchAndContinueAndPairedAnticipatedRows(){
+    @Test fun fullHomeHasNoHeaderAndCompactContinueAndPairedAnticipatedRows(){
         val film=title("tt1000010","Northern lights")
         val series=title("tt1000011","Echoes","series",android.graphics.Color.rgb(98,54,99))
         val films=(0..4).map{film.copy(id="tt100002$it",imdbId="tt100002$it",name="Film ${it+1}")}
@@ -97,14 +100,12 @@ class PremiumHomeUiTest {
             sharedScope=null,animatedScope=null,reducedMotion=true,viewModel=vm,searchViewModel=search)}}}}
         compose.waitUntil(8000){compose.onAllNodesWithTag("home-hero").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Movie, series or IMDb ID").assertDoesNotExist()
-        compose.onNodeWithTag("home-search-toggle").performClick()
-        compose.onNodeWithText("Movie, series or IMDb ID").assertIsDisplayed()
-        compose.onNodeWithTag("home-search-toggle").performClick()
+        compose.onNodeWithTag("home-search-toggle").assertDoesNotExist()
         compose.waitForIdle();capture("home-top")
         compose.onNodeWithTag("home-feed").performScrollToNode(hasTestTag("continue-card"))
         val continueWidth=compose.onNodeWithTag("continue-card").fetchSemanticsNode().boundsInRoot.width
         Assert.assertTrue(continueWidth<compose.onRoot().fetchSemanticsNode().boundsInRoot.width*.80f)
-        compose.onNodeWithTag("continue-card").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.bottom-it.top<=160.dp)}
+        compose.onNodeWithTag("continue-card").getUnclippedBoundsInRoot().let{Assert.assertTrue(it.bottom-it.top<=190.dp)}
         capture("home-continue")
         compose.onNodeWithTag("home-feed").performScrollToNode(hasTestTag("home-spotlight"))
         compose.onNodeWithTag("home-spotlight").assertIsDisplayed();capture("home-trending")

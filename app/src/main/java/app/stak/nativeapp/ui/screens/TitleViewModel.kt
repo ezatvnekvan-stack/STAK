@@ -66,7 +66,7 @@ class TitleViewModel(private val repository: MediaRepository = MediaRepository()
             runCatching { detailsLoader(type, id) }
                 .onSuccess {
                     if (token != detailToken) return@onSuccess
-                    _detail.value = it.copy(item=it.item.copy(poster=it.item.poster ?: source?.poster,background=it.item.background ?: source?.background),logo=it.logo ?: source?.logo)
+                    _detail.value = it.copy(item=it.item.copy(poster=it.item.poster ?: source?.poster,background=it.item.background ?: source?.background,cinematicArtwork=it.item.cinematicArtwork ?: source?.cinematicArtwork),logo=it.logo ?: source?.logo)
                     loadedSeasons.addAll(it.episodes.map { ep -> ep.season })
                     _season.value = source?.season?.takeIf{season->season in it.seasons} ?: it.seasons.firstOrNull() ?: 1
                     _episode.value = it.episodes.firstOrNull { ep -> preferredEpisode==(ep.season to ep.episode) } ?: it.episodes.firstOrNull { ep -> ep.season == _season.value }

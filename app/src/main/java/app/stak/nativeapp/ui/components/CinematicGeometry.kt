@@ -20,7 +20,12 @@ internal fun Modifier.edgeToEdge(inset: Dp = 16.dp): Modifier = layout { measura
 
 /** Bounded phone/tablet geometry; keep controls usable in landscape and large text. */
 internal fun homeHeroHeight(screenHeight: Int, fontScale: Float = 1f): Float =
-    (screenHeight * .44f + (fontScale - 1f).coerceIn(0f, 1f) * 70f).coerceIn(300f, 440f)
+    (screenHeight * .5f + (fontScale - 1f).coerceIn(0f, 1f) * 32f)
+        .coerceIn(minOf(220f, screenHeight * .7f), screenHeight * .7f)
 
 internal fun detailArtworkHeight(screenHeight: Int): Float =
-    (screenHeight * .48f).coerceIn(280f, 480f)
+    (screenHeight * .576f).coerceIn(336f, 576f)
+
+/** One full card and half of the next, including the rail's gap. */
+internal fun continueCardWidth(availableWidth: Float, gap: Float = 12f): Float =
+    ((availableWidth-gap).coerceAtLeast(1f)/1.5f)

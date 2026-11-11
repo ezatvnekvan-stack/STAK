@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -40,7 +41,7 @@ import kotlin.math.abs
 @Composable internal fun HeroCarousel(
     items:List<MediaItem>,onOpenTitle:(MediaItem)->Unit,
     sharedScope:SharedTransitionScope?,animatedScope:AnimatedVisibilityScope?,
-    reducedMotion:Boolean,autoPlay:Boolean=true,topBar:@Composable ()->Unit={},modifier:Modifier=Modifier
+    reducedMotion:Boolean,autoPlay:Boolean=true,modifier:Modifier=Modifier
 ){
     if(items.isEmpty())return
     val count=items.size
@@ -55,7 +56,7 @@ import kotlin.math.abs
     val autoAllowed=autoPlay&&!reduced&&count>1&&lifecycle.isAtLeast(Lifecycle.State.RESUMED)&&(motion?.dialogs?:0)==0
     val ids=remember(items){items.map{it.mediaKey}}
     val palette=LocalCinematicPalette.current
-    LaunchedEffect(current.mediaKey,current.background){palette?.value=current.background?:current.poster}
+    LaunchedEffect(current.mediaKey,current.cinematicImage){palette?.value=current.cinematicImage}
     LaunchedEffect(pager.settledPage,pager.isScrollInProgress,count){
         if(count>1&&!pager.isScrollInProgress)when(pager.settledPage){0->pager.scrollToPage(count);count+1->pager.scrollToPage(1)}
     }
@@ -65,6 +66,10 @@ import kotlin.math.abs
     val height=homeHeroHeight(LocalConfiguration.current.screenHeightDp,androidx.compose.ui.platform.LocalDensity.current.fontScale).dp
     Box(modifier.fillMaxWidth().height(height).testTag("home-hero").clickable { onOpenTitle(current) }
         .semantics{stateDescription="Featured ${index+1} of $count"}){
+        Box(Modifier.fillMaxSize().graphicsLayer{compositingStrategy=CompositingStrategy.Offscreen;clip=true}.drawWithCache{
+            val mask=Brush.verticalGradient(0f to Color.White,.46f to Color.White,.69f to Color.White.copy(alpha=.88f),.86f to Color.White.copy(alpha=.40f),1f to Color.Transparent)
+            onDrawWithContent{drawContent();drawRect(mask,blendMode=BlendMode.DstIn)}
+        }){
         HorizontalPager(pager,Modifier.fillMaxSize(),beyondViewportPageCount=1,key={page->"$page:${itemAt(page).mediaKey}"}){page->
             val item=itemAt(page)
             // Cancel the pager's layout translation: pictures blend in one canvas
@@ -75,14 +80,16 @@ import kotlin.math.abs
                 alpha=(1f-abs(offset)).coerceIn(0f,1f)
             }){
                 val shared=if(page==pager.settledPage)Modifier.stakSharedElement(sharedScope,animatedScope,"hero-${item.mediaKey}")else Modifier
-                StakArtwork(item.background?:item.poster,null,Modifier.fillMaxSize().then(shared).graphicsLayer{
+                StakArtwork(item.cinematicImage,null,Modifier.fillMaxSize().then(shared).graphicsLayer{
                     val offset=(pager.currentPage-page)+pager.currentPageOffsetFraction
-                    scaleX=if(reduced)1f else 1.035f+abs(offset)*.065f;scaleY=scaleX
+                    transformOrigin=TransformOrigin(.5f,0f)
+                    scaleX=if(reduced)1f else 1f+abs(offset)*.02f;scaleY=scaleX
                     translationX=if(reduced)0f else offset*size.width*.045f
-                })
+                },alignment=Alignment.TopCenter,fallbackModel=item.cinematicImageFallback)
             }
         }
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.40f),.25f to Color.Transparent,.53f to Color.Black.copy(alpha=.12f),1f to Color(0xFF090A0B))))
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.40f),.25f to Color.Transparent,.53f to Color.Black.copy(alpha=.12f),1f to Color.Black.copy(alpha=.8f))))
+        }
         AnimatedContent(current,Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start=28.dp,end=28.dp,bottom=46.dp),
             contentKey={it.mediaKey},
             transitionSpec={
@@ -93,14 +100,13 @@ import kotlin.math.abs
             Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(9.dp)){
                 var failed by remember(title.logo){mutableStateOf(false)}
                 Box(Modifier.widthIn(max=288.dp).fillMaxWidth().height(62.dp).testTag("home-hero-brand"),contentAlignment=Alignment.Center){
-                    if(title.logo!=null&&!failed)AsyncImage(title.logo,title.name,contentScale=ContentScale.Fit,alignment=Alignment.Center,onError={failed=true},modifier=Modifier.fillMaxSize())
+                    if(title.logo!=null&&!failed)AsyncImage(CinematicArtwork.original(title.logo),title.name,contentScale=ContentScale.Fit,alignment=Alignment.Center,onError={failed=true},modifier=Modifier.fillMaxSize())
                     else Text(title.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=26.sp,lineHeight=31.sp,color=Color.White,maxLines=2,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
                 }
                 FlowRow(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp,Alignment.CenterHorizontally),verticalArrangement=Arrangement.spacedBy(5.dp)){
                     Text((listOfNotNull(title.year,title.runtime)+title.genres.take(1)).joinToString(" · "),fontFamily=HankenFont,fontSize=12.sp,lineHeight=19.sp,color=Color(0xE8FFFFFF),textAlign=androidx.compose.ui.text.style.TextAlign.Center)
                     title.certification?.takeIf{it.isNotBlank()}?.let{CertificationBadge(it,Modifier.padding(top=1.dp))}
                 }
-                title.overview?.takeIf{it.isNotBlank()}?.let{Text(it,fontFamily=HankenFont,fontSize=12.sp,lineHeight=18.sp,color=Color(0xBFFFFFFF),maxLines=2,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)}
             }
         }
         if(count>1)androidx.compose.foundation.lazy.LazyRow(
@@ -119,7 +125,6 @@ import kotlin.math.abs
                 }
             }
         }
-        Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal=16.dp).statusBarsPadding()){topBar()}
     }
 
 }

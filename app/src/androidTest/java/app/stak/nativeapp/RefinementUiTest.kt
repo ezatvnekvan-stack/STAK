@@ -44,11 +44,13 @@ class RefinementUiTest{
     @Test fun continueCardsAreEqualCompactLandscapesWithAlignedCopy(){
         val one=MediaItem("first",name="The Batman",background=art("BATMAN",0xff293a51.toInt()),durationMs=120*60000L,positionMs=30*60000L,progress=.25f)
         val two=MediaItem("second",name="The Leftovers",type="series",background=art("LEFTOVERS",0xff475544.toInt()),nextUp=true,season=1,episode=1)
-        compose.setContent{Frame{Column(Modifier.fillMaxWidth().padding(16.dp)){ContinueRail(listOf(one,two),{})}}}
+        compose.setContent{Frame{Column(Modifier.fillMaxWidth().padding(16.dp)){ContinueRail(listOf(one,two),onOpenTitle={})}}}
         val nodes=compose.onAllNodesWithTag("continue-card")
         val a=nodes[0].getUnclippedBoundsInRoot();val b=nodes[1].getUnclippedBoundsInRoot()
-        Assert.assertEquals((a.bottom-a.top).value,(b.bottom-b.top).value,.5f);Assert.assertEquals(148f,(a.bottom-a.top).value,.5f)
-        compose.onNodeWithText("90 min left").assertIsDisplayed();compose.onNodeWithText("25%").assertIsDisplayed();capture("continue-landscapes")
+        Assert.assertEquals((a.bottom-a.top).value,(b.bottom-b.top).value,.5f)
+        val image=compose.onAllNodesWithTag("continue-image",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
+        Assert.assertEquals(((a.right-a.left)/1.6f).value,(image.bottom-image.top).value,.5f)
+        compose.onNodeWithText("90 min left").assertIsDisplayed();compose.onNodeWithText("25%").assertDoesNotExist();capture("continue-landscapes")
     }
     @Test fun bothFeaturedSurfacesRenderARealTitleLogo(){
         val film=MediaItem("tt1234567",imdbId="tt1234567",name="Northern lights",year="2024",logo=art("NORTHERN LIGHTS",0xff172233.toInt()),background=art("CINEMA",0xff233746.toInt()))

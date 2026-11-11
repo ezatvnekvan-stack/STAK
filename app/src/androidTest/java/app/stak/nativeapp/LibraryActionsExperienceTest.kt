@@ -104,7 +104,7 @@ class LibraryActionsExperienceTest {
         var opened:MediaItem?=null
         compose.setContent{StakTheme{Box(Modifier.fillMaxSize().background(Color(0xff090909))){LibraryScreen({item,_->opened=item},{},true,{},global,null,null,browser)}}}
         compose.onNodeWithText("2 versions").performScrollTo().performClick();compose.onNodeWithText("4K · HEVC").assertExists();compose.onNodeWithText("1080p · H264").performClick();Assert.assertEquals("two",opened?.jellyfinId)
-        compose.onNodeWithContentDescription("Choose library").performScrollTo().performClick();compose.onNodeWithText("Example collection").performClick()
+        compose.onNodeWithContentDescription("Library filters").performScrollTo().performClick();compose.onNodeWithContentDescription("Choose library").performClick();compose.onNodeWithText("Example collection").performClick()
         compose.waitUntil(5000){browser.items.value.size==1&&!browser.busy.value};Assert.assertEquals(2,global.items.value.size);compose.onNodeWithText("2 versions").assertDoesNotExist();capture("jellyfin-collection")
     }
 }

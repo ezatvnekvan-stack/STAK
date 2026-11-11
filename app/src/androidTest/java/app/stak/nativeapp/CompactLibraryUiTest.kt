@@ -55,19 +55,19 @@ class CompactLibraryUiTest {
         val scanModel=LibraryScanViewModel(scanGateway)
         var zurg=0
         compose.setContent{StakTheme{Box(Modifier.fillMaxSize().background(Color(0xff090b0e)).statusBarsPadding()){LibraryScreen({_,_->},{},true,{},vm,null,null,browser,{zurg++},scanModel)}}}
-        compose.onNodeWithText("All libraries").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Sort library").assertIsDisplayed();compose.onNodeWithText("All libraries").assertDoesNotExist()
         compose.onNodeWithText("SCAN LIBRARY").assertIsDisplayed()
         compose.onNodeWithText("Arrival").assertIsDisplayed()
-        val chooser=compose.onNodeWithContentDescription("Choose library").fetchSemanticsNode().boundsInRoot
+        val chooser=compose.onNodeWithContentDescription("Sort library").fetchSemanticsNode().boundsInRoot
         val scan=compose.onNodeWithText("SCAN LIBRARY").fetchSemanticsNode().boundsInRoot
         Assert.assertTrue("Chooser and scan share one row",kotlin.math.abs(chooser.center.y-scan.center.y)<10)
         Assert.assertTrue("Posters should begin within the upper half of the viewport",compose.onNodeWithContentDescription("Arrival").fetchSemanticsNode().boundsInRoot.top < with(compose.density){380.dp.toPx()})
         capture("jellyfin-compact")
         compose.onNodeWithContentDescription("Zurg browser").performClick();Assert.assertEquals(1,zurg)
-        compose.onNodeWithContentDescription("Choose library").performClick();compose.onNodeWithText("Favorites").performClick()
+        compose.onNodeWithContentDescription("Library filters").performClick();compose.onNodeWithContentDescription("Choose library").performClick();compose.onNodeWithText("Favorites").performClick()
         compose.waitUntil(5000){browser.selected.value?.id=="one"&&!browser.busy.value}
         compose.onNodeWithText("Arrival").assertDoesNotExist();compose.onNodeWithText("Silo").assertExists()
-        compose.onNodeWithContentDescription("Choose library").performClick();compose.onNodeWithText("ALL TITLES").performClick()
+        compose.onNodeWithContentDescription("Library filters").performClick();compose.onNodeWithContentDescription("Choose library").performClick();compose.onNodeWithText("ALL TITLES").performClick()
         compose.onNodeWithText("Arrival").assertExists()
         compose.onNodeWithText("SCAN LIBRARY").performClick();compose.waitUntil(5000){scanGateway.requests==1}
         capture("jellyfin-scan")

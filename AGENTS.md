@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.4 / versionCode 79**. Next distributable versionCode: **80+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.7 / versionCode 82**. Next distributable versionCode: **83+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -31,3 +31,12 @@ Read docs/RELEASE-1.5.3.md. Current remains the default background. Glyph is an 
 
 ## Android 1.5.4 — approved cinematic refinements
 Read docs/RELEASE-1.5.4.md. The owner approved shared outline Movies/Series selectors, edge-to-edge centered Home hero, larger centered Details with animated seasonal entries, and shared filled classification stamps. Tracking/Discover retain 1.4 content, flows and data behavior; only their type-selector and age-rating presentation call sites adopt shared visual controls. Page tabs retain underlines. Current/Glyph settings and all acquisition/cloud/passive-tracking guards remain. No BetterPosters integration or backend changes. Next distributable code80+.
+
+## Android 1.5.5 — approved cinematic follow-up
+Read docs/RELEASE-1.5.5.md. Larger rectangular hero fades to the actual background with clipped pager layers. CertificationBadge is transparent/off-white outline everywhere, unchanged compact size. Details genres precede a compact wrapping facts/IMDb line; Sources uses the same outline treatment as secondary actions. Quick source filters remain visible and adjacent; no duplicate card quality heading. Movie library status omits video-height/HDR subtitle, retaining Media Quality. Home/Details independently prefer neutral-language textless artwork and original-resolution images/logos, top-aligned with no steady zoom. Keep ordinary grid poster URLs and metadata provider preference; null language is only a textless hint and absent art retains a fallback. No BetterPosters, backend or watched-state changes. Next code81+.
+
+## Android 1.5.6 — approved six-step refinement
+Read docs/RELEASE-1.5.6.md. Home uses a taller portrait hero without app header controls or synopsis. Continue Watching prefers original-resolution English branded backdrops, a half-next-card rail, a cached local blurred information band and a short progress bar; Home/Details remain textless. Details artwork is 20% taller and extends under metadata, with action sizes preserved. Sources uses single-frame large quick filters, upper-right size, no Recommended text row, and a plus/check action only after acknowledgement. Jellyfin sort replaces the main library chooser; the chooser remains in filters. Watchlist totals are a compact text line. Preserve public-artwork identity checks, lazy/bounded work, reduced motion, current/Glyph, restored Tracking/Discover, passive tracking and all acquisition/cloud/account guards. Next code82+.
+
+## Android 1.5.7 — compact Home and Continue Watching
+Read docs/RELEASE-1.5.7.md. Home hero is approximately half the screen, retaining the textless/original artwork, smooth fade, logo/facts and reduced-motion behavior. Continue Watching uses original English branded show/movie backdrops; episode stills are never its Jellyfin fallback. Resolve a missing show identity from its explicit account-scoped parent only. Episode/time info sits below the artwork without a separate title; no lower blur. Short progress stays on the image and half-next-card geometry/long-press remain. All 1.5.5/1.5.6 source, Details, Library, Watchlist and acquisition/passive/cloud guards remain. Next code83+.

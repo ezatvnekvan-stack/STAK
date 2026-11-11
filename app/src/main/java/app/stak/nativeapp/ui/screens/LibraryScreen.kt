@@ -57,7 +57,7 @@ import coil.compose.AsyncImage
                 if(connected) {
                     LibrarySearch(filters.query,{viewModel.setFilters(filters.copy(query=it))},{options=true})
                     Spacer(Modifier.height(10.dp))
-                    LibraryScanControl(connected,refresh,scanModel,leading={LibraryChoice(parent?.name ?: "All libraries",connected,{catalogOpen=true},Modifier.weight(1f))})
+                    LibraryScanControl(connected,refresh,scanModel,leading={LibrarySortChoice(filters.sort,{viewModel.setFilters(filters.copy(sort=it))},Modifier.weight(1f))})
                     Spacer(Modifier.height(8.dp));MediaTypeSelector(listOf("all" to "All","movie" to "Movies","series" to "Series"),filters.type,{viewModel.setFilters(filters.copy(type=it))},Modifier.fillMaxWidth())
                     Spacer(Modifier.height(10.dp));Text("${shown.size} titles"+(if(displayLoading) " · Loading${total?.let{" $it server items"} ?: "…"}" else ""),fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=15.sp,color=StakTextMuted)
                     if(displayLoading) {Spacer(Modifier.height(8.dp));StakLoadingProgress(Modifier.fillMaxWidth())}
@@ -88,7 +88,7 @@ import coil.compose.AsyncImage
     }
     if(catalogOpen)JellyfinCollectionSheet(browser,{catalogOpen=false})
     versions?.let{item->JellyfinVersionsDialog(item,raw.filter{it.jellyfinId in item.jellyfinVersionIds.orEmpty()},{onOpenTitle(it,"library-version-${it.jellyfinId ?: it.id}")},{versions=null})}
-    if(options)LibraryFilterDialog(filters,{viewModel.setFilters(it)},{options=false})
+    if(options)LibraryFilterDialog(filters,{viewModel.setFilters(it)},{options=false},libraryName=parent?.name?:"All libraries",onChooseLibrary={options=false;catalogOpen=true})
 }
 
 @Composable internal fun LibraryMediaRow(item:MediaItem,onClick:()->Unit) {

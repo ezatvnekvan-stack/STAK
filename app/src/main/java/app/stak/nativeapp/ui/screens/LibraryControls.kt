@@ -18,10 +18,11 @@ import app.stak.nativeapp.ui.theme.*
     }
 }
 
-@Composable internal fun LibraryFilterDialog(filters:LibraryFilters,onChange:(LibraryFilters)->Unit,onDismiss:()->Unit,torbox:Boolean=false) {
+@Composable internal fun LibraryFilterDialog(filters:LibraryFilters,onChange:(LibraryFilters)->Unit,onDismiss:()->Unit,torbox:Boolean=false,libraryName:String?=null,onChooseLibrary:(()->Unit)?=null) {
     GlassAlertDialog(onDismissRequest=onDismiss,containerColor=StakSurface,title={Text("Library filters",fontFamily=DotoFont)},text={Column(verticalArrangement=Arrangement.spacedBy(14.dp)){
-        DiscoverySelect("Sort by",filters.sort,if(torbox)listOf("newest" to "Newest","name" to "Name A–Z","size" to "Largest first") else listOf("name" to "Name A–Z","newest" to "Recently added","year" to "Release year"),{onChange(filters.copy(sort=it))})
+        DiscoverySelect("Sort by",filters.sort,if(torbox)listOf("newest" to "Newest","name" to "Name A–Z","size" to "Largest first") else librarySortOptions,{onChange(filters.copy(sort=it))})
         if(!torbox) {
+            if(onChooseLibrary!=null)LibraryChoice(libraryName?:"All libraries",true,onChooseLibrary,Modifier.fillMaxWidth())
             DiscoverySelect("Watched status",filters.status,listOf("all" to "All titles","unwatched" to "Unwatched","watched" to "Watched","progress" to "In progress"),{onChange(filters.copy(status=it))})
             DiscoverySelect("View",filters.layout,listOf("grid" to "Poster grid","list" to "List"),{onChange(filters.copy(layout=it))})
         }

@@ -80,6 +80,9 @@ import coil.compose.AsyncImage
 import app.stak.nativeapp.data.TitleDetails
 import app.stak.nativeapp.data.Episode
 import app.stak.nativeapp.data.MediaItem
+import app.stak.nativeapp.data.CinematicArtwork
+import app.stak.nativeapp.data.cinematicImage
+import app.stak.nativeapp.data.cinematicImageFallback
 import app.stak.nativeapp.data.SourceRelease
 import app.stak.nativeapp.ui.components.nothingSignal
 import app.stak.nativeapp.data.WatchRules
@@ -168,7 +171,7 @@ fun TitleScreen(
     val artHeight=app.stak.nativeapp.ui.components.detailArtworkHeight(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp).dp
     val stickyThreshold=with(androidx.compose.ui.platform.LocalDensity.current){(artHeight-40.dp).roundToPx()}
     val showHeader by remember{androidx.compose.runtime.derivedStateOf{scroll.firstVisibleItemIndex>0||scroll.firstVisibleItemScrollOffset>stickyThreshold}}
-    val artworkTint=app.stak.nativeapp.ui.components.rememberArtworkTint(media.background ?: media.poster)
+    val artworkTint=app.stak.nativeapp.ui.components.rememberArtworkTint(media.cinematicImage)
     val fallbackMotion=app.stak.nativeapp.ui.components.rememberCinematicMotion()
     val cinemaMotion=app.stak.nativeapp.ui.components.LocalCinematicMotion.current ?: fallbackMotion
     val titlePalette=app.stak.nativeapp.ui.components.rememberCinemaPalette(artworkTint.value)
@@ -193,8 +196,7 @@ fun TitleScreen(
                     topInset = topInset,
                     sharedKey = sharedKey,
                     sharedScope = sharedScope,
-                    animatedScope = animatedScope,
-                    parallax={if(scroll.firstVisibleItemIndex==0)scroll.firstVisibleItemScrollOffset*.10f else 0f}
+                    animatedScope = animatedScope
                 )
             }
             item(key="management",contentType="management") {
@@ -256,35 +258,34 @@ fun TitleScreen(
 @Composable
 private fun TitleHero(
     media:MediaItem,details:TitleDetails?,onBack:()->Unit,topInset:androidx.compose.ui.unit.Dp,
-    sharedKey:String,sharedScope:SharedTransitionScope?,animatedScope:AnimatedVisibilityScope?,parallax:()->Float={0f}
+    sharedKey:String,sharedScope:SharedTransitionScope?,animatedScope:AnimatedVisibilityScope?
 ){
-    val reduced=app.stak.nativeapp.ui.components.LocalReducedMotion.current
     val imageHeight=app.stak.nativeapp.ui.components.detailArtworkHeight(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp).dp
-    Column(Modifier.fillMaxWidth().testTag("detail-hero"),horizontalAlignment=Alignment.CenterHorizontally){
-        Box(Modifier.fillMaxWidth().height(imageHeight).testTag("detail-hero-artwork")){
-            Box(Modifier.matchParentSize().stakSharedElement(sharedScope,animatedScope,sharedKey)
-                .graphicsLayer{compositingStrategy=CompositingStrategy.Offscreen}.drawWithCache{
-                    val mask=Brush.verticalGradient(0f to Color.White,.48f to Color.White,.78f to Color.White.copy(alpha=.65f),1f to Color.Transparent)
-                    onDrawWithContent{drawContent();drawRect(mask,blendMode=BlendMode.DstIn)}
-                }){
-                StakArtwork(media.background?:media.poster,null,Modifier.matchParentSize().graphicsLayer{
-                    translationY=if(reduced)0f else parallax().coerceAtMost(32.dp.toPx())
-                    scaleX=if(reduced)1f else 1.08f;scaleY=scaleX
-                })
-                Box(Modifier.matchParentSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.18f),.4f to Color.Transparent,1f to Color.Black.copy(alpha=.68f))))
-            }
-            app.stak.nativeapp.ui.components.StakIconButton(onBack,Modifier.align(Alignment.TopStart).padding(start=12.dp,top=topInset+8.dp)){
-                Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back",tint=StakText,modifier=Modifier.size(21.dp))
-            }
-            val logo=details?.logo?:media.logo
-            var logoFailed by remember(logo){mutableStateOf(false)}
-            Box(Modifier.align(Alignment.BottomCenter).padding(horizontal=28.dp).padding(bottom=14.dp)
-                .fillMaxWidth().heightIn(min=72.dp).nothingReveal("title-brand:${media.mediaKey}",1).testTag("detail-title-brand"),contentAlignment=Alignment.Center){
-                if(logo!=null&&!logoFailed)AsyncImage(logo,media.name,onError={logoFailed=true},contentScale=ContentScale.Fit,alignment=Alignment.Center,modifier=Modifier.widthIn(max=300.dp).fillMaxWidth().height(80.dp))
-                else Text(media.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=30.sp,lineHeight=36.sp,color=StakText,maxLines=3,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-            }
+    val reveal=app.stak.nativeapp.ui.components.rememberNothingReveal("detail-art:${media.mediaKey}",duration=600)
+    Box(Modifier.fillMaxWidth().testTag("detail-hero")){
+        Box(Modifier.matchParentSize().stakSharedElement(sharedScope,animatedScope,sharedKey)
+            .graphicsLayer{compositingStrategy=CompositingStrategy.Offscreen;alpha=reveal.value}.drawWithCache{
+                val mask=Brush.verticalGradient(0f to Color.White,.40f to Color.White,.64f to Color.White.copy(alpha=.70f),.83f to Color.White.copy(alpha=.25f),1f to Color.Transparent)
+                onDrawWithContent{drawContent();drawRect(mask,blendMode=BlendMode.DstIn)}
+            }){
+            StakArtwork(media.cinematicImage,null,Modifier.matchParentSize(),alignment=Alignment.TopCenter,fallbackModel=media.cinematicImageFallback)
+            Box(Modifier.matchParentSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.12f),.4f to Color.Transparent,1f to Color.Black.copy(alpha=.65f))))
         }
-        TitleMetadata(media,details,Modifier.padding(horizontal=20.dp).padding(top=2.dp,bottom=18.dp).nothingReveal("title-copy:${media.mediaKey}",2))
+        Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally){
+            Box(Modifier.fillMaxWidth().height(imageHeight).testTag("detail-hero-artwork")){
+                app.stak.nativeapp.ui.components.StakIconButton(onBack,Modifier.align(Alignment.TopStart).padding(start=12.dp,top=topInset+8.dp)){
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back",tint=StakText,modifier=Modifier.size(21.dp))
+                }
+                val logo=details?.logo?:media.logo
+                var logoFailed by remember(logo){mutableStateOf(false)}
+                Box(Modifier.align(Alignment.BottomCenter).padding(horizontal=28.dp).padding(bottom=14.dp)
+                    .fillMaxWidth().heightIn(min=72.dp).nothingReveal("title-brand:${media.mediaKey}",2).testTag("detail-title-brand"),contentAlignment=Alignment.Center){
+                    if(logo!=null&&!logoFailed)AsyncImage(CinematicArtwork.original(logo),media.name,onError={logoFailed=true},contentScale=ContentScale.Fit,alignment=Alignment.Center,modifier=Modifier.widthIn(max=300.dp).fillMaxWidth().height(80.dp))
+                    else Text(media.name,fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=30.sp,lineHeight=36.sp,color=StakText,maxLines=3,overflow=TextOverflow.Ellipsis,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+                }
+            }
+            TitleMetadata(media,details,Modifier.padding(horizontal=20.dp).padding(top=2.dp,bottom=18.dp).nothingReveal("title-copy:${media.mediaKey}",3))
+        }
     }
 }
 

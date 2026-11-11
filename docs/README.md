@@ -1,4 +1,4 @@
-Current Android release: [1.5.4 — Cinematic Home/Details and shared controls](RELEASE-1.5.4.md).
+Current Android release: [1.5.7 — Compact Home and Continue Watching](RELEASE-1.5.7.md).
 
 
 # Documentation

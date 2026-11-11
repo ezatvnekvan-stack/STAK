@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import com.skydoves.flexible.bottomsheet.material3.FlexibleBottomSheet
 import com.skydoves.flexible.core.*
 import dev.chrisbanes.haze.HazeState
@@ -27,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -108,15 +110,12 @@ import kotlinx.coroutines.launch
             }
             item {
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically) {
-                    listOf("2160p" to "4K","1080p" to "1080P").forEach{(value,label)->SourceChip("$label ${all.count{it.resolution==value&&(!filters.cachedOnly||it.infoHash in cached)}}",filters.resolution==value,{filters=filters.copy(resolution=if(filters.resolution==value)"All" else value)},Lucide.Monitor)}
-                    Spacer(Modifier.weight(1f));SourceCircle(Lucide.Radio,"Source providers",{manageSources=true});SourceCircle(Lucide.Sliders,"Filters and sorting",{advanced=true})
+                    FlowRow(Modifier.weight(1f),horizontalArrangement=Arrangement.spacedBy(7.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
+                    listOf("2160p" to "4K","1080p" to "1080P").forEach{(value,label)->SourceChip(label,filters.resolution==value,{filters=filters.copy(resolution=if(filters.resolution==value)"All" else value)},count=all.count{it.resolution==value&&(!filters.cachedOnly||it.infoHash in cached)})}
+                    }
+                    SourceCircle(Lucide.Radio,"Source providers",{manageSources=true});SourceCircle(Lucide.Sliders,"Filters and sorting",{advanced=true})
                 }
-                Spacer(Modifier.height(8.dp));Row(horizontalArrangement=Arrangement.spacedBy(7.dp)) {
-                    SourceChip("HDR",filters.hdr,{filters=filters.copy(hdr=!filters.hdr)},Lucide.Sun,Modifier.weight(1f))
-                    SourceChip("ATMOS",filters.atmos,{filters=filters.copy(atmos=!filters.atmos)},Lucide.Volume,Modifier.weight(1f))
-                    SourceChip("WEB-DL",filters.webdl,{filters=filters.copy(webdl=!filters.webdl)},Lucide.Globe,Modifier.weight(1.25f))
-                    SourceChip("REMUX",filters.remux,{filters=filters.copy(remux=!filters.remux)},Lucide.Layers,Modifier.weight(1.2f))
-                }
+                Spacer(Modifier.height(4.dp));SourceFormatFilters(filters){filters=it}
                 Spacer(Modifier.height(8.dp));Row(verticalAlignment=Alignment.CenterVertically) {
                     Text("${shown.size} ${if(filters.cachedOnly)"cached " else ""}releases",fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=16.sp,color=StakTextMuted,modifier=Modifier.weight(1f))
                     SourceSelect(when(filters.sort){"size"->"Largest size";else->"Quality first"},listOf("best" to "Quality first","size" to "Largest size"),{filters=filters.copy(sort=it)})
@@ -166,17 +165,30 @@ import kotlinx.coroutines.launch
     }
 }
 
+@Composable internal fun SourceFormatFilters(filters:SourceFilters,onChange:(SourceFilters)->Unit){
+    FlowRow(Modifier.testTag("source-format-filters"),horizontalArrangement=Arrangement.spacedBy(7.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
+        SourceChip("HDR",filters.hdr,{onChange(filters.copy(hdr=!filters.hdr))})
+        SourceChip("ATMOS",filters.atmos,{onChange(filters.copy(atmos=!filters.atmos))})
+        SourceChip("WEB-DL",filters.webdl,{onChange(filters.copy(webdl=!filters.webdl))})
+        SourceChip("REMUX",filters.remux,{onChange(filters.copy(remux=!filters.remux))})
+    }
+}
+
 @Composable private fun SourceCircle(icon:ImageVector,label:String,onClick:()->Unit,enabled:Boolean=true) {
     IconButton(onClick=onClick,enabled=enabled,modifier=Modifier.size(44.dp)) { Icon(icon,label,tint=if(enabled)StakText else StakTextMuted,modifier=Modifier.size(18.dp)) }
 }
 
-@Composable private fun SourceChip(label:String,selected:Boolean,onClick:()->Unit,icon:ImageVector?=null,modifier:Modifier=Modifier) {
-    if(label in listOf("HDR","ATMOS","WEB-DL","REMUX")){
-        Box(modifier.heightIn(min=44.dp).clip(RoundedCornerShape(9.dp)).then(if(selected)Modifier.border(1.dp,StakTextSoft,RoundedCornerShape(9.dp))else Modifier).semantics{this.selected=selected}.clickable(onClick=onClick).padding(horizontal=2.dp),contentAlignment=Alignment.Center){
-            FormatBadge(if(label=="ATMOS")"Atmos"else label)
-            if(selected)Box(Modifier.align(Alignment.BottomCenter).padding(bottom=2.dp).size(3.dp).background(StakAccent,CircleShape))
-        }
-    }else StakChip(label,selected,onClick,modifier,leading=if(icon==null)null else {{Icon(icon,null,tint=StakTextMuted,modifier=Modifier.size(14.dp))}})
+@Composable internal fun SourceChip(label:String,selected:Boolean,onClick:()->Unit,icon:ImageVector?=null,modifier:Modifier=Modifier,count:Int?=null) {
+    val reduced=LocalReducedMotion.current
+    val ink by androidx.compose.animation.animateColorAsState(if(selected)StakText else StakTextSoft,if(reduced)snap()else tween(160),label="source-filter-ink")
+    val stroke by androidx.compose.animation.animateColorAsState(Color.White.copy(alpha=if(selected).75f else .23f),if(reduced)snap()else tween(160),label="source-filter-edge")
+    Row(modifier.heightIn(min=44.dp).clip(RoundedCornerShape(9.dp))
+        .background(Color.White.copy(alpha=if(selected).09f else .025f)).border(1.dp,stroke,RoundedCornerShape(9.dp))
+        .semantics{this.selected=selected}.clickable(role=androidx.compose.ui.semantics.Role.Checkbox,onClick=onClick)
+        .padding(horizontal=11.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(7.dp)){
+        Text(label,fontFamily=SpaceMonoFont,fontWeight=FontWeight.Bold,fontSize=11.sp,lineHeight=16.sp,color=ink)
+        count?.let{Text(it.toString(),fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)}
+    }
 }
 
 @Composable private fun SourceSelect(label:String,options:List<Pair<String,String>>,onSelect:(String)->Unit,modifier:Modifier=Modifier,outlined:Boolean=false) {
@@ -198,17 +210,18 @@ import kotlinx.coroutines.launch
     var expanded by remember(source.sourceIdentity){mutableStateOf(false)}
     val pack=season!=null&&seasonPackMatches(source.name,season)
     val bytes=if(pack)source.torrentSizeBytes else source.sizeBytes
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFF151515)).border(1.dp,if(suggested)Color(0xFF797979)else Color(0x2AFFFFFF),RoundedCornerShape(14.dp)).clickable{expanded=!expanded}.padding(13.dp),verticalArrangement=Arrangement.spacedBy(9.dp)) {
-        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
-            Text(sourceQualityHeading(source),Modifier.weight(1f),fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=16.sp,color=StakText)
-            Text(bytes?.let{"%.2f GB".format(java.util.Locale.US,it/1073741824.0)}?:"Size unknown",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextMuted)
-        }
-        FlowRow(horizontalArrangement=Arrangement.spacedBy(5.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
-            releaseBadges(source).forEach{FormatBadge(it)}
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFF151515)).border(1.dp,if(suggested)Color(0xFF797979)else Color(0x2AFFFFFF),RoundedCornerShape(14.dp)).semantics{if(suggested)stateDescription="Recommended release"}.testTag("source-card").clickable{expanded=!expanded}.padding(13.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top,horizontalArrangement=Arrangement.spacedBy(10.dp)){
+            FlowRow(Modifier.weight(1f).testTag("source-badge-line"),horizontalArrangement=Arrangement.spacedBy(5.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+                if(suggested)Box(Modifier.padding(top=10.dp).size(4.dp).background(StakAccent,CircleShape))
+                releaseBadges(source).forEach{FormatBadge(it)}
+            }
+            Text(bytes?.let{"%.2f GB".format(java.util.Locale.US,it/1073741824.0)}?:"Size unknown",
+                Modifier.testTag("source-size").clip(RoundedCornerShape(6.dp)).background(Color.White.copy(alpha=.045f)).padding(horizontal=6.dp,vertical=5.dp),
+                fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=16.sp,color=StakText)
         }
         Text(source.name.replace('_',' '),fontFamily=HankenFont,fontSize=12.sp,lineHeight=17.sp,color=StakTextSoft,maxLines=2,overflow=TextOverflow.Ellipsis)
         if(pack)Text("Season $season pack",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
-        if(suggested)Text("Recommended",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
         NothingExpand(expanded){Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
             Text(source.name,fontFamily=SpaceMonoFont,fontSize=11.sp,lineHeight=17.sp,color=StakText)
             source.indexer?.let{Text(it,fontFamily=HankenFont,fontSize=11.sp,color=StakTextMuted)}
@@ -217,8 +230,7 @@ import kotlinx.coroutines.launch
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
             Icon(Lucide.Zap,null,tint=if(cached)Color(0xFFB9D3C6)else StakTextMuted,modifier=Modifier.size(14.dp))
             Text(if(cached)"Cached on TorBox"else "Cache unconfirmed",Modifier.weight(1f),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=if(cached)Color(0xFFB9D3C6)else StakTextMuted)
-            if(adding)StakLottie(StakAnimation.Search,Modifier.size(24.dp),loop=true)
-            StakButton(if(added)"Added · Files"else if(adding)"Adding…"else "Add",if(added)onFiles else onAdd,compact=true,enabled=added||(!adding&&canAdd),icon=if(added)Lucide.Check else Lucide.Plus)
+            SourceAcquireButton(added,adding,canAdd,onAdd,onFiles)
         }
     }
 }

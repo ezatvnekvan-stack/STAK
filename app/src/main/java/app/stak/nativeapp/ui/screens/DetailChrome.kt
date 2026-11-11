@@ -46,9 +46,9 @@ import dev.chrisbanes.haze.*
         else {seen=true;sweep.snapTo(1f)}
     }
     val press=rememberPressMotion()
-    val shape=RoundedCornerShape(14.dp)
+    val shape=RoundedCornerShape(11.dp)
     Box(modifier.widthIn(min=176.dp).heightIn(min=48.dp).pressMotion(press).clip(shape)
-        .background(Color(0x99141618)).border(1.dp,Color.White.copy(alpha=.28f),shape)
+        .border(1.dp,Color.White.copy(alpha=.40f),shape)
         .clickable(interactionSource=press.source,indication=androidx.compose.foundation.LocalIndication.current,role=androidx.compose.ui.semantics.Role.Button,onClick=onSources)
         .testTag("detail-source-button"),contentAlignment=Alignment.CenterStart){
         androidx.compose.foundation.Canvas(Modifier.matchParentSize()){

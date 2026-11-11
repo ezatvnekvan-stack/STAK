@@ -44,6 +44,23 @@ import app.stak.nativeapp.ui.theme.*
     }
 }
 
+internal val librarySortOptions=listOf("newest" to "Recently added","name" to "Title A–Z","name_desc" to "Title Z–A","year" to "Release year")
+
+@Composable internal fun LibrarySortChoice(sort:String,onSelect:(String)->Unit,modifier:Modifier=Modifier){
+    var open by remember{mutableStateOf(false)}
+    val label=librarySortOptions.firstOrNull{it.first==sort}?.second?:"Title A–Z"
+    Box(modifier){
+        Row(Modifier.fillMaxWidth().heightIn(min=44.dp).clip(RoundedCornerShape(11.dp))
+            .border(1.dp,Color.White.copy(alpha=.30f),RoundedCornerShape(11.dp))
+            .clickable{open=true}.semantics{contentDescription="Sort library";stateDescription=label;role=Role.Button}
+            .padding(horizontal=12.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            Text("Sort by: $label",Modifier.weight(1f),fontFamily=HankenFont,fontSize=12.sp,lineHeight=17.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
+            Icon(Lucide.ChevronDown,null,tint=StakTextMuted,modifier=Modifier.size(15.dp))
+        }
+        GlassDropdownMenu(open,{open=false}){librarySortOptions.forEach{(key,text)->DropdownMenuItem(text={Text(text)},onClick={open=false;onSelect(key)})}}
+    }
+}
+
 /** Existing loaders remain authoritative; dragging never requests a server scan. */
 @Composable internal fun LibraryRefresh(refreshing:Boolean,onRefresh:()->Unit,enabled:Boolean=true,content:@Composable BoxScope.()->Unit){
     val state=rememberPullToRefreshState()

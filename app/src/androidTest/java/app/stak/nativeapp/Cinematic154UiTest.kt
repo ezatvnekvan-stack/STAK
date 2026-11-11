@@ -93,7 +93,7 @@ class Cinematic154UiTest {
         listOf("PG-13", "R", "TV-MA").forEach { compose.onNodeWithContentDescription("Age rating $it").assertIsDisplayed() }
         capture("classification-stamps")
     }
-    @Test fun homeArtworkReachesEdgesWhileHeaderSearchRemainsInteractive() {
+    @Test fun homeArtworkReachesEdgesWithoutHeaderControls() {
         val item = media(); lateinit var vm: HomeViewModel; lateinit var search: LiveSearchViewModel
         compose.runOnUiThread { vm = HomeViewModel(feedLoader = { HomeFeed(hero = listOf(item)) }); search = LiveSearchViewModel { emptyList() } }
         compose.setContent { StakTheme { CompositionLocalProvider(LocalReducedMotion provides true) {
@@ -104,12 +104,12 @@ class Cinematic154UiTest {
         val hero = compose.onNodeWithTag("home-hero").getUnclippedBoundsInRoot()
         val root = compose.onRoot().getUnclippedBoundsInRoot()
         assertEquals(root.left.value, hero.left.value, 1f); assertEquals(root.right.value, hero.right.value, 1f)
-        assertTrue(hero.height in 300.dp..440.dp)
+        val screenHeight=androidx.compose.ui.unit.Dp(context.resources.configuration.screenHeightDp.toFloat())
+        assertEquals(screenHeight.value*.5f,hero.height.value,2f)
         compose.onNodeWithContentDescription("Age rating PG-13", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("VIEW DETAILS").assertDoesNotExist(); capture("home-edge-to-edge")
-        compose.onNodeWithTag("home-search-toggle").performClick()
-        compose.onNodeWithText("Movie, series or IMDb ID").assertIsDisplayed()
-        compose.onNodeWithTag("home-search-toggle").performClick()
+        compose.onNodeWithTag("home-search-toggle").assertDoesNotExist()
+        compose.onNodeWithText(item.overview!!).assertDoesNotExist()
         compose.onNodeWithTag("home-hero").assertIsDisplayed()
     }
     @Test fun movieUsesCenteredFactsAndVisibleSeparateActionRows() {
@@ -123,8 +123,10 @@ class Cinematic154UiTest {
         val artwork = compose.onNodeWithTag("detail-hero-artwork").getUnclippedBoundsInRoot()
         val facts = compose.onNodeWithTag("title-facts").getUnclippedBoundsInRoot()
         val rating = compose.onNodeWithTag("title-rating-slot").getUnclippedBoundsInRoot()
-        assertTrue(artwork.height >= 280.dp); assertTrue(rating.top >= facts.bottom)
-        assertEquals((facts.left.value+facts.right.value)/2f, (rating.left.value+rating.right.value)/2f, 1f)
+        assertTrue(artwork.height >= 280.dp); assertTrue(rating.top >= facts.top)
+        assertTrue(rating.bottom <= facts.bottom)
+        val genres = compose.onNodeWithTag("title-genres").getUnclippedBoundsInRoot()
+        assertTrue(genres.bottom <= facts.top)
         val source = compose.onNodeWithTag("detail-source-button").getUnclippedBoundsInRoot()
         val trailer = compose.onNodeWithContentDescription("Trailer").getUnclippedBoundsInRoot()
         assertTrue(trailer.top - source.bottom >= 11.dp)

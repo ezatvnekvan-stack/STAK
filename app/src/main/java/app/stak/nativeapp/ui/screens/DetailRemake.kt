@@ -53,7 +53,7 @@ import java.util.Locale
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
                 Text(if(available)"In your library"else if(connected)"Not in library"else "Jellyfin not connected",fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted)
-                val quality=if(available)listOfNotNull(media.jellyfinVideoHeight?.let{if(it>=2160)"4K"else if(it>=1080)"1080p"else "${it}p"},media.jellyfinHdr?.takeIf{it.isNotBlank()}).joinToString(" · ")else ""
+                val quality=if(available&&media.isSeries)listOfNotNull(media.jellyfinVideoHeight?.let{if(it>=2160)"4K"else if(it>=1080)"1080p"else "${it}p"},media.jellyfinHdr?.takeIf{it.isNotBlank()}).joinToString(" · ")else ""
                 if(quality.isNotBlank())Text(quality,fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft,maxLines=1,overflow=TextOverflow.Ellipsis)
             }
             if(available)JellyfinQualityButton(media,available=true)

@@ -66,15 +66,24 @@ import androidx.compose.animation.*
 }
 
 /** Coil skips the crossfade for memory-cache hits; no per-poster animation coroutine. */
-@Composable fun StakArtwork(model:Any?,contentDescription:String?,modifier:Modifier=Modifier,contentScale:ContentScale=ContentScale.Crop,onSuccess:()->Unit={}) {
+@Composable fun StakArtwork(model:Any?,contentDescription:String?,modifier:Modifier=Modifier,contentScale:ContentScale=ContentScale.Crop,onSuccess:()->Unit={},alignment:androidx.compose.ui.Alignment=androidx.compose.ui.Alignment.Center,fallbackModel:Any?=null,onLoadFailure:()->Unit={}) {
     val context=LocalContext.current;val reduced=LocalReducedMotion.current
-    val request=remember(model,reduced,context){ImageRequest.Builder(context).data(model).crossfade(if(reduced)0 else StakMotion.Quick).build()}
-    var failed by remember(model){mutableStateOf(false)}
+    var useFallback by remember(model,fallbackModel){mutableStateOf(false)}
+    val active=if(useFallback)fallbackModel else model
+    val request=remember(active,reduced,context){ImageRequest.Builder(context).data(active).crossfade(if(reduced)0 else StakMotion.Quick).build()}
+    var failed by remember(model,fallbackModel){mutableStateOf(false)}
     Box(modifier){
         if(model==null||failed)Box(Modifier.fillMaxSize().background(app.stak.nativeapp.ui.theme.StakSurface),contentAlignment=androidx.compose.ui.Alignment.Center){
             androidx.compose.material3.Icon(app.stak.nativeapp.ui.theme.Lucide.Film,null,tint=app.stak.nativeapp.ui.theme.StakTextFaint,modifier=Modifier.size(22.dp))
         }
-        AsyncImage(request,contentDescription,modifier=Modifier.fillMaxSize(),contentScale=contentScale,onError={failed=true},onSuccess={failed=false;onSuccess()})
+        // Dispose the failed painter before mounting its replacement: late events from
+        // the outgoing request must not mark the fallback request as failed.
+        key(active){
+            AsyncImage(request,contentDescription,modifier=Modifier.fillMaxSize(),contentScale=contentScale,alignment=alignment,onError={
+                onLoadFailure()
+                if(active==model&&fallbackModel!=null&&fallbackModel!=model)useFallback=true else failed=true
+            },onSuccess={failed=false;onSuccess()})
+        }
     }
 }
 

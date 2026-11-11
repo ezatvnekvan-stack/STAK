@@ -33,7 +33,8 @@ internal class DirectTitleMetadata(
             if (tmdbId != null) {
                 val data = tmdb("/$apiKind/$tmdbId", mapOf("append_to_response" to "external_ids,videos,images,credits,release_dates,content_ratings,similar,recommendations${if (kind == "series") ",aggregate_credits" else ""}", "include_image_language" to "en,null"))
                 val mapped = DirectCatalog.tmdbItem(data, kind)
-                val item = mapped.copy(runtime = mapped.runtime ?: data.getAsJsonArray("episode_run_time")?.firstOrNull()?.asInt?.let { "$it min" })
+                val item = mapped.copy(runtime = mapped.runtime ?: data.getAsJsonArray("episode_run_time")?.firstOrNull()?.asInt?.let { "$it min" },
+                    cinematicArtwork = CinematicArtwork.choose(data.objectOrNull("images"),mapped.background?:mapped.poster))
                 if (preferCinemeta(kind) && item.imdbId != null && !id.matches(Regex("tt\\d+"))) {
                     try { return@withContext cinema(kind, item.imdbId, null) }
                     catch (cancelled: CancellationException) { throw cancelled }
@@ -60,8 +61,7 @@ internal class DirectTitleMetadata(
                 val cast = data.objectOrNull("credits")?.objects("cast").orEmpty().take(18).mapNotNull { p -> p.text("id")?.let { TitlePerson(it, p.text("name").orEmpty(), p.text("character").orEmpty(), image(p.text("profile_path"), "w185")) } }
                 val images = data.objectOrNull("images")
                 val gallery = images?.objects("backdrops").orEmpty().take(12).mapNotNull { it.text("file_path")?.let { path -> "https://image.tmdb.org/t/p/w780$path" } }.distinct()
-                val logos = images?.objects("logos").orEmpty().filter { it.text("iso_639_1") in listOf(null, "en") }
-                val logo = image(logos.firstOrNull { it.text("iso_639_1") == "en" }?.text("file_path") ?: logos.firstOrNull()?.text("file_path"))
+                val logo = CinematicArtwork.logo(images)
                 val trailer = data.objectOrNull("videos")?.objects("results").orEmpty().sortedByDescending { it.get("official")?.asBoolean == true }.firstOrNull { it.text("site") == "YouTube" && it.text("type") == "Trailer" && it.text("key")?.matches(Regex("[A-Za-z0-9_-]{6,32}")) == true }?.text("key")
                 val us = data.objectOrNull(if (kind == "series") "content_ratings" else "release_dates")?.objects("results")?.firstOrNull { it.text("iso_3166_1") == "US" }
                 val certification = if (kind == "series") us?.text("rating") else us?.objects("release_dates")?.firstNotNullOfOrNull { it.text("certification")?.takeIf { value -> value.isNotBlank() } }
@@ -73,17 +73,22 @@ internal class DirectTitleMetadata(
         require(id.matches(Regex("tt\\d+"))) { "Configure TMDb to load metadata for this title." }
         cinema(kind, id, fallbackNotice ?: "TMDb key or matching identity missing. Showing Cinemeta metadata.")
     }
-    private fun cinema(type: String, id: String, notice: String?): TitleDetails {
+    private suspend fun cinema(type: String, id: String, notice: String?): TitleDetails {
         val data = request("https://v3-cinemeta.strem.io/meta/$type/$id.json", emptyMap(), null)
         val meta = data.get("meta")?.takeIf { it.isJsonObject }?.asJsonObject ?: throw IOException("Title not found in Cinemeta.")
-        val item = DirectCatalog.cinemetaItem(meta, type)
+        val base = DirectCatalog.cinemetaItem(meta, type).copy(logo=meta.text("logo"))
+        // Preserve the selected metadata provider. Artwork enrichment is optional and cannot fail Details.
+        val item = if(key().isBlank())base else try {
+            val enriched=DirectCatalog(key,preferCinemeta,request).heroMetadata(base)
+            base.copy(cinematicArtwork=enriched.cinematicArtwork,logo=enriched.logo?:base.logo)
+        } catch(cancelled:CancellationException){throw cancelled} catch(_:Exception){base}
         val episodes = meta.objects("videos").mapNotNull { ep ->
             val season = ep.number("season")?.toInt()?.takeIf { it > 0 } ?: return@mapNotNull null
             val number = ep.number("episode")?.toInt()?.takeIf { it > 0 } ?: return@mapNotNull null
             Episode(season, number, ep.text("name") ?: ep.text("title") ?: "Episode $number", ep.text("overview") ?: ep.text("description"), ep.text("thumbnail"), released = ep.text("released"))
         }.distinctBy { it.season to it.episode }.sortedWith(compareBy({ it.season }, { it.episode }))
         val trailer = meta.objects("trailers").firstNotNullOfOrNull { it.text("source")?.takeIf { s -> s.matches(Regex("[A-Za-z0-9_-]{6,32}")) && it.text("type") == "Trailer" } }
-        return TitleDetails(item, item.genres, episodes = episodes, seasons = episodes.map { it.season }.distinct(), notice = notice, trailerUrl = trailer?.let { "https://www.youtube.com/watch?v=$it" }, logo = meta.text("logo"))
+        return TitleDetails(item, item.genres, episodes = episodes, seasons = episodes.map { it.season }.distinct(), notice = notice, trailerUrl = trailer?.let { "https://www.youtube.com/watch?v=$it" }, logo = item.logo)
     }
     suspend fun season(id: String, season: Int): List<Episode> = withContext(Dispatchers.IO) {
         require(season >= 0)

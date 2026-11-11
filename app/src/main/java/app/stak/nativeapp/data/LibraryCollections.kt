@@ -40,7 +40,7 @@ fun filterJellyfinLibrary(items:List<MediaItem>,filters:LibraryFilters):List<Med
         (filters.type=="all"||item.type==filters.type)&&when(filters.status){"watched"->item.watched;"unwatched"->!item.watched;"progress"->!item.watched&&item.progress>0;else->true}&&
         (query.isBlank()||listOf(item.name,item.year.orEmpty(),item.imdbId.orEmpty()).plus(item.aliases).any{librarySearchText(it).contains(query)})
     }
-    val order=when(filters.sort){"newest"->compareByDescending<MediaItem>{it.addedAt};"year"->compareByDescending{it.year?.toIntOrNull() ?: 0};else->compareBy{librarySearchText(it.name)}}
+    val order=when(filters.sort){"newest"->compareByDescending<MediaItem>{it.addedAt};"year"->compareByDescending{it.year?.toIntOrNull() ?: 0};"name_desc"->compareByDescending{librarySearchText(it.name)};else->compareBy{librarySearchText(it.name)}}
     return shown.sortedWith(order.thenBy{librarySearchText(it.name)}.thenBy{it.jellyfinId ?: it.id})
 }
 

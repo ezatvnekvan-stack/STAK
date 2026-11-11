@@ -31,7 +31,7 @@ class TitleHeaderUiTest{
   }}}
   compose.onNodeWithText("2008 · 152 min").assertIsDisplayed();compose.onNodeWithText("PG-13").assertIsDisplayed();compose.onNodeWithText("Action · Thriller · Crime").assertIsDisplayed()
   compose.onNodeWithContentDescription("IMDb 9.1").assertIsDisplayed();compose.onNodeWithText("/ 10").assertDoesNotExist();compose.onNodeWithText("/10").assertDoesNotExist()
-  val facts=compose.onNodeWithTag("title-facts").getUnclippedBoundsInRoot();val rating=compose.onNodeWithTag("title-rating-slot").getUnclippedBoundsInRoot();Assert.assertTrue(rating.top>=facts.bottom);Assert.assertEquals((facts.left.value+facts.right.value)/2f,(rating.left.value+rating.right.value)/2f,1f)
+  val facts=compose.onNodeWithTag("title-facts").getUnclippedBoundsInRoot();val rating=compose.onNodeWithTag("title-rating-slot").getUnclippedBoundsInRoot();Assert.assertTrue(rating.top>=facts.top);Assert.assertTrue(rating.bottom<=facts.bottom)
   val trailer=compose.onNodeWithContentDescription("Trailer").getUnclippedBoundsInRoot();val save=compose.onNodeWithContentDescription("Add to watchlist").getUnclippedBoundsInRoot();Assert.assertTrue("Trailer and watchlist need a visible gap",(save.left-trailer.right).value>=11.5f)
   val dot=compose.onNodeWithTag("imdb-accent-dot",useUnmergedTree=true).getUnclippedBoundsInRoot();Assert.assertEquals(3f,(dot.right-dot.left).value,.5f)
   compose.onNodeWithContentDescription("Trailer").performClick();compose.onNodeWithContentDescription("Add to watchlist").performClick();Assert.assertEquals(1,trailers);Assert.assertEquals(1,saves);capture("movie-metadata-actions")

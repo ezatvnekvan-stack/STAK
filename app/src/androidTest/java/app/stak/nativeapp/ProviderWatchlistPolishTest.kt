@@ -34,8 +34,8 @@ class ProviderWatchlistPolishTest {
     @Test fun watchlistDotoCountersReflectRealCountsAndUpdates(){
         var movies by mutableStateOf(3);var series by mutableStateOf(4)
         compose.setContent{Frame{StakPageHeader("Watchlist");Spacer(Modifier.height(8.dp));WatchlistSummary(movies,series)}}
-        compose.onNodeWithContentDescription("Movies count").assertTextEquals("3","MOVIES");compose.onNodeWithContentDescription("Series count").assertTextEquals("4","SERIES");capture("watchlist-doto-summary")
+        compose.onNodeWithText("3 movies · 4 series").assertIsDisplayed();capture("watchlist-doto-summary")
         compose.runOnIdle{movies=120;series=0}
-        compose.onNodeWithContentDescription("Movies count").assertTextEquals("120","MOVIES");compose.onNodeWithContentDescription("Series count").assertTextEquals("0","SERIES")
+        compose.onNodeWithText("120 movies · 0 series").assertIsDisplayed()
     }
 }

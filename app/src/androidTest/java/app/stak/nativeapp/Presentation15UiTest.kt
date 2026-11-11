@@ -44,13 +44,14 @@ class Presentation15UiTest{
 
   compose.onNodeWithText("DOLBY VISION").assertExists();compose.onNodeWithText("HDR10+").assertExists()
 
-  compose.onNodeWithText("4K · WEB-DL").performClick()
+  compose.onNodeWithText("4K · WEB-DL").assertDoesNotExist()
+  compose.onNodeWithText(s.name).performClick()
 
   compose.onNodeWithText("RELEASE DETAILS").assertExists();assertEquals(0,adds)
 
   capture("source-card")
 
-  compose.onNodeWithText("ADD").performClick();assertEquals(1,adds)
+  compose.onNodeWithContentDescription("Add cached release").performClick();assertEquals(1,adds)
 
  }
 
@@ -58,7 +59,7 @@ class Presentation15UiTest{
 
   compose.setContent{StakTheme{SourceReleaseCard(SourceRelease("Fixture"),false,false,false,{error("must not add")},{},false,false,null,0,{})}}
 
-  compose.onNodeWithText("ADD").assertIsNotEnabled();compose.onNodeWithText("Cache unconfirmed").assertExists()
+  compose.onNodeWithContentDescription("Add cached release").assertIsNotEnabled();compose.onNodeWithText("Cache unconfirmed").assertExists()
 
  }
 
@@ -84,7 +85,7 @@ class Presentation15UiTest{
     StakTheme{Box(Modifier.width(300.dp)){SourceReleaseCard(SourceRelease("A.long.release.name.2160p.DV.Atmos",resolution="2160p",dolbyVision=true,atmos=true),true,false,false,{},{},true,false,null,0,{})}}
    }
   }
-  compose.onNodeWithText("ADD").assertIsDisplayed();compose.onNodeWithText("DOLBY VISION").assertExists()
+  compose.onNodeWithContentDescription("Add cached release").assertIsDisplayed();compose.onNodeWithText("DOLBY VISION").assertExists()
   capture("source-large-text")
  }
 

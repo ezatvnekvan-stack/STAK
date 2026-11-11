@@ -48,7 +48,8 @@ data class MediaItem(
     val jellyfinVideoCodec:String?=null,
     val jellyfinHdr:String?=null,
     val jellyfinUnplayedCount:Int?=null,
-    val jellyfinKnownItemCount:Int?=null
+    val jellyfinKnownItemCount:Int?=null,
+    val cinematicArtwork:String?=null
 ) {
     val mediaKey: String get() = imdbId ?: id
     val isSeries: Boolean get() = type.equals("series", ignoreCase = true)

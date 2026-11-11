@@ -37,7 +37,7 @@ class PreviewTenDataTest {
             json("""{"runtime":145,"genres":[{"name":"Action"},{"name":"Adventure"}],"images":{"logos":[{"file_path":"/logo.png","iso_639_1":"en"}]},"release_dates":{"results":[{"iso_3166_1":"US","release_dates":[{"certification":"PG-13"}]}]},"external_ids":{"imdb_id":"tt1234567"}}""").asJsonObject
         }
         val item=catalog.heroMetadata(MediaItem("tmdb:42",name="Movie",rating=8.8))
-        assertEquals("https://image.tmdb.org/t/p/w500/logo.png",item.logo);assertEquals("145 min",item.runtime);assertEquals("PG-13",item.certification);assertEquals(listOf("Action","Adventure"),item.genres);assertNull(item.rating);assertEquals(1,calls)
+        assertEquals("https://image.tmdb.org/t/p/original/logo.png",item.logo);assertEquals("145 min",item.runtime);assertEquals("PG-13",item.certification);assertEquals(listOf("Action","Adventure"),item.genres);assertNull(item.rating);assertEquals(1,calls)
     }
     @Test fun seriesHeroUsesEpisodeRuntimeAndUsTvCertificate()=runBlocking {
         val catalog=DirectCatalog({"synthetic"}){url,_,_->assertTrue(url.endsWith("/tv/42"));json("""{"episode_run_time":[],"last_episode_to_air":{"runtime":46},"content_ratings":{"results":[{"iso_3166_1":"US","rating":"TV-MA"}]}}""").asJsonObject}

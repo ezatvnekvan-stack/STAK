@@ -51,7 +51,7 @@ class DirectCatalog(
     }
 
     suspend fun heroMetadata(item:MediaItem):MediaItem=withContext(Dispatchers.IO) {
-        if(tmdbKey().isBlank())return@withContext item.copy(rating=null)
+        if(tmdbKey().isBlank())return@withContext item.copy(rating=null,cinematicArtwork=item.cinematicImage)
         val kind=if(item.isSeries)"tv" else "movie"
         val id=item.id.removePrefix("tmdb:").takeIf{it.matches(Regex("\\d+"))} ?: item.imdbId?.takeIf{it.matches(Regex("tt\\d+"))}?.let{imdb->
             tmdb("/find/$imdb",mapOf("external_source" to "imdb_id"),tmdbKey()).objects(if(item.isSeries)"tv_results"else "movie_results").firstOrNull()?.text("id")
@@ -59,18 +59,44 @@ class DirectCatalog(
         val data=tmdb("/$kind/$id",mapOf("append_to_response" to "images,external_ids,${if(item.isSeries)"content_ratings" else "release_dates"}","include_image_language" to "en,null","language" to "en-US"),tmdbKey())
         val verifiedImdb=data.objectOrNull("external_ids")?.text("imdb_id")
         if(item.imdbId!=null&&verifiedImdb!=null&&item.imdbId!=verifiedImdb)return@withContext item.copy(rating=null)
-        val logos=data.objectOrNull("images")?.objects("logos").orEmpty().filter{it.text("iso_639_1") in listOf(null,"en")}
-        val logo=logos.firstOrNull{it.text("iso_639_1")=="en"} ?: logos.firstOrNull()
         val us=data.objectOrNull(if(item.isSeries)"content_ratings" else "release_dates")?.objects("results")?.firstOrNull{it.text("iso_3166_1")=="US"}
         val certification=if(item.isSeries)us?.text("rating") else us?.objects("release_dates")?.firstNotNullOfOrNull{it.text("certification")?.takeIf{value->value.isNotBlank()}}
         val runtime=(if(item.isSeries)data.get("episode_run_time")?.takeIf{it.isJsonArray}?.asJsonArray?.firstOrNull()?.takeIf{it.isJsonPrimitive}?.asInt ?: data.objectOrNull("last_episode_to_air")?.number("runtime")?.toInt() ?: data.objectOrNull("next_episode_to_air")?.number("runtime")?.toInt() else data.number("runtime")?.toInt())?.takeIf{it>0}?.let{"$it min"}
-        item.copy(rating=null,imdbId=data.objectOrNull("external_ids")?.text("imdb_id") ?: item.imdbId,logo=logo?.text("file_path")?.let{"https://image.tmdb.org/t/p/w500$it"},genres=data.objects("genres").mapNotNull{it.text("name")}.ifEmpty{item.genres},runtime=runtime ?: item.runtime,certification=certification?.takeIf{it.isNotBlank()})
+        item.copy(rating=null,imdbId=data.objectOrNull("external_ids")?.text("imdb_id") ?: item.imdbId,
+            cinematicArtwork=CinematicArtwork.choose(data.objectOrNull("images"),item.background?:item.poster),
+            logo=CinematicArtwork.logo(data.objectOrNull("images"),item.logo),genres=data.objects("genres").mapNotNull{it.text("name")}.ifEmpty{item.genres},runtime=runtime ?: item.runtime,certification=certification?.takeIf{it.isNotBlank()})
     }
     suspend fun imdbIdentity(item: MediaItem): String? = withContext(Dispatchers.IO) {
         item.imdbId?.let { return@withContext it }
         val id=item.id.removePrefix("tmdb:").takeIf { it.matches(Regex("\\d+")) } ?: return@withContext null
         val data=tmdb("/${if(item.isSeries)"tv" else "movie"}/$id/external_ids",emptyMap(),tmdbKey())
         data.text("imdb_id")?.takeIf { it.matches(Regex("tt\\d+")) }
+    }
+
+    /** Public artwork only. Episode playback/progress/identity stays with the original row. */
+    internal suspend fun continueArtwork(row:MediaItem,resolveParent:suspend(String)->MediaItem?={null}):ContinueArtwork=withContext(Dispatchers.IO){
+        val fallback=ContinueArtwork(row.continueBackground,row.logo)
+        val key=tmdbKey();if(key.isBlank())return@withContext fallback
+        val parentId=row.jellyfinSeriesId?.takeIf{row.isSeries&&it.matches(Regex("[A-Za-z0-9-]+"))}
+        val needsParent=parentId!=null&&row.imdbId==null&&!row.id.matches(Regex("(?:tmdb:)?\\d+|tt\\d+"))&&
+            row.jellyfinProviderKeys.orEmpty().none{it.matches(Regex("tmdb:\\d+"))}
+        val parent=if(needsParent)resolveParent(parentId!!) else null
+        val item=if(parent?.isSeries==true&&parent.jellyfinId==parentId)
+            row.copy(imdbId=parent.imdbId,jellyfinProviderKeys=parent.jellyfinProviderKeys) else row
+        val kind=if(item.isSeries)"tv"else "movie"
+        val expectedImdb=(item.imdbId?:item.id).takeIf{it.matches(Regex("tt\\d+"))}
+        val id=item.id.removePrefix("tmdb:").takeIf{it.matches(Regex("\\d+"))}
+            ?: expectedImdb?.let{imdb->
+                tmdb("/find/$imdb",mapOf("external_source" to "imdb_id"),key).objects(if(item.isSeries)"tv_results"else "movie_results").firstOrNull()?.text("id")
+            } ?: item.jellyfinProviderKeys.orEmpty().filter{it.matches(Regex("tmdb:\\d+"))}.singleOrNull()?.substringAfter(':')
+            ?: return@withContext fallback
+        val data=tmdb("/$kind/$id",mapOf("append_to_response" to "images,external_ids","include_image_language" to "en,null","language" to "en-US"),key)
+        val imdb=data.objectOrNull("external_ids")?.text("imdb_id")
+        if(expectedImdb!=null&&imdb!=null&&expectedImdb!=imdb)return@withContext fallback
+        val images=data.objectOrNull("images")
+        val english=CinematicArtwork.englishBackdrop(images)
+        ContinueArtwork(english?:CinematicArtwork.neutralBackdrop(images,item.continueBackground),
+            CinematicArtwork.logo(images,item.logo),english!=null)
     }
     suspend fun search(query: String, page: Int = 1, type: String = "all"): DiscoverResult = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext DiscoverResult(source = "cinemeta")

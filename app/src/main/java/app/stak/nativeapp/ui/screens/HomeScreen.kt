@@ -130,14 +130,7 @@ fun HomeScreen(
     val error by viewModel.error.collectAsState()
     val settings = app.stak.nativeapp.data.NativeRuntime.settings
     val sections = app.stak.nativeapp.data.HomeSections.read(settings.homeRowsJson)
-    val search by searchViewModel.query.collectAsState()
-    val searchItems by searchViewModel.items.collectAsState()
-    val searchLoading by searchViewModel.loading.collectAsState()
-    val searchError by searchViewModel.error.collectAsState()
     LaunchedEffect(feed,watchlist,knownTitles){searchViewModel.knownTitles(knownTitles+watchlist+feed?.hero.orEmpty()+feed?.rows.orEmpty().flatMap{it.items})}
-    var searchOpen by androidx.compose.runtime.saveable.rememberSaveable{mutableStateOf(false)}
-    val focus=androidx.compose.ui.platform.LocalFocusManager.current
-    androidx.activity.compose.BackHandler(enabled=searchOpen||search.isNotBlank()){searchViewModel.setQuery("");searchOpen=false;focus.clearFocus()}
 
     val followingRevision by WatchRules.revision.collectAsState()
     val followingRules=remember(followingRevision){WatchRules.store.read().rules}
@@ -155,7 +148,6 @@ fun HomeScreen(
     val hasTrakt=!settings.traktClientId.isNullOrBlank()
     val watchIds = remember(watchlist) { watchlist.map { it.mediaKey }.toSet() }
 
-    val showPlainHeader=searchOpen||search.isNotBlank()||feed?.hero.isNullOrEmpty()
     val homeScroll=androidx.compose.foundation.lazy.rememberLazyListState()
     val heroVisible by remember{androidx.compose.runtime.derivedStateOf{homeScroll.layoutInfo.visibleItemsInfo.any{it.key=="home-hero"}}}
     val pairStart=remember(sections){anticipatedPairStart(sections)}
@@ -166,57 +158,13 @@ fun HomeScreen(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        if(showPlainHeader)item(key="home-topbar") {
-            Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
-            HomeTopBar(onOpenAccount = onOpenAccount, torboxConnected = torboxConnected,searchOpen=searchOpen,onSearch={
-                searchOpen=!searchOpen
-                if(!searchOpen){searchViewModel.setQuery("");focus.clearFocus()}
-            })
-            app.stak.nativeapp.ui.components.NothingExpand(searchOpen||search.isNotBlank()){Column{
-            Spacer(Modifier.height(12.dp))
-            StakTextField(
-                value = search,
-                onValueChange = { searchViewModel.setQuery(it) },
-                placeholder = "Movie, series or IMDb ID",
-                trailing = {if(search.isNotEmpty())androidx.compose.material3.IconButton(onClick={searchViewModel.setQuery("")}){Icon(app.stak.nativeapp.ui.theme.Lucide.X,"Clear search",tint=StakTextMuted,modifier=Modifier.size(16.dp))}},
-                height = 44,
-                onSubmit = { if (search.isNotBlank()) onSearch(search.trim()) },
-                leading = {
-                    Icon(
-                        app.stak.nativeapp.ui.theme.Lucide.Search,
-                        contentDescription = null,
-                        tint = StakTextFaint,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            )
-            Spacer(Modifier.height(8.dp))
-            }}
-            Spacer(Modifier.height(14.dp))
-        }
-
-        if(search.isNotBlank()) {
-            item {
-                StakSectionHeader("Search results",actionLabel="See all",onAction={onSearch(search.trim())})
-                Spacer(Modifier.height(12.dp))
-                if(searchLoading)Text("Searching…",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
-                searchError?.let{Text(it,fontFamily=HankenFont,fontSize=12.sp,color=StakTextMuted);StakButton("Retry search",{searchViewModel.retry()})}
-                if(searchItems.isEmpty()&&!searchLoading&&searchError==null)Text(if(search.trim().length<2)"Keep typing to search movies and series." else "No matching titles. Try another title, year or IMDb ID.",fontFamily=HankenFont,fontSize=13.sp,color=StakTextMuted)
-            }
-            items(searchItems.chunked(3),key={row->row.joinToString("|"){"${it.type}:${it.mediaKey}"}},contentType={"search-row"}){row->
-                Row(stakItemMotion().fillMaxWidth().padding(bottom=18.dp),horizontalArrangement=Arrangement.spacedBy(10.dp)){
-                    row.forEach{item->app.stak.nativeapp.ui.components.StakPosterCard(item,{onOpenTitle(item,"search-${item.mediaKey}")},Modifier.weight(1f),inWatchlist=item.mediaKey in watchIds)}
-                    repeat(3-row.size){Spacer(Modifier.weight(1f))}
-                }
-            }
-        } else if (feed == null || (loading && feed == null)) {
+        if(feed?.hero.isNullOrEmpty())item(key="home-safe-inset"){Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))}
+        if (feed == null) {
             item { RowSkeleton("Trending movies") }
         } else {
             val data = feed!!
-            if (data.hero.isNotEmpty()&&!searchOpen) item(key="home-hero") {
-                HeroCarousel(data.hero, { onOpenTitle(it, "hero-${it.mediaKey}") }, sharedScope, animatedScope, reducedMotion,autoPlay=heroVisible&&!homeScroll.isScrollInProgress,topBar={
-                    HomeTopBar(onOpenAccount,torboxConnected,searchOpen){searchOpen=true}
-                },modifier=Modifier.edgeToEdge())
+            if (data.hero.isNotEmpty()) item(key="home-hero") {
+                HeroCarousel(data.hero, { onOpenTitle(it, "hero-${it.mediaKey}") }, sharedScope, animatedScope, reducedMotion,autoPlay=heroVisible&&!homeScroll.isScrollInProgress,modifier=Modifier.edgeToEdge())
                 Spacer(Modifier.height(22.dp))
             }
             if(data.hero.isEmpty()&&loading&&!settings.tmdbKey.isNullOrBlank())item(key="home-hero"){
@@ -324,23 +272,6 @@ private fun HomeShelf(
 }
 
 @Composable
-private fun HomeTopBar(onOpenAccount:()->Unit,torboxConnected:Boolean,searchOpen:Boolean,onSearch:()->Unit){
-    Row(Modifier.fillMaxWidth().height(58.dp),verticalAlignment=Alignment.CenterVertically){
-        Image(painterResource(R.drawable.ic_stak),"STAK",Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)))
-        Spacer(Modifier.width(10.dp))
-        Text("STAK",fontFamily=DotoFont,fontWeight=FontWeight.Black,fontSize=25.sp,letterSpacing=(-1).sp,color=StakText)
-        Spacer(Modifier.weight(1f))
-        app.stak.nativeapp.ui.components.StakIconButton(onSearch,Modifier.testTag("home-search-toggle")){
-            Icon(if(searchOpen)app.stak.nativeapp.ui.theme.Lucide.X else app.stak.nativeapp.ui.theme.Lucide.Search,if(searchOpen)"Close search"else "Search titles",tint=StakText,modifier=Modifier.size(21.dp))
-        }
-        app.stak.nativeapp.ui.components.StakIconButton(onOpenAccount,Modifier.semantics{stateDescription=if(torboxConnected)"Connected"else "Not configured"}){
-            Icon(app.stak.nativeapp.ui.theme.Lucide.Settings,"Settings",tint=StakTextMuted,modifier=Modifier.size(20.dp))
-            Box(Modifier.align(Alignment.BottomEnd).padding(7.dp).size(5.dp).clip(CircleShape).background(if(torboxConnected)StakSuccess else StakAccent))
-        }
-    }
-}
-
-@Composable
 private fun JellyfinConnectRow(onOpenLibrary: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -361,38 +292,6 @@ private fun JellyfinConnectRow(onOpenLibrary: () -> Unit) {
             variant = StakButtonVariant.Outlined,
             compact = false
         )
-    }
-}
-
-@Composable
-internal fun ContinueRail(items:List<MediaItem>,onOpenTitle:(MediaItem)->Unit){
-    BoxWithConstraints(Modifier.fillMaxWidth()){
-        val width=(maxWidth*.74f).coerceIn(minOf(220.dp,maxWidth*.84f),276.dp)
-        LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)){
-            items(items,key={it.jellyfinId?:it.mediaKey}){item->
-                var menu by remember(item.mediaKey){mutableStateOf(false)}
-                val press=app.stak.nativeapp.ui.components.rememberPressMotion()
-                Box(Modifier.width(width).height(148.dp).testTag("continue-card").pressMotion(press).clip(RoundedCornerShape(16.dp))
-                    .background(app.stak.nativeapp.ui.theme.StakSurface).border(1.dp,Color.White.copy(alpha=.18f),RoundedCornerShape(16.dp))
-                    .combinedClickable(interactionSource=press.source,indication=androidx.compose.foundation.LocalIndication.current,onClick={onOpenTitle(item)},onLongClick={menu=true})){
-                    app.stak.nativeapp.ui.components.StakArtwork(item.background?:item.poster,null,Modifier.fillMaxSize())
-                    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color.Black.copy(alpha=.1f),.25f to Color.Black.copy(alpha=.12f),.58f to Color.Black.copy(alpha=.72f),1f to Color.Black.copy(alpha=.96f))))
-                    Row(Modifier.align(Alignment.TopStart).padding(10.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha=.65f)).padding(horizontal=7.dp,vertical=5.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){
-                        Box(Modifier.size(4.dp).background(if(item.nextUp)StakText else StakAccent,RoundedCornerShape(4.dp)))
-                        Text(if(item.nextUp)"NEXT UP"else "IN PROGRESS",fontFamily=SpaceMonoFont,fontSize=9.sp,color=StakText)
-                    }
-                    Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
-                        Text(item.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=15.sp,lineHeight=19.sp,color=StakText,minLines=2,maxLines=2,overflow=TextOverflow.Ellipsis)
-                        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-                            Text(if(item.nextUp)"S${(item.season?:1).toString().padStart(2,'0')} · E${(item.episode?:1).toString().padStart(2,'0')}"else if(item.durationMs>0)"${((item.durationMs-item.positionMs).coerceAtLeast(0)+59999)/60000} min left"else "In progress",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft,modifier=Modifier.weight(1f),maxLines=1)
-                            if(!item.nextUp)Text("${(item.progress*100).toInt()}%",fontFamily=SpaceMonoFont,fontSize=11.sp,color=StakTextSoft)
-                        }
-                        if(!item.nextUp)StakProgress(item.progress,Modifier.fillMaxWidth(),height=3)else Spacer(Modifier.height(3.dp))
-                    }
-                    app.stak.nativeapp.ui.components.PosterContextMenu(item,menu,{menu=false},{onOpenTitle(item)})
-                }
-            }
-        }
     }
 }
 

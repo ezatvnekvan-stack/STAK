@@ -1,6 +1,7 @@
 package app.stak.nativeapp.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -31,10 +32,10 @@ import app.stak.nativeapp.ui.theme.*
     val label = value?.trim()?.takeIf { it.isNotEmpty() }?.uppercase(Locale.ROOT) ?: return
     Box(modifier.testTag("certification-badge").semantics(mergeDescendants = true) {
         contentDescription = "Age rating $label"
-    }.background(Color(0xFFE7E7E2), RoundedCornerShape(2.dp))
+    }.border(1.dp, Color(0xCCE7E7E2), RoundedCornerShape(2.dp))
         .padding(horizontal = 5.dp, vertical = 1.dp), contentAlignment = Alignment.Center) {
         Text(label, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Black,
-            fontSize = 11.sp, lineHeight = 15.sp, letterSpacing = .2.sp, color = Color(0xFF111213))
+            fontSize = 11.sp, lineHeight = 15.sp, letterSpacing = .2.sp, color = Color(0xFFE7E7E2))
     }
 }
 

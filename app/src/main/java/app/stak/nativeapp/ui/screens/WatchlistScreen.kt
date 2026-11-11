@@ -32,8 +32,8 @@ import app.stak.nativeapp.ui.theme.*
         item(span={GridItemSpan(maxLineSpan)}) {
             Column {
                 StakPageHeader("Watchlist",trailing={IconButton(onClick={viewModel.refresh();viewModel.checkCache(all,torboxKey,effective.cachedOnly);if(prefs.sort=="rating")viewModel.loadRatings(all)}){Icon(Lucide.Refresh,"Refresh watchlist",tint=StakText,modifier=Modifier.size(17.dp))}})
-                Spacer(Modifier.height(8.dp));WatchlistSummary(all.count{!it.isSeries},all.count{it.isSeries})
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(2.dp));WatchlistSummary(all.count{!it.isSeries},all.count{it.isSeries})
+                Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                     StakTextField(prefs.query,{viewModel.preferences(prefs.copy(query=it))},"Search watchlist",Modifier.weight(1f),leading={Icon(Lucide.Search,null,modifier=Modifier.size(16.dp),tint=StakTextMuted)})
                     IconButton(onClick={filters=true}){Icon(Lucide.Sliders,"Watchlist filters",tint=StakText)}

@@ -1,3 +1,28 @@
+# 1.5.7 (code82) — Compact Home and Continue Watching
+
+- Home hero uses approximately half the screen; retains seamless fade, textless high-resolution art, logo and facts.
+- Continue Watching uses the show backdrop for episodes, with original-resolution English branded art preferred. Missing public identity resolves from the explicit Jellyfin parent with account guards.
+- Episode/time information moves below the artwork without a repeated title. Lower blur removed; short progress stays on the image.
+- Half-next-card rail, long-press, data/signing/cloud compatibility and the six 1.5.6 refinements remain. No server update.
+
+# 1.5.6 (code81) — Six approved refinements
+
+- Taller portrait Home hero without app header controls or synopsis.
+- Continue Watching: original English branded artwork, half-next-card rail, local blurred information band and short progress.
+- Taller Details image extending beneath centered metadata; unchanged action sizes.
+- Larger single-frame source filters; recommended edge/marker without a text row, upper-right size and acknowledged plus-to-check action.
+- Jellyfin Sort by replaces the main library chooser; libraries/collections remain inside filters.
+- Compact single-line Watchlist totals. Original signing/cloud/data, Current/Glyph and passive/cached-only guards retained.
+
+# 1.5.5 (code80) — Cinematic refinement
+
+- Larger seamless Home hero; top-aligned high-resolution artwork and bounded transition depth.
+- Independent textless artwork preference, original TMDb resolution, separate logos and image-failure fallback for Home/Details.
+- Compact outline classification badges globally; centered genres and compact facts/IMDb on Details.
+- Sources shares the other action outlines; quick filters are adjacent and use consistent marks. Cards omit duplicate quality headings.
+- Movie library status drops redundant quality text, retaining Media Quality and passive playback state.
+- Grid posters, restored Tracking/Discover, Current/Glyph, accounts and cached-only acquisition protections remain. No server update.
+
 # 1.5.4 (code79) — Cinematic Home and Details
 
 - Shared transparent outline Movies/Series/All controls across browsing surfaces, including Home anticipated shelves and Tracking.
