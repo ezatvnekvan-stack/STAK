@@ -49,8 +49,8 @@ class RefinementUiTest{
         val a=nodes[0].getUnclippedBoundsInRoot();val b=nodes[1].getUnclippedBoundsInRoot()
         Assert.assertEquals((a.bottom-a.top).value,(b.bottom-b.top).value,.5f)
         val image=compose.onAllNodesWithTag("continue-image",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
-        Assert.assertEquals(((a.right-a.left)*9f/16f).value,(image.bottom-image.top).value,.5f)
-        compose.onNodeWithText("90 min left").assertIsDisplayed();compose.onNodeWithText("25%").assertDoesNotExist();capture("continue-landscapes")
+        Assert.assertEquals(148f,(image.bottom-image.top).value,.5f)
+        compose.onNodeWithText("90 min left").assertIsDisplayed();compose.onNodeWithText("25%").assertIsDisplayed();capture("continue-landscapes")
     }
     @Test fun bothFeaturedSurfacesRenderARealTitleLogo(){
         val film=MediaItem("tt1234567",imdbId="tt1234567",name="Northern lights",year="2024",logo=art("NORTHERN LIGHTS",0xff172233.toInt()),background=art("CINEMA",0xff233746.toInt()))

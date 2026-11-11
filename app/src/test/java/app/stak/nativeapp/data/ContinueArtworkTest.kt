@@ -7,14 +7,14 @@ import org.junit.Test
 
 class ContinueArtworkTest {
     private fun json(s:String)=JsonParser.parseString(s).asJsonObject
-    @Test fun englishBackdropWinsAndUsesOriginalWhileProgressRemainsUnchanged()=runBlocking{
+    @Test fun textlessBackdropWinsOverEnglishAndProgressRemainsUnchanged()=runBlocking{
         val item=MediaItem("tmdb:42",name="Film",progress=.42f,positionMs=1000,durationMs=2000)
         val catalog=DirectCatalog({"fixture"}){_,params,_->
             assertEquals("en,null",params["include_image_language"])
             json("""{"images":{"backdrops":[{"file_path":"/neutral.jpg","width":8000,"height":4500},{"file_path":"/small-en.jpg","iso_639_1":"en","width":1920,"height":1080},{"file_path":"/large-en.jpg","iso_639_1":"en","width":3840,"height":2160}]}}""")
         }
         val art=catalog.continueArtwork(item)
-        assertTrue(art.embeddedTitle);assertEquals("https://image.tmdb.org/t/p/original/large-en.jpg",art.image)
+        assertFalse(art.embeddedTitle);assertEquals("https://image.tmdb.org/t/p/original/neutral.jpg",art.image)
         assertEquals(.42f,item.progress);assertEquals(1000L,item.positionMs)
     }
     @Test fun missingEnglishUsesNeutralAndSeparateEnglishLogo()=runBlocking{
@@ -39,10 +39,10 @@ class ContinueArtworkTest {
         var lookups=0
         val catalog=DirectCatalog({"fixture"}){url,_,_->
             assertTrue(url.endsWith("/tv/42"))
-            json("""{"images":{"backdrops":[{"file_path":"/show-en.jpg","iso_639_1":"en","width":3840,"height":2160}]}}""")
+            json("""{"images":{"backdrops":[{"file_path":"/show-neutral.jpg","iso_639_1":null,"width":3840,"height":2160}]}}""")
         }
         val art=catalog.continueArtwork(row){id->lookups++;assertEquals("show-42",id);MediaItem("jellyfin:show-42",name="Show",type="series",jellyfinId=id,jellyfinProviderKeys=listOf("tmdb:42"))}
-        assertEquals(1,lookups);assertTrue(art.embeddedTitle);assertTrue(art.image!!.endsWith("/original/show-en.jpg"))
+        assertEquals(1,lookups);assertFalse(art.embeddedTitle);assertTrue(art.image!!.endsWith("/original/show-neutral.jpg"))
         assertNull(row.imdbId);assertEquals(3,row.episode);assertEquals("episode-9",row.jellyfinId)
     }
     @Test fun unrelatedParentCannotSupplyArtworkIdentity()=runBlocking{

@@ -1,6 +1,6 @@
 # OpenCode handoff
 
-Continue this repository: **STAK Android 1.5.8 / code83**, **STAK Server 1.2.3**. The next distributable Android update must use code84 or greater.
+Continue this repository: **STAK Android 1.5.8 / code84**, **STAK Server 1.2.3**. The next distributable Android update must use code85 or greater.
 
 Start with [README](README.md), [contributor setup](CONTRIBUTING.md), [agent rules](AGENTS.md), [architecture](docs/ARCHITECTURE.md) and [Series Center notes](docs/RELEASE-1.5.5.md).
 

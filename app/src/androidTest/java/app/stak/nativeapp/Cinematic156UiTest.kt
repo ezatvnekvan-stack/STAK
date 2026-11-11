@@ -37,7 +37,14 @@ class Cinematic156UiTest {
         p.shader=android.graphics.LinearGradient(0f,0f,1600f,900f,0xff305b73.toInt(),0xff09151b.toInt(),android.graphics.Shader.TileMode.CLAMP);c.drawPaint(p)
         p.shader=null;p.color=0xffa2b5bd.toInt();c.drawCircle(1200f,300f,180f,p)
         p.color=0xff07141b.toInt();c.drawRect(1000f,450f,1400f,900f,p)
-        p.color=android.graphics.Color.WHITE;p.textSize=95f;p.typeface=android.graphics.Typeface.DEFAULT_BOLD;c.drawText("NIGHT SIGNAL",140f,420f,p)
+        // Neutral background; branding is a separate transparent image.
+        f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)};b.recycle();return f.toURI().toString()
+    }
+    private fun logo():String {
+        val f=File.createTempFile(prefix,".png",context.cacheDir);files+=f
+        val b=Bitmap.createBitmap(800,150,Bitmap.Config.ARGB_8888)
+        val p=android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply{color=android.graphics.Color.WHITE;textSize=76f;typeface=android.graphics.Typeface.DEFAULT_BOLD}
+        android.graphics.Canvas(b).drawText("NIGHT SIGNAL",0f,105f,p)
         f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)};b.recycle();return f.toURI().toString()
     }
     private fun capture(name:String){
@@ -45,29 +52,26 @@ class Cinematic156UiTest {
         val dir=File(InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?:context.getExternalFilesDir(null)!!.path,"cinematic156").apply{mkdirs()}
         File(dir,"$name.png").outputStream().use{compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
     }
-    @Test fun englishContinueCardsShowHalfOfNextCardWithoutLabelsOrMenu(){
-        val image=art();var opened=""
+    @Test fun originalContinueCardsUseSeparateLogoAndKeepShortProgress(){
+        val image=art();val mark=logo();var opened=""
         val first=MediaItem("fixture-one",name="Night Signal",type="series",season=2,episode=3,background=image,progress=.4f,positionMs=600000,durationMs=2400000)
         compose.setContent{StakTheme{CompositionLocalProvider(LocalReducedMotion provides true){Column(Modifier.fillMaxWidth().background(StakBackground).padding(16.dp)){
-            ContinueRail(listOf(first,first.copy(id="fixture-two",name="Second",nextUp=true)),artworkLoader={ContinueArtwork(image,embeddedTitle=true)}){opened=it.id}
+            ContinueRail(listOf(first,first.copy(id="fixture-two",name="Second",nextUp=true)),artworkLoader={ContinueArtwork(image,mark)}){opened=it.id}
         }}}}
-        compose.waitUntil(5000){compose.onAllNodesWithTag("continue-card").fetchSemanticsNodes().size==2}
         val cards=compose.onAllNodesWithTag("continue-card")
         val firstBounds=cards[0].getUnclippedBoundsInRoot();val second=cards[1].getUnclippedBoundsInRoot()
         val rail=compose.onNodeWithTag("continue-rail").getUnclippedBoundsInRoot()
-        assertEquals(.5f,((rail.right-second.left)/second.width).coerceIn(0f,1f),.04f)
+        assertEquals(148f,firstBounds.height.value,.5f)
+        assertTrue(firstBounds.width<rail.width*.85f);assertTrue(second.left<rail.right)
         val progress=compose.onNodeWithTag("continue-progress",useUnmergedTree=true).getUnclippedBoundsInRoot()
         assertTrue(progress.width<firstBounds.width*.4f)
-        val imageBounds=compose.onAllNodesWithTag("continue-image",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
-        val info=compose.onNodeWithText("S02 · E03\n30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
-        assertTrue(info.top>=imageBounds.bottom+6.dp)
-        val footer=compose.onAllNodesWithTag("continue-panel-footer",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
-        assertTrue(info.bottom<=footer.bottom);assertTrue(footer.bottom<=firstBounds.bottom)
-        assertTrue(progress.bottom<imageBounds.bottom)
+        val info=compose.onNodeWithText("30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        val brand=compose.onAllNodesWithTag("continue-logo",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
+        assertTrue(brand.bottom<info.top);assertTrue(info.bottom<progress.top);assertTrue(progress.bottom<firstBounds.bottom)
+        compose.onNodeWithText("NEXT UP").assertIsDisplayed();compose.onNodeWithText("IN PROGRESS").assertIsDisplayed()
+        compose.onNodeWithTag("continue-panel-footer",useUnmergedTree=true).assertDoesNotExist()
         compose.waitUntil(5000){compose.onAllNodesWithText(first.name,useUnmergedTree=true).fetchSemanticsNodes().isEmpty()}
-        compose.onNodeWithText("S02 · E03\n30 min left").assertIsDisplayed()
-        compose.onNodeWithText("NEXT UP").assertDoesNotExist();compose.onNodeWithText("IN PROGRESS").assertDoesNotExist()
-        cards[0].performClick();assertEquals(first.id,opened);capture("continue-english-art")
+        cards[0].performClick();assertEquals(first.id,opened);capture("continue-restored-logo")
     }
     @Test fun sourceFilterHasSingleLargeSelectableSurface(){
         var selected by mutableStateOf(false)
@@ -89,9 +93,9 @@ class Cinematic156UiTest {
             }
         }}
         val title=compose.onNodeWithText(item.name,useUnmergedTree=true).getUnclippedBoundsInRoot()
-        val info=compose.onNodeWithText("S02 · E03\n30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        val info=compose.onNodeWithText("30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
         val imageBounds=compose.onNodeWithTag("continue-image",useUnmergedTree=true).getUnclippedBoundsInRoot()
-        assertTrue(title.bottom<=imageBounds.bottom);assertTrue(info.top>=imageBounds.bottom+6.dp)
+        assertTrue(title.bottom+4.dp<=info.top);assertTrue(info.bottom<imageBounds.bottom)
         capture("continue-large-text")
     }
     @Test fun recommendationAddsNoTextRowAndSizeLivesInUpperRight(){

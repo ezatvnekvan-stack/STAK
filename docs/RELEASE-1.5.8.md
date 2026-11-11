@@ -1,20 +1,18 @@
-# Android 1.5.8 / code83 — Continue Watching Nothing panel
+# Android 1.5.8 replacement / code84 — Original Continue Watching
 
-Only Continue Watching presentation changes. Original-resolution English branded movie/show artwork, explicit parent-series identity, account-scoped lazy loading, original playback rows and half-next-card rail remain unchanged.
+This owner-authorized replacement supersedes the Nothing panel in the existing v1.5.8 release. Version name and release stay 1.5.8; versionCode increases from83 to84 so installed apps can update in place.
 
-A single 16dp rounded outline encloses the 16:9 artwork and a solid matte information footer. The footer has a decorative white Lucide play mark, 11sp Space Mono episode/time information and no repeated title. Its 52dp minimum grows for large text. The short red segmented progress bar remains on the artwork. No blur, status badge, percentage or overflow button is introduced. The existing card action opens Details, with long-press actions preserved; the decorative play mark does not introduce playback control.
+Continue Watching restores the original 1.4 width, 148dp height, outlined rounded card, dark readability gradient, status badge and overlaid information/percentage. The progress bar stays short. A separately loaded logo replaces the old text-title area; missing logos retain a readable title fallback. Large text gets a bounded height allowance. The matte footer is removed.
 
-The panel uses the app's existing StakSurface2/StakText colors, restrained outline, shared progress animation and reduced-motion-aware press/image transitions. Home hero, Details, other shelves, data/acquisition behavior, schema4, signing and cloud configuration are unchanged. No backend update is needed.
+Artwork now prefers the highest-resolution neutral/textless backdrop plus a separate English logo. English branded backdrops are not selected. Episodes continue to use their explicitly identified parent show's backdrop and public metadata, never an episode still. Original playback identity, account guards, lazy bounded artwork loading, long-press, press feedback and reduced motion are preserved. Home hero and other screens are unchanged.
 
 ## Verification
 
-Managed `gradle_run.py` workflow `28bc7ffad7ac23d86644cb6d881b80e5`, with designated `gradlew-local.cmd` and `--no-daemon`.
+Managed `gradle_run.py` workflow `5049cf2facbf205721ada687c7b4a94a`, designated `gradlew-local.cmd`, `--no-daemon`.
 
-"Megfelelő a Nothing panel és elkészül az APK?" — PASS: `:app:connectedDebugAndroidTest` (Cinematic156UiTest and PremiumHomeUiTest), 11 cases with no failures/errors/skips, plus `:app:assemblePreview`. Regular/large-text rendered panels were inspected. Existing artwork selection and data code are unchanged; no broad JVM repeat was needed for this presentation-only change.
+"Helyes a visszaállított Continue Watching és elkészül a frissítés?" — PASS: 8 focused ContinueArtwork JVM tests (`:app:testDebugUnitTest`), 11 emulator cases (`:app:connectedDebugAndroidTest`, Cinematic156UiTest and PremiumHomeUiTest) and optimized `:app:assemblePreview`. Neutral-backdrop selection, separate branding, explicit parent identity, restored geometry and short progress were checked; a rendered fixture was inspected.
 
-Original signing certificate and package were verified by `build-update.ps1 -ExportOnly`; original cloud build inputs were verified present without displaying them. In-place emulator installation and cold launch passed. Workflow finish succeeded and removed only wrapper-owned temporary logs.
-
-Fixtures use synthetic local content; they do not establish live artwork availability or owner-phone performance.
+Original signer and existing cloud configuration presence were verified without displaying configuration values. In-place installation and cold launch passed. Finish removed only wrapper-owned temporary logs. Fixtures use local synthetic images and injected clients, not live owner services.
 
 
-APK SHA-256: `3e7bf46a536eb465a38b4c4305f086a53e9edb1b94b47fecdd022641288128a0`. Package `app.stak.nativeapp.parity`, versionCode `83`, original certificate `bd9c33ebf4a4a62fc034cbb363635ed8d4d55f081ce43fcaff59706d2230c430`.
+APK SHA-256: `21105469564c04bc88e82a2a17d3b364282b97e3c003b7a01778c381f41c0508`. Package `app.stak.nativeapp.parity`, versionName `1.5.8`, versionCode `84`, original certificate `bd9c33ebf4a4a62fc034cbb363635ed8d4d55f081ce43fcaff59706d2230c430`.

@@ -94,9 +94,8 @@ class DirectCatalog(
         val imdb=data.objectOrNull("external_ids")?.text("imdb_id")
         if(expectedImdb!=null&&imdb!=null&&expectedImdb!=imdb)return@withContext fallback
         val images=data.objectOrNull("images")
-        val english=CinematicArtwork.englishBackdrop(images)
-        ContinueArtwork(english?:CinematicArtwork.neutralBackdrop(images,item.continueBackground),
-            CinematicArtwork.logo(images,item.logo),english!=null)
+        ContinueArtwork(CinematicArtwork.neutralBackdrop(images,item.continueBackground),
+            CinematicArtwork.logo(images,item.logo))
     }
     suspend fun search(query: String, page: Int = 1, type: String = "all"): DiscoverResult = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext DiscoverResult(source = "cinemeta")

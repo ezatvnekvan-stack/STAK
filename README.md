@@ -2,7 +2,7 @@
 
 Native Android media companion built with **Kotlin and Jetpack Compose**.
 
-**Current source:** Android **1.5.8 / versionCode 83** · optional STAK Server **1.2.3**.
+**Current source:** Android **1.5.8 / versionCode 84** · optional STAK Server **1.2.3**.
 
 [Official APK releases](https://github.com/ezatvnekvan-stack/STAK/releases/latest) · [Source verification](docs/SOURCE-VERIFICATION.md)
 
@@ -30,7 +30,7 @@ The APK is written to `app/build/outputs/apk/preview/app-preview.apk`. Without t
 
 Optional cloud configuration is supplied through `STAK_CLOUD_URL` and `STAK_CLOUD_PUBLIC_KEY`; see [the configuration example](cloud-config.env.example). No admin/service key belongs in an Android build. Without configuration, the app builds with cloud sign-in unavailable; local features remain usable. The hosted service setup is documented under [deployment/stak-cloud](deployment/stak-cloud/README.md).
 
-Official maintainers use `build-update.ps1` or `build-update.sh` with the original private keystore and deployment configuration. These are kept outside Git. Existing users must receive an APK with the same application ID and signing certificate and a higher version code; the next release must use **84 or greater**.
+Official maintainers use `build-update.ps1` or `build-update.sh` with the original private keystore and deployment configuration. These are kept outside Git. Existing users must receive an APK with the same application ID and signing certificate and a higher version code; the next release must use **85 or greater**.
 
 ## Repository map
 

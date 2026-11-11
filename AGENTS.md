@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.8 / versionCode 83**. Next distributable versionCode: **84+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.8 / versionCode 84**. Next distributable versionCode: **85+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -43,3 +43,6 @@ Read docs/RELEASE-1.5.7.md. Home hero is approximately half the screen, retainin
 
 ## Android 1.5.8 — Continue Watching Nothing panel
 Read docs/RELEASE-1.5.8.md. Continue Watching alone uses a single outlined panel enclosing 16:9 art and a matte footer with decorative play mark and episode/time text. No blur or repeated title. Short red segmented progress, half-next-card geometry, parent-series English art, long-press and original Details navigation remain. Home hero stays half-screen. Next code84+.
+
+## Android 1.5.8 replacement / code84
+The owner superseded the Nothing panel with original 1.4 Continue Watching geometry, status badge and overlaid information. Use neutral/textless show or movie backdrop with a separate logo, never an episode still or English branded backdrop. Short progress remains. Same v1.5.8 release is replaced with code84 for in-place updates; next code85+. See current release notes.

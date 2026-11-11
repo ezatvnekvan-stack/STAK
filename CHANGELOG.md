@@ -1,3 +1,9 @@
+# 1.5.8 replacement (code84) — Original Continue Watching restored
+
+- Original 1.4 Continue Watching layout, with a short progress bar.
+- Highest-resolution neutral movie/show backdrop with a separate logo; parent series artwork replaces episode stills.
+- Replaces the existing v1.5.8 release APK. Home and other screens unchanged.
+
 # 1.5.8 (code83) — Continue Watching Nothing panel
 
 - A shared rounded outline joins 16:9 artwork and a matte information footer with a small play mark.
