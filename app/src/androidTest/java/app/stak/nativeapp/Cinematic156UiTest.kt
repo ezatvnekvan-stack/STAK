@@ -65,6 +65,7 @@ class Cinematic156UiTest {
         assertTrue(firstBounds.width<rail.width*.85f);assertTrue(second.left<rail.right)
         val progress=compose.onNodeWithTag("continue-progress",useUnmergedTree=true).getUnclippedBoundsInRoot()
         assertTrue(progress.width<firstBounds.width*.4f)
+        compose.onNodeWithText("40%",useUnmergedTree=true).assertDoesNotExist()
         val info=compose.onNodeWithText("IN PROGRESS · S02 E03 · 30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
         val brand=compose.onAllNodesWithTag("continue-wordmark",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
         assertTrue(brand.bottom<info.top);assertTrue(info.bottom<progress.top);assertTrue(progress.bottom<firstBounds.bottom)

@@ -62,11 +62,7 @@ import kotlinx.coroutines.sync.withPermit
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
                 Text(continueInformation(item),Modifier.weight(1f).testTag("continue-info"),fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=14.sp,color=StakTextSoft,maxLines=2,overflow=TextOverflow.Ellipsis)
             }
-            if(!item.nextUp)Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
-                StakProgress(item.progress,Modifier.width((width*.28f).coerceIn(60.dp,100.dp)).testTag("continue-progress"),height=3)
-                Spacer(Modifier.weight(1f))
-                Text("${(item.progress.coerceIn(0f,1f)*100).toInt()}%",fontFamily=SpaceMonoFont,fontSize=9.sp,color=StakTextSoft)
-            }
+            if(!item.nextUp)StakProgress(item.progress,Modifier.width((width*.28f).coerceIn(60.dp,100.dp)).testTag("continue-progress"),height=3)
             else Spacer(Modifier.height(3.dp))
         }
         PosterContextMenu(item,menu,{menu=false},onOpen)
