@@ -67,7 +67,7 @@ import kotlin.math.abs
     Box(modifier.fillMaxWidth().height(height).testTag("home-hero").clickable { onOpenTitle(current) }
         .semantics{stateDescription="Featured ${index+1} of $count"}){
         Box(Modifier.fillMaxSize().graphicsLayer{compositingStrategy=CompositingStrategy.Offscreen;clip=true}.drawWithCache{
-            val mask=Brush.verticalGradient(0f to Color.White,.46f to Color.White,.69f to Color.White.copy(alpha=.88f),.86f to Color.White.copy(alpha=.40f),1f to Color.Transparent)
+            val mask=Brush.verticalGradient(0f to Color.White,.30f to Color.White,.50f to Color.White.copy(alpha=.94f),.68f to Color.White.copy(alpha=.70f),.84f to Color.White.copy(alpha=.30f),1f to Color.Transparent)
             onDrawWithContent{drawContent();drawRect(mask,blendMode=BlendMode.DstIn)}
         }){
         HorizontalPager(pager,Modifier.fillMaxSize(),beyondViewportPageCount=1,key={page->"$page:${itemAt(page).mediaKey}"}){page->
@@ -88,7 +88,12 @@ import kotlin.math.abs
                 },alignment=Alignment.TopCenter,fallbackModel=item.cinematicImageFallback)
             }
         }
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.40f),.25f to Color.Transparent,.53f to Color.Black.copy(alpha=.12f),1f to Color.Black.copy(alpha=.8f))))
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.56f),.22f to Color.Transparent,.48f to Color.Black.copy(alpha=.08f),.75f to Color.Black.copy(alpha=.42f),1f to Color.Black.copy(alpha=.58f))))
+        }
+        Row(Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start=20.dp,end=20.dp,top=14.dp)
+            .testTag("hero-trending-label"),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            Box(Modifier.size(4.dp).background(StakAccent,RoundedCornerShape(2.dp)))
+            Text("TRENDING TODAY",fontFamily=SpaceMonoFont,fontSize=11.sp,letterSpacing=1.2.sp,color=StakText,fontWeight=FontWeight.Bold)
         }
         AnimatedContent(current,Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start=28.dp,end=28.dp,bottom=46.dp),
             contentKey={it.mediaKey},

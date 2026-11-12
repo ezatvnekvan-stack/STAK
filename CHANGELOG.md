@@ -1,3 +1,10 @@
+# 1.5.9 (code85) — Daily Home and episode cards
+
+- Daily mixed TMDb trending hero, TRENDING TODAY heading, softer artwork fade and tighter shelf spacing.
+- Continue Watching uses episode stills, compact clean wordmarks and bottom inline status/episode/time, retaining short progress and percentage.
+- Coming Up becomes a wide date-led card: full width for one item, a next-card peek for several; existing rule-only data and date accuracy retained.
+- Original signer/cloud settings, passive playback tracking and cached-only acquisition preserved. No server update.
+
 # 1.5.8 replacement (code84) — Original Continue Watching restored
 
 - Original 1.4 Continue Watching layout, with a short progress bar.

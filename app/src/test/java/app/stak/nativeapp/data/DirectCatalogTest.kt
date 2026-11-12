@@ -9,6 +9,22 @@ import java.io.IOException
 class DirectCatalogTest {
     private fun json(raw: String) = JsonParser.parseString(raw).asJsonObject
 
+    @Test fun dailyHeroPreservesMixedRankingAndExcludesPeople()=runBlocking {
+        val catalog=DirectCatalog({"fixture"}){url,params,_->
+            assertTrue(url.endsWith("/trending/all/day"));assertEquals("en-US",params["language"])
+            json("""{"results":[{"id":8,"media_type":"tv","name":"First show"},{"id":99,"media_type":"person","name":"Actor"},{"id":8,"media_type":"movie","title":"Second film"},{"id":8,"media_type":"tv","name":"Duplicate"}]}""")
+        }
+        val titles=catalog.trendingToday()
+        assertEquals(listOf("First show","Second film"),titles.map{it.name})
+        assertEquals(listOf("series","movie"),titles.map{it.type})
+    }
+    @Test fun dailyHeroWithoutTmdbNeverPretendsCinemetaIsTodaysRanking()=runBlocking {
+        assertTrue(DirectCatalog({""}){_,_,_->error("No request expected")}.trendingToday().isEmpty())
+    }
+    @Test fun dailyHeroMalformedResponseIsNotAnEmptySuccess()=runBlocking {
+        try{DirectCatalog({"fixture"}){_,_,_->json("{}")} .trendingToday();fail("Expected provider error")}catch(_:IOException){}
+    }
+
     @Test fun heroImdbIdentityUsesTypedExternalIdsInsteadOfTmdbScore()=runBlocking {
         val paths=mutableListOf<String>()
         val catalog=DirectCatalog({"synthetic-key"}){url,_,_->paths+=url;json("""{"imdb_id":"tt1234567"}""")}

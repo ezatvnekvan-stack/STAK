@@ -143,6 +143,7 @@ fun HomeScreen(
     LaunchedEffect(lifecycle){lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED){while(true){today=java.time.LocalDate.now();delay(60_000)}}}
     val comingEnabled=sections.any{it.id=="coming_up"&&it.enabled}
     val tmdbKey=settings.tmdbKey.orEmpty()
+    LaunchedEffect(today){viewModel.refreshDay(today)}
     LaunchedEffect(followingTitles,tmdbKey,today,comingEnabled){viewModel.refreshUpcoming(if(comingEnabled)followingTitles else emptyList(),today)}
     val comingEvents=remember(comingFeed,followingRules,today){comingFeed?.let{followingUpcomingEvents(it,followingRules,today)}.orEmpty()}
     val hasTrakt=!settings.traktClientId.isNullOrBlank()
@@ -165,10 +166,10 @@ fun HomeScreen(
             val data = feed!!
             if (data.hero.isNotEmpty()) item(key="home-hero") {
                 HeroCarousel(data.hero, { onOpenTitle(it, "hero-${it.mediaKey}") }, sharedScope, animatedScope, reducedMotion,autoPlay=heroVisible&&!homeScroll.isScrollInProgress,modifier=Modifier.edgeToEdge())
-                Spacer(Modifier.height(22.dp))
+                Spacer(Modifier.height(6.dp))
             }
             if(data.hero.isEmpty()&&loading&&!settings.tmdbKey.isNullOrBlank())item(key="home-hero"){
-                ShimmerBox(Modifier.fillMaxWidth().height(app.stak.nativeapp.ui.components.homeHeroHeight(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp).dp));Spacer(Modifier.height(22.dp))
+                ShimmerBox(Modifier.fillMaxWidth().height(app.stak.nativeapp.ui.components.homeHeroHeight(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp).dp));Spacer(Modifier.height(6.dp))
             }
             if(!hasTrakt&&sections.any{it.enabled&&it.id !in listOf("continue","watchlist","coming_up")&&it.category in listOf("trending","anticipated")})item(key="trakt-setup"){
                 Row(Modifier.fillMaxWidth().padding(bottom=24.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){

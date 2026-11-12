@@ -32,6 +32,8 @@ class HomeViewModel(private val repository: MediaRepository = MediaRepository(),
 
 
     private var generation=0
+    private var feedDay=LocalDate.now()
+    fun refreshDay(day:LocalDate){if(day!=feedDay&&!_loading.value){feedDay=day;refresh()}}
     private var brandingJob:Job?=null
     init { refresh() }
     fun refresh() {

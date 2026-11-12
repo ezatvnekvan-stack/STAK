@@ -1,4 +1,4 @@
-Current Android release: [1.5.8 — Continue Watching Nothing panel](RELEASE-1.5.8.md).
+Current Android release: [1.5.9 — Daily Home and episode cards](RELEASE-1.5.9.md).
 
 
 # Documentation

@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.8 / versionCode 84**. Next distributable versionCode: **85+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.9 / versionCode 85**. Next distributable versionCode: **86+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -46,3 +46,7 @@ Read docs/RELEASE-1.5.8.md. Continue Watching alone uses a single outlined panel
 
 ## Android 1.5.8 replacement / code84
 The owner superseded the Nothing panel with original 1.4 Continue Watching geometry, status badge and overlaid information. Use neutral/textless show or movie backdrop with a separate logo, never an episode still or English branded backdrop. Short progress remains. Same v1.5.8 release is replaced with code84 for in-place updates; next code85+. See current release notes.
+
+## Android 1.5.9 — current Home override
+
+Read docs/RELEASE-1.5.9.md. Home hero uses TMDb's mixed daily trending order, TRENDING TODAY without a visible counter, a longer transparent artwork fade and a smaller gap to Continue Watching. Continue Watching now uses the episode's own still for series (explicit parent backdrop only on image error), a compact clean typographic wordmark instead of unverified studio-branded logos, and bottom inline NEXT UP/IN PROGRESS plus episode/time. Short segmented progress and percentage remain. Coming Up uses a wide date-led card, full width for one item and a next-card peek for multiple items; no air time is invented. Only explicit Auto-add rules supply Coming Up. Tracking/Discover, Details, data/backup/account guards and cached-only read-only behavior remain. No server update. Next code86+.

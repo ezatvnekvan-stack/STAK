@@ -44,17 +44,27 @@ internal object CinematicArtwork {
 
 internal data class ContinueArtwork(val image:String?,val logo:String?=null,val embeddedTitle:Boolean=false)
 
-/** Continue Watching alone replaces an episode still with its explicit parent show's art. */
+/** Keep an episode's own still, using its parent backdrop only as an image-error fallback. */
 internal val MediaItem.continueBackground: String?
     get() {
-        val image = CinematicArtwork.original(background ?: poster)
+        val image=CinematicArtwork.original(background ?: poster)
+        val url=image?.toHttpUrlOrNull() ?: return image
+        val parts=url.pathSegments
+        val index=parts.indexOfLast{it.equals("Items",ignoreCase=true)}
+        if(index<0||jellyfinId==null||parts.getOrNull(index+1)!=jellyfinId||parts.getOrNull(index+2)!="Images")return image
+        return url.newBuilder().apply{listOf("maxWidth","maxHeight","width","height","quality").forEach{removeAllQueryParameters(it)}}.build().toString()
+    }
+
+internal val MediaItem.continueImageFallback: String?
+    get() {
+        val image = continueBackground
         val parent = jellyfinSeriesId?.takeIf { isSeries && it.matches(Regex("[A-Za-z0-9-]+")) }
-            ?: return image
-        val url = image?.toHttpUrlOrNull() ?: return image
+            ?: return poster?.takeIf { it != image }
+        val url = image?.toHttpUrlOrNull() ?: return poster?.takeIf { it != image }
         val parts = url.pathSegments
         val index = parts.indexOfLast { it.equals("Items", ignoreCase = true) }
         if (index < 0 || parts.getOrNull(index + 1) != jellyfinId ||
-            parts.drop(index + 2) != listOf("Images", "Primary")) return image
+            parts.drop(index + 2) != listOf("Images", "Primary")) return poster?.takeIf { it != image }
         return url.newBuilder().setPathSegment(index + 1, parent)
             .setPathSegment(index + 3, "Backdrop").addPathSegment("0")
             .apply { listOf("maxWidth", "maxHeight", "width", "height", "quality", "tag")

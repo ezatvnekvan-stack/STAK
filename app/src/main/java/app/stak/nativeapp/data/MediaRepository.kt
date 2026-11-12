@@ -38,11 +38,9 @@ class MediaRepository(private val catalog: DirectCatalog = DirectCatalog(preferC
                 }else completed
             }}
             val hero = if (!NativeRuntime.settings.tmdbKey.isNullOrBlank()) {
-                listOf("movie", "series").map { type -> async {
-                    try { catalog.discover(type, "trending", 1).items.take(3) }
-                    catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
-                    catch (_: Exception) { emptyList<MediaItem>() }
-                }}.map { it.await() }.let { lists -> (0..2).flatMap { i -> lists.mapNotNull { it.getOrNull(i) } } }
+                try { catalog.trendingToday() }
+                catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (_: Exception) { emptyList<MediaItem>() }
             } else emptyList()
             publishLock.lock()
             try{partialHero=hero;onPartial(HomeFeed(hero,rows=published.toList(),source="direct"))}finally{publishLock.unlock()}

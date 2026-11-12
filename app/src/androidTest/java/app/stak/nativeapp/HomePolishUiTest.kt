@@ -38,12 +38,15 @@ class HomePolishUiTest {
         if(logo){paint.color=android.graphics.Color.WHITE;paint.textSize=130f;paint.typeface=android.graphics.Typeface.create("sans-serif-condensed",android.graphics.Typeface.BOLD);canvas.drawText("NOVA",0f,135f,paint)}else{paint.shader=android.graphics.LinearGradient(0f,0f,960f,540f,intArrayOf(0xff19475d.toInt(),0xffaf743e.toInt()),null,android.graphics.Shader.TileMode.CLAMP);canvas.drawRect(0f,0f,960f,540f,paint);paint.shader=null;paint.color=0x60FFFFFF;for(x in 0..960 step 42)canvas.drawRect(x.toFloat(),0f,x+14f,540f,paint)}
         val file=File(context.cacheDir,"$prefix-${files.size}.png");file.outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)};files+=file;return file.absolutePath
     }
-    @Test fun comingUpUsesLoadedLogoAndGlassBadgeWithoutCornerDate(){
+    @Test fun comingUpKeepsSmallLogoBesideTheDateBlock(){
         val today=LocalDate.now();val title=MediaItem("fixture",name="Nova",background=image(),logo=image(true))
         compose.setContent{Frame{ComingUpCard(ReleaseEvent(title,today.plusDays(6),"New chapter",1,7),today){}}}
         compose.waitUntil(5000){runCatching{val p=compose.onNodeWithTag("coming-up-logo",useUnmergedTree=true).captureToImage().toPixelMap();var count=0;for(y in 0 until p.height step 2)for(x in 0 until p.width step 2)if(p[x,y].red>.8f&&p[x,y].green>.8f)count++;count>80}.getOrDefault(false)}
-        compose.onNodeWithText("Nova").assertDoesNotExist();compose.onNodeWithTag("coming-up-red-dot",useUnmergedTree=true).assertExists();compose.onNodeWithText("IN 6 DAYS").assertIsDisplayed()
-        compose.onNodeWithText(today.plusDays(6).format(DateTimeFormatter.ofPattern("MMM d",Locale.ENGLISH))).assertDoesNotExist();capture("coming-up-logo-glass")
+        compose.onNodeWithText("Nova").assertDoesNotExist();compose.onNodeWithTag("coming-up-today-dot",useUnmergedTree=true).assertDoesNotExist()
+        compose.onNodeWithText(today.plusDays(6).format(DateTimeFormatter.ofPattern("dd MMM",Locale.ENGLISH)).uppercase(Locale.ENGLISH)).assertIsDisplayed()
+        val date=compose.onNodeWithTag("coming-up-date",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        val logo=compose.onNodeWithTag("coming-up-logo",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        Assert.assertTrue(logo.left>date.right);Assert.assertTrue(logo.bottom-logo.top<=32.dp);capture("coming-up-date-logo")
     }
     @Test fun failedLogoKeepsTitleReadable(){val title=MediaItem("fixture",name="Fallback title",logo="file:///definitely-missing-stak-logo.png");compose.setContent{Frame{ComingUpCard(ReleaseEvent(title,LocalDate.now(),"Film"),LocalDate.now()){}}};compose.waitUntil(5000){compose.onAllNodesWithText("Fallback title").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("Fallback title").assertIsDisplayed();capture("coming-up-logo-fallback")}
     @Test fun rankStraddlesPosterEdgeAndFirstAndTenthAreNotClipped(){
@@ -52,29 +55,28 @@ class HomePolishUiTest {
         compose.waitForIdle();val rank=compose.onNodeWithContentDescription("Rank 1",useUnmergedTree=true).getUnclippedBoundsInRoot();val poster=compose.onNodeWithTag("ranked-artwork-one",useUnmergedTree=true).getUnclippedBoundsInRoot();val card=compose.onNodeWithTag("card-one").getUnclippedBoundsInRoot()
         Assert.assertTrue(rank.left<poster.left);Assert.assertTrue(rank.right>poster.left);Assert.assertTrue(rank.left>=card.left);compose.onNodeWithContentDescription("Rank 10",useUnmergedTree=true).assertIsDisplayed();capture("outside-poster-ranks")
     }
-    @Test fun countdownGlassBlursItsSourceAndKeepsRedDot(){
-        var tint by mutableStateOf(Color.White)
-        compose.setContent{Frame{
-            val layer=rememberGraphicsLayer();val view=LocalView.current;val source=remember(layer){GlassSource(layer,hazeState=HazeState())}
-            Box(Modifier.fillMaxSize()){
-                Box(Modifier.fillMaxSize().recordGlassSource(source,view).drawBehind{drawRect(Color.Black);var x=0f;while(x<size.width){drawRect(tint,androidx.compose.ui.geometry.Offset(x,0f),androidx.compose.ui.geometry.Size(4.dp.toPx(),size.height));x+=8.dp.toPx()}})
-                ComingUpCountdown("In 6 days",source)
-            }
-        }}
-        compose.waitForIdle();val white=compose.onNodeWithTag("coming-up-countdown").captureToImage().asAndroidBitmap();val y=white.height-6;val values=(12 until white.width-12).map{android.graphics.Color.red(white.getPixel(it,y))/255f};Assert.assertTrue("Glass must blur stripes",values.max()-values.min()<.16f);Assert.assertTrue(values.average()>.02)
-        compose.runOnIdle{tint=Color.Blue};compose.waitForIdle();val blue=compose.onNodeWithTag("coming-up-countdown").captureToImage().asAndroidBitmap();val pixel=blue.getPixel(blue.width/2,blue.height-6);Assert.assertTrue(android.graphics.Color.blue(pixel)>android.graphics.Color.red(pixel)*2);compose.onNodeWithTag("coming-up-red-dot",useUnmergedTree=true).assertExists();capture("countdown-real-blur")
+    @Test fun aSingleUpcomingCardFillsTheRailAndHasNoInventedAirtime(){
+        val today=LocalDate.of(2026,11,12)
+        val event=ReleaseEvent(MediaItem("one",name="Night Signal",background=image()),today,"The Courier",1,4)
+        compose.setContent{Frame{ComingUpShelf(listOf(event),today,false,null,{}){}}}
+        val rail=compose.onNodeWithTag("coming-up-rail").getUnclippedBoundsInRoot()
+        val card=compose.onNodeWithTag("coming-up-card").getUnclippedBoundsInRoot()
+        Assert.assertEquals((rail.right-rail.left).value,(card.right-card.left).value,.5f)
+        compose.onNodeWithText("TODAY").assertIsDisplayed();compose.onNodeWithText("S01 E04").assertIsDisplayed()
+        compose.onNodeWithText("The Courier").assertIsDisplayed();compose.onNodeWithText("21:00").assertDoesNotExist()
+        compose.onNodeWithTag("coming-up-today-dot",useUnmergedTree=true).assertExists();capture("coming-up-single")
     }
-    @Test fun twoUpcomingCardsFitFullyAndTheRailScrollsToMore(){
+    @Test fun wideUpcomingCardsPeekAndTheRailScrollsToMore(){
         val today=LocalDate.now();val events=(1..3).map{number->ReleaseEvent(MediaItem("card-$number",name="Title $number"),today.plusDays(number.toLong()),"Film",releaseLabel="US · Digital")}
         var opened=""
         compose.setContent{Frame{ComingUpShelf(events,today,false,null,{}){opened=it.id}}}
         val rail=compose.onNodeWithTag("coming-up-rail").getUnclippedBoundsInRoot()
         val first=compose.onNodeWithTag("coming-up-item-${events[0].key}").getUnclippedBoundsInRoot()
         val second=compose.onNodeWithTag("coming-up-item-${events[1].key}").getUnclippedBoundsInRoot()
-        Assert.assertTrue(first.left>=rail.left);Assert.assertTrue(second.right<=rail.right+1.dp);Assert.assertTrue(first.right<second.left)
-        compose.onNodeWithText("Title 1").assertIsDisplayed();compose.onNodeWithText("Title 2").assertIsDisplayed();capture("two-coming-up-cards")
-        compose.onNodeWithText("Title 2").performClick();Assert.assertEquals("card-2",opened)
+        Assert.assertTrue(first.left>=rail.left);Assert.assertTrue(second.left<rail.right);Assert.assertTrue(second.right>rail.right);Assert.assertTrue(first.right<second.left)
+        compose.onNodeWithText("Title 1").assertIsDisplayed();capture("coming-up-next-peek")
+        compose.onNodeWithText("Title 1").performClick();Assert.assertEquals("card-1",opened)
         compose.onNodeWithTag("coming-up-rail").performTouchInput{swipeLeft()}
-        compose.onNodeWithText("Title 3").assertIsDisplayed()
+        compose.onNodeWithText("Title 2").assertIsDisplayed()
     }
 }

@@ -20,6 +20,19 @@ class DirectCatalog(
     private val preferCinemeta: (String) -> Boolean = { false },
     private val request: (String, Map<String, String>, String?) -> JsonObject = ::providerJson
 ) {
+    /** One daily ranking, retaining TMDb's movie/TV order instead of separate weekly quotas. */
+    suspend fun trendingToday(): List<MediaItem> = withContext(Dispatchers.IO) {
+        val key = tmdbKey()
+        if (key.isBlank()) return@withContext emptyList()
+        val data = tmdb("/trending/all/day", mapOf("language" to "en-US"), key)
+        val rows = data.get("results")?.takeIf { it.isJsonArray }?.asJsonArray
+            ?: throw IOException("TMDb returned an invalid daily ranking.")
+        rows.mapNotNull { it.takeIf { value -> value.isJsonObject }?.asJsonObject }
+            .filter { it.text("media_type") in listOf("movie", "tv") && (it.number("id") ?: 0.0) > 0 }
+            .map { tmdbItem(it, if (it.text("media_type") == "tv") "series" else "movie") }
+            .distinctBy { "${it.type}:${it.id}" }.take(6)
+    }
+
     suspend fun discover(type: String, category: String, page: Int, year: Int? = null): DiscoverResult = withContext(Dispatchers.IO) {
         val kind = if (type == "series") "series" else "movie"
         val key = tmdbKey()
@@ -74,16 +87,14 @@ class DirectCatalog(
     }
 
     /** Public artwork only. Episode playback/progress/identity stays with the original row. */
-    internal suspend fun continueArtwork(row:MediaItem,resolveParent:suspend(String)->MediaItem?={null}):ContinueArtwork=withContext(Dispatchers.IO){
-        val fallback=ContinueArtwork(row.continueBackground,row.logo)
+    internal suspend fun continueArtwork(row:MediaItem):ContinueArtwork=withContext(Dispatchers.IO){
+        // Episode rows already carry Jellyfin's still. Keep it and avoid a parent/public lookup.
+        // Provider logos have no reliable studio-branding flag; the compact card uses a clean wordmark.
+        val fallback=ContinueArtwork(row.continueBackground)
+        if(row.isSeries)return@withContext fallback
         val key=tmdbKey();if(key.isBlank())return@withContext fallback
-        val parentId=row.jellyfinSeriesId?.takeIf{row.isSeries&&it.matches(Regex("[A-Za-z0-9-]+"))}
-        val needsParent=parentId!=null&&row.imdbId==null&&!row.id.matches(Regex("(?:tmdb:)?\\d+|tt\\d+"))&&
-            row.jellyfinProviderKeys.orEmpty().none{it.matches(Regex("tmdb:\\d+"))}
-        val parent=if(needsParent)resolveParent(parentId!!) else null
-        val item=if(parent?.isSeries==true&&parent.jellyfinId==parentId)
-            row.copy(imdbId=parent.imdbId,jellyfinProviderKeys=parent.jellyfinProviderKeys) else row
-        val kind=if(item.isSeries)"tv"else "movie"
+        val item=row
+        val kind="movie"
         val expectedImdb=(item.imdbId?:item.id).takeIf{it.matches(Regex("tt\\d+"))}
         val id=item.id.removePrefix("tmdb:").takeIf{it.matches(Regex("\\d+"))}
             ?: expectedImdb?.let{imdb->
@@ -94,8 +105,7 @@ class DirectCatalog(
         val imdb=data.objectOrNull("external_ids")?.text("imdb_id")
         if(expectedImdb!=null&&imdb!=null&&expectedImdb!=imdb)return@withContext fallback
         val images=data.objectOrNull("images")
-        ContinueArtwork(CinematicArtwork.neutralBackdrop(images,item.continueBackground),
-            CinematicArtwork.logo(images,item.logo))
+        ContinueArtwork(CinematicArtwork.neutralBackdrop(images,item.continueBackground))
     }
     suspend fun search(query: String, page: Int = 1, type: String = "all"): DiscoverResult = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext DiscoverResult(source = "cinemeta")
