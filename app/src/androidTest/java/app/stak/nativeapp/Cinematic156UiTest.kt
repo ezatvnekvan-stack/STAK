@@ -52,7 +52,7 @@ class Cinematic156UiTest {
         val dir=File(InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?:context.getExternalFilesDir(null)!!.path,"cinematic156").apply{mkdirs()}
         File(dir,"$name.png").outputStream().use{compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
     }
-    @Test fun continueCardsUseCompactCleanWordmarksAndKeepShortProgress(){
+    @Test fun continueCardsUseSmallRealLogosAndKeepShortProgress(){
         val image=art();val mark=logo();var opened=""
         val first=MediaItem("fixture-one",name="Night Signal",type="series",season=2,episode=3,background=image,progress=.4f,positionMs=600000,durationMs=2400000)
         compose.setContent{StakTheme{CompositionLocalProvider(LocalReducedMotion provides true){Column(Modifier.fillMaxWidth().background(StakBackground).padding(16.dp)){
@@ -67,12 +67,13 @@ class Cinematic156UiTest {
         assertTrue(progress.width<firstBounds.width*.4f)
         compose.onNodeWithText("40%",useUnmergedTree=true).assertDoesNotExist()
         val info=compose.onNodeWithText("IN PROGRESS · S02 E03 · 30 min left",useUnmergedTree=true).getUnclippedBoundsInRoot()
-        val brand=compose.onAllNodesWithTag("continue-wordmark",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
+        val brand=compose.onAllNodesWithTag("continue-logo",useUnmergedTree=true)[0].getUnclippedBoundsInRoot()
         assertTrue(brand.bottom<info.top);assertTrue(info.bottom<progress.top);assertTrue(progress.bottom<firstBounds.bottom)
         compose.onNodeWithText("NEXT UP · S02 E03").assertIsDisplayed()
         compose.onNodeWithText("NEXT UP",substring=false).assertDoesNotExist();compose.onNodeWithText("IN PROGRESS",substring=false).assertDoesNotExist()
         compose.onNodeWithTag("continue-panel-footer",useUnmergedTree=true).assertDoesNotExist()
-        compose.onNodeWithText(first.name,useUnmergedTree=true).assertIsDisplayed()
+        compose.onNodeWithText(first.name,useUnmergedTree=true).assertDoesNotExist()
+        cards[0].assertContentDescriptionEquals(first.name)
         cards[0].performClick();assertEquals(first.id,opened);capture("continue-restored-logo")
     }
     @Test fun sourceFilterHasSingleLargeSelectableSurface(){

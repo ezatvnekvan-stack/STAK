@@ -17,10 +17,10 @@ class ContinueArtworkTest {
         assertFalse(art.embeddedTitle);assertEquals("https://image.tmdb.org/t/p/original/neutral.jpg",art.image)
         assertEquals(.42f,item.progress);assertEquals(1000L,item.positionMs)
     }
-    @Test fun studioBrandingIsNeverReusedForTheCompactWordmark()=runBlocking{
+    @Test fun movieReceivesARealOriginalResolutionLogo()=runBlocking{
         val c=DirectCatalog({"fixture"}){_,_,_->json("""{"images":{"backdrops":[{"file_path":"/neutral.jpg","width":3840,"height":2160}],"logos":[{"file_path":"/logo.png","iso_639_1":"en"}]}}""")}
         val art=c.continueArtwork(MediaItem("tmdb:42",name="Film"))
-        assertFalse(art.embeddedTitle);assertTrue(art.image!!.endsWith("/original/neutral.jpg"));assertNull(art.logo)
+        assertFalse(art.embeddedTitle);assertTrue(art.image!!.endsWith("/original/neutral.jpg"));assertEquals("https://image.tmdb.org/t/p/original/logo.png",art.logo)
     }
     @Test fun missingKeyNeverMakesNetworkRequests()=runBlocking{
         val c=DirectCatalog({""}){_,_,_->error("No request expected")}
@@ -35,12 +35,31 @@ class ContinueArtworkTest {
         assertEquals("https://fixture.invalid/jellyfin/Items/show-42/Images/Backdrop/0",row.continueImageFallback)
         assertEquals("episode-9",row.jellyfinId);assertEquals(1200L,row.positionMs)
     }
-    @Test fun episodeNeverFetchesParentBrandingEvenWithConfiguredTmdb()=runBlocking{
-        val row=MediaItem("jellyfin:show-42",name="Show",type="series",jellyfinId="episode-9",jellyfinSeriesId="show-42",season=2,episode=3,background="episode-still",logo="hbo-original-logo")
-        val catalog=DirectCatalog({"fixture"}){_,_,_->error("An episode still needs no public request")}
-        val art=catalog.continueArtwork(row)
-        assertEquals("episode-still",art.image);assertNull(art.logo)
+    @Test fun explicitParentResolvesOnlyTheShowLogoAndKeepsEpisodeStill()=runBlocking{
+        val row=MediaItem("jellyfin:show-42",name="Show",type="series",jellyfinId="episode-9",jellyfinSeriesId="show-42",season=2,episode=3,background="episode-still")
+        val catalog=DirectCatalog({"fixture"}){url,_,_->
+            assertTrue(url.endsWith("/tv/42"))
+            json("""{"images":{"backdrops":[{"file_path":"/not-the-episode.jpg"}],"logos":[{"file_path":"/logo.png","iso_639_1":"en","width":1000,"height":200}]}}""")
+        }
+        var parentCalls=0
+        val art=catalog.continueArtwork(row){id->
+            parentCalls++;assertEquals("show-42",id)
+            MediaItem("jellyfin:show-42",name="Show",type="series",jellyfinId=id,jellyfinProviderKeys=listOf("tmdb:42"))
+        }
+        assertEquals(1,parentCalls);assertEquals("episode-still",art.image)
+        assertEquals("https://image.tmdb.org/t/p/original/logo.png",art.logo)
         assertNull(row.imdbId);assertEquals(3,row.episode);assertEquals("episode-9",row.jellyfinId)
+    }
+    @Test fun mismatchedParentCannotSupplyAnotherShowsLogo()=runBlocking{
+        val catalog=DirectCatalog({"fixture"}){_,_,_->error("Mismatched parent must not reach TMDb")}
+        val row=MediaItem("jellyfin:show-42",name="Show",type="series",jellyfinSeriesId="show-42",background="still")
+        val art=catalog.continueArtwork(row){MediaItem("jellyfin:other",name="Other",type="series",jellyfinId="other",jellyfinProviderKeys=listOf("tmdb:99"))}
+        assertEquals("still",art.image);assertNull(art.logo)
+    }
+    @Test fun compactEnglishLogoWinsOverStackedLockupButOtherSurfacesStayUnchanged(){
+        val images=json("""{"logos":[{"file_path":"/stacked.png","iso_639_1":"en","width":2000,"height":1000},{"file_path":"/title.png","iso_639_1":"en","width":1200,"height":200},{"file_path":"/french.png","iso_639_1":"fr","width":3000,"height":200}]}""")
+        assertEquals("https://image.tmdb.org/t/p/original/title.png",CinematicArtwork.continueLogo(images,null))
+        assertEquals("https://image.tmdb.org/t/p/original/stacked.png",CinematicArtwork.logo(images))
     }
     @Test fun missingEpisodeArtDoesNotInventAnotherEpisodesStill()=runBlocking{
         val row=MediaItem("jellyfin:show-42",name="Show",type="series",jellyfinId="episode-9",jellyfinSeriesId="show-42",background="existing")

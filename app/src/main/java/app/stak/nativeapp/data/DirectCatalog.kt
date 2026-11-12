@@ -87,14 +87,16 @@ class DirectCatalog(
     }
 
     /** Public artwork only. Episode playback/progress/identity stays with the original row. */
-    internal suspend fun continueArtwork(row:MediaItem):ContinueArtwork=withContext(Dispatchers.IO){
-        // Episode rows already carry Jellyfin's still. Keep it and avoid a parent/public lookup.
-        // Provider logos have no reliable studio-branding flag; the compact card uses a clean wordmark.
-        val fallback=ContinueArtwork(row.continueBackground)
-        if(row.isSeries)return@withContext fallback
+    internal suspend fun continueArtwork(row:MediaItem,resolveParent:suspend(String)->MediaItem?={null}):ContinueArtwork=withContext(Dispatchers.IO){
+        val fallback=ContinueArtwork(row.continueBackground,CinematicArtwork.original(row.logo))
         val key=tmdbKey();if(key.isBlank())return@withContext fallback
-        val item=row
-        val kind="movie"
+        val parentId=row.jellyfinSeriesId?.takeIf{row.isSeries&&it.matches(Regex("[A-Za-z0-9-]+"))}
+        val needsParent=parentId!=null&&row.imdbId==null&&!row.id.matches(Regex("(?:tmdb:)?\\d+|tt\\d+"))&&
+            row.jellyfinProviderKeys.orEmpty().none{it.matches(Regex("tmdb:\\d+"))}
+        val parent=if(needsParent)resolveParent(parentId!!)else null
+        val item=if(parent?.isSeries==true&&parent.jellyfinId==parentId)
+            row.copy(imdbId=parent.imdbId,jellyfinProviderKeys=parent.jellyfinProviderKeys)else row
+        val kind=if(item.isSeries)"tv"else "movie"
         val expectedImdb=(item.imdbId?:item.id).takeIf{it.matches(Regex("tt\\d+"))}
         val id=item.id.removePrefix("tmdb:").takeIf{it.matches(Regex("\\d+"))}
             ?: expectedImdb?.let{imdb->
@@ -105,7 +107,9 @@ class DirectCatalog(
         val imdb=data.objectOrNull("external_ids")?.text("imdb_id")
         if(expectedImdb!=null&&imdb!=null&&expectedImdb!=imdb)return@withContext fallback
         val images=data.objectOrNull("images")
-        ContinueArtwork(CinematicArtwork.neutralBackdrop(images,item.continueBackground))
+        // Parent metadata supplies only a logo: never replace the episode's own still.
+        ContinueArtwork(if(row.isSeries)row.continueBackground else CinematicArtwork.neutralBackdrop(images,row.continueBackground),
+            CinematicArtwork.continueLogo(images,row.logo))
     }
     suspend fun search(query: String, page: Int = 1, type: String = "all"): DiscoverResult = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext DiscoverResult(source = "cinemeta")

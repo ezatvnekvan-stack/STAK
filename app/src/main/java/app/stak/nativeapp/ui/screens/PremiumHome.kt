@@ -90,11 +90,9 @@ import kotlin.math.abs
         }
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Black.copy(alpha=.56f),.22f to Color.Transparent,.48f to Color.Black.copy(alpha=.08f),.75f to Color.Black.copy(alpha=.42f),1f to Color.Black.copy(alpha=.58f))))
         }
-        Row(Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start=20.dp,end=20.dp,top=14.dp)
-            .testTag("hero-trending-label"),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
-            Box(Modifier.size(4.dp).background(StakAccent,RoundedCornerShape(2.dp)))
-            Text("TRENDING TODAY",fontFamily=SpaceMonoFont,fontSize=11.sp,letterSpacing=1.2.sp,color=StakText,fontWeight=FontWeight.Bold)
-        }
+        Text("TRENDING TODAY",Modifier.align(Alignment.TopStart).statusBarsPadding()
+            .padding(start=16.dp,end=16.dp,top=22.dp).testTag("hero-trending-label"),
+            fontFamily=DotoFont,fontSize=11.sp,letterSpacing=1.2.sp,color=StakTextSoft,fontWeight=FontWeight.Bold)
         AnimatedContent(current,Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(start=28.dp,end=28.dp,bottom=46.dp),
             contentKey={it.mediaKey},
             transitionSpec={

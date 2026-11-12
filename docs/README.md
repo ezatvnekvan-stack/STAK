@@ -1,4 +1,4 @@
-Current Android release: [1.5.9 — Daily Home and episode cards](RELEASE-1.5.9.md).
+Current Android release: [1.5.10 — Home artwork and timeline refinement](RELEASE-1.5.10.md).
 
 
 # Documentation

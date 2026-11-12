@@ -2,8 +2,8 @@ package app.stak.nativeapp.ui.components
 import org.junit.Assert.*
 import org.junit.Test
 class CinematicGeometryTest {
- @Test fun heroUsesHalfTheScreenOnPortraitPhonesAndTablets(){
-  for(height in listOf(640,800,900,1200))assertEquals(height*.5f,homeHeroHeight(height),.01f)
+ @Test fun heroIsTenPercentTallerThanTheHalfScreenLayout(){
+  for(height in listOf(640,800,900,1200))assertEquals(height*.55f,homeHeroHeight(height),.01f)
  }
  @Test fun largeTextAndLandscapeRemainBounded(){
   assertTrue(homeHeroHeight(900,1.6f)>homeHeroHeight(900))

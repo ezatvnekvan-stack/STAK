@@ -38,7 +38,7 @@ class HomePolishUiTest {
         if(logo){paint.color=android.graphics.Color.WHITE;paint.textSize=130f;paint.typeface=android.graphics.Typeface.create("sans-serif-condensed",android.graphics.Typeface.BOLD);canvas.drawText("NOVA",0f,135f,paint)}else{paint.shader=android.graphics.LinearGradient(0f,0f,960f,540f,intArrayOf(0xff19475d.toInt(),0xffaf743e.toInt()),null,android.graphics.Shader.TileMode.CLAMP);canvas.drawRect(0f,0f,960f,540f,paint);paint.shader=null;paint.color=0x60FFFFFF;for(x in 0..960 step 42)canvas.drawRect(x.toFloat(),0f,x+14f,540f,paint)}
         val file=File(context.cacheDir,"$prefix-${files.size}.png");file.outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)};files+=file;return file.absolutePath
     }
-    @Test fun comingUpKeepsSmallLogoBesideTheDateBlock(){
+    @Test fun comingUpKeepsSmallLogoBelowTheTimelineDate(){
         val today=LocalDate.now();val title=MediaItem("fixture",name="Nova",background=image(),logo=image(true))
         compose.setContent{Frame{ComingUpCard(ReleaseEvent(title,today.plusDays(6),"New chapter",1,7),today){}}}
         compose.waitUntil(5000){runCatching{val p=compose.onNodeWithTag("coming-up-logo",useUnmergedTree=true).captureToImage().toPixelMap();var count=0;for(y in 0 until p.height step 2)for(x in 0 until p.width step 2)if(p[x,y].red>.8f&&p[x,y].green>.8f)count++;count>80}.getOrDefault(false)}
@@ -46,7 +46,7 @@ class HomePolishUiTest {
         compose.onNodeWithText(today.plusDays(6).format(DateTimeFormatter.ofPattern("dd MMM",Locale.ENGLISH)).uppercase(Locale.ENGLISH)).assertIsDisplayed()
         val date=compose.onNodeWithTag("coming-up-date",useUnmergedTree=true).getUnclippedBoundsInRoot()
         val logo=compose.onNodeWithTag("coming-up-logo",useUnmergedTree=true).getUnclippedBoundsInRoot()
-        Assert.assertTrue(logo.left>date.right);Assert.assertTrue(logo.bottom-logo.top<=32.dp);capture("coming-up-date-logo")
+        Assert.assertTrue(logo.top>date.bottom);Assert.assertTrue(logo.bottom-logo.top<=32.dp);capture("coming-up-date-logo")
     }
     @Test fun failedLogoKeepsTitleReadable(){val title=MediaItem("fixture",name="Fallback title",logo="file:///definitely-missing-stak-logo.png");compose.setContent{Frame{ComingUpCard(ReleaseEvent(title,LocalDate.now(),"Film"),LocalDate.now()){}}};compose.waitUntil(5000){compose.onAllNodesWithText("Fallback title").fetchSemanticsNodes().isNotEmpty()};compose.onNodeWithText("Fallback title").assertIsDisplayed();capture("coming-up-logo-fallback")}
     @Test fun rankStraddlesPosterEdgeAndFirstAndTenthAreNotClipped(){
@@ -55,13 +55,13 @@ class HomePolishUiTest {
         compose.waitForIdle();val rank=compose.onNodeWithContentDescription("Rank 1",useUnmergedTree=true).getUnclippedBoundsInRoot();val poster=compose.onNodeWithTag("ranked-artwork-one",useUnmergedTree=true).getUnclippedBoundsInRoot();val card=compose.onNodeWithTag("card-one").getUnclippedBoundsInRoot()
         Assert.assertTrue(rank.left<poster.left);Assert.assertTrue(rank.right>poster.left);Assert.assertTrue(rank.left>=card.left);compose.onNodeWithContentDescription("Rank 10",useUnmergedTree=true).assertIsDisplayed();capture("outside-poster-ranks")
     }
-    @Test fun aSingleUpcomingCardFillsTheRailAndHasNoInventedAirtime(){
+    @Test fun aSingleUpcomingCardStaysCompactAndHasNoInventedAirtime(){
         val today=LocalDate.of(2026,11,12)
         val event=ReleaseEvent(MediaItem("one",name="Night Signal",background=image()),today,"The Courier",1,4)
         compose.setContent{Frame{ComingUpShelf(listOf(event),today,false,null,{}){}}}
         val rail=compose.onNodeWithTag("coming-up-rail").getUnclippedBoundsInRoot()
         val card=compose.onNodeWithTag("coming-up-card").getUnclippedBoundsInRoot()
-        Assert.assertEquals((rail.right-rail.left).value,(card.right-card.left).value,.5f)
+        Assert.assertTrue(card.right-card.left<(rail.right-rail.left)*.8f)
         compose.onNodeWithText("TODAY").assertIsDisplayed();compose.onNodeWithText("S01 E04").assertIsDisplayed()
         compose.onNodeWithText("The Courier").assertIsDisplayed();compose.onNodeWithText("21:00").assertDoesNotExist()
         compose.onNodeWithTag("coming-up-today-dot",useUnmergedTree=true).assertExists();capture("coming-up-single")

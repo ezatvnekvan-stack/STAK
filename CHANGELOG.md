@@ -1,3 +1,10 @@
+# 1.5.10 (code86) — Home artwork and timeline refinement
+
+- Hero is 10% taller; the existing-size Trending Today heading uses left-aligned Doto without a dot or chip.
+- Continue Watching restores small real logos, retaining episode stills, bottom inline information and short progress without percentages. Missing/error logos retain a text fallback.
+- Coming Up uses compact timeline entries with dates above the artwork; no separate lower band or notification bell. Single entries remain compact.
+- Original signer/cloud inputs and existing passive tracking, cached-only acquisition and account guards remain. No server update.
+
 # 1.5.9 (code85) — Daily Home and episode cards
 
 - Daily mixed TMDb trending hero, TRENDING TODAY heading, softer artwork fade and tighter shelf spacing.

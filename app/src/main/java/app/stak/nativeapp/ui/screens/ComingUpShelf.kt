@@ -30,7 +30,7 @@ import java.util.Locale
         Spacer(Modifier.height(12.dp))
         if(events.isNotEmpty()){
             BoxWithConstraints(Modifier.fillMaxWidth().testTag("coming-up-rail")){
-                val cardWidth=if(events.size==1)maxWidth else maxWidth*.86f
+                val cardWidth=(maxWidth*.74f).coerceIn(minOf(220.dp,maxWidth*.84f),276.dp)
                 LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)){
                     items(events,key={it.key},contentType={"upcoming-card"}){event->
                         Box(Modifier.width(cardWidth).testTag("coming-up-item-${event.key}")){
@@ -47,34 +47,38 @@ import java.util.Locale
 @Composable internal fun ComingUpCard(event:ReleaseEvent,today:LocalDate,compact:Boolean=false,onClick:()->Unit){
     val shape=RoundedCornerShape(16.dp)
     val extra=(LocalDensity.current.fontScale-1f).coerceIn(0f,1f)
-    val surface=StakSurface2
-    Box(Modifier.fillMaxWidth().height(((if(compact)168 else 188)+extra*64).dp).clip(shape)
-        .background(surface).border(1.dp,StakBorder,shape).clickable(onClick=onClick).testTag("coming-up-card")){
-        StakArtwork(CinematicArtwork.original(event.artwork ?: event.media.background ?: event.media.poster),null,
-            Modifier.fillMaxSize(),fallbackModel=CinematicArtwork.original(event.media.background ?: event.media.poster))
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to surface,.23f to surface,.46f to surface.copy(alpha=.72f),.75f to surface.copy(alpha=.14f),1f to Color.Transparent)))
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent,.50f to Color.Black.copy(alpha=.08f),1f to Color.Black.copy(alpha=.72f))))
-        Row(Modifier.fillMaxSize().padding(16.dp),horizontalArrangement=Arrangement.spacedBy(14.dp)){
-            Column(Modifier.width((78+extra*42).dp).fillMaxHeight().testTag("coming-up-date"),verticalArrangement=Arrangement.Center){
-                if(event.date==today)Box(Modifier.padding(bottom=9.dp).size(5.dp).background(StakAccent,RoundedCornerShape(3.dp)).testTag("coming-up-today-dot"))
-                Text(if(event.date==today)"TODAY"else event.date.format(DateTimeFormatter.ofPattern("EEE",Locale.ENGLISH)).uppercase(Locale.ENGLISH),
-                    fontFamily=DotoFont,fontSize=22.sp,lineHeight=27.sp,fontWeight=FontWeight.Black,color=StakText,maxLines=1)
-                Spacer(Modifier.height(5.dp))
-                Text(event.date.format(DateTimeFormatter.ofPattern("dd MMM",Locale.ENGLISH)).uppercase(Locale.ENGLISH),
-                    fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextSoft)
+    Column(Modifier.fillMaxWidth()){
+        Row(Modifier.fillMaxWidth().testTag("coming-up-date"),verticalAlignment=Alignment.CenterVertically,
+            horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            Box(Modifier.size(8.dp).background(if(event.date==today)StakAccent else StakTextMuted,RoundedCornerShape(4.dp))
+                .then(if(event.date==today)Modifier.testTag("coming-up-today-dot")else Modifier))
+            Text(if(event.date==today)"TODAY"else event.date.format(DateTimeFormatter.ofPattern("EEE",Locale.ENGLISH)).uppercase(Locale.ENGLISH),
+                fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,fontWeight=FontWeight.Bold,color=StakText)
+            Text("·",fontFamily=SpaceMonoFont,fontSize=10.sp,color=StakTextMuted)
+            Text(event.date.format(DateTimeFormatter.ofPattern("dd MMM",Locale.ENGLISH)).uppercase(Locale.ENGLISH),
+                fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextSoft)
+        }
+        Row(Modifier.fillMaxWidth().height(((if(compact)148 else 160)+extra*48).dp)){
+            Box(Modifier.width(16.dp).fillMaxHeight()){
+                Box(Modifier.padding(start=3.5.dp).width(1.dp).fillMaxHeight().background(StakBorder))
             }
-            Column(Modifier.weight(1f).fillMaxHeight(),verticalArrangement=Arrangement.Bottom){
-                var logoFailed by remember(event.media.logo){mutableStateOf(false)}
-                if(!event.media.logo.isNullOrBlank()&&!logoFailed){
-                    AsyncImage(CinematicArtwork.original(event.media.logo),event.media.name,contentScale=ContentScale.Fit,
-                        alignment=Alignment.CenterStart,onError={logoFailed=true},modifier=Modifier.widthIn(max=160.dp).fillMaxWidth(.88f).height(32.dp).testTag("coming-up-logo"))
-                }else Text(event.media.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=18.sp,lineHeight=22.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
-                Spacer(Modifier.height(9.dp))
-                val episode=if(event.season!=null&&event.episode!=null)"S${event.season.toString().padStart(2,'0')} E${event.episode.toString().padStart(2,'0')}"else event.releaseLabel ?: "Release date"
-                Text(episode,fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=15.sp,color=StakTextSoft,maxLines=2,overflow=TextOverflow.Ellipsis)
-                if(event.season!=null&&event.episode!=null&&event.title.isNotBlank()){
-                    Spacer(Modifier.height(3.dp))
-                    Text(event.title,fontFamily=HankenFont,fontSize=12.sp,lineHeight=16.sp,color=StakTextSoft,maxLines=2,overflow=TextOverflow.Ellipsis)
+            Box(Modifier.weight(1f).fillMaxHeight().padding(top=8.dp).clip(shape)
+                .background(StakSurface2).border(1.dp,StakBorder,shape).clickable(onClick=onClick).testTag("coming-up-card")){
+                StakArtwork(CinematicArtwork.original(event.artwork ?: event.media.background ?: event.media.poster),null,
+                    Modifier.fillMaxSize(),fallbackModel=CinematicArtwork.original(event.media.background ?: event.media.poster))
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent,
+                    .35f to Color.Transparent,.65f to Color.Black.copy(alpha=.36f),1f to Color.Black.copy(alpha=.88f))))
+                Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+                    var logoFailed by remember(event.media.logo){mutableStateOf(false)}
+                    if(!event.media.logo.isNullOrBlank()&&!logoFailed){
+                        AsyncImage(CinematicArtwork.original(event.media.logo),event.media.name,contentScale=ContentScale.Fit,
+                            alignment=Alignment.CenterStart,onError={logoFailed=true},modifier=Modifier.widthIn(max=156.dp).fillMaxWidth(.74f).height(26.dp).testTag("coming-up-logo"))
+                    }else Text(event.media.name,fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=15.sp,lineHeight=19.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
+                    val episode=if(event.season!=null&&event.episode!=null)"S${event.season.toString().padStart(2,'0')} E${event.episode.toString().padStart(2,'0')}"else event.releaseLabel ?: "Release date"
+                    Text(episode,fontFamily=SpaceMonoFont,fontSize=10.sp,lineHeight=14.sp,color=StakTextSoft,maxLines=1,overflow=TextOverflow.Ellipsis)
+                    if(event.season!=null&&event.episode!=null&&event.title.isNotBlank()){
+                        Text(event.title,fontFamily=HankenFont,fontSize=12.sp,lineHeight=16.sp,color=StakTextSoft,maxLines=2,overflow=TextOverflow.Ellipsis)
+                    }
                 }
             }
         }

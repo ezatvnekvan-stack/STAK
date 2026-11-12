@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
@@ -44,9 +45,15 @@ class Home159UiTest {
         p.color=0xff172a34.toInt();c.drawOval(375f,400f,580f,620f,p);c.drawRoundRect(300f,580f,660f,1300f,100f,100f,p)
         val f=File(context.cacheDir,"$prefix${files.size}.png");f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)};b.recycle();files+=f;return f.toURI().toString()
     }
+    private fun logo():String {
+        val b=Bitmap.createBitmap(900,160,Bitmap.Config.ARGB_8888)
+        val p=android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply{color=android.graphics.Color.WHITE;textSize=120f;typeface=android.graphics.Typeface.create("sans-serif-condensed",android.graphics.Typeface.BOLD)}
+        android.graphics.Canvas(b).drawText("NIGHT SIGNAL",0f,130f,p)
+        val f=File(context.cacheDir,"$prefix-logo.png");f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)};b.recycle();files+=f;return f.absolutePath
+    }
     private fun capture(name:String){
         compose.waitForIdle()
-        val dir=File(InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?:context.getExternalFilesDir(null)!!.path,"home159").apply{mkdirs()}
+        val dir=File(InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?:context.getExternalFilesDir(null)!!.path,"home1510").apply{mkdirs()}
         File(dir,"$name.png").outputStream().use{compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
     }
     @Composable private fun Frame(large:Boolean=false,content:@Composable ()->Unit){
@@ -66,21 +73,31 @@ class Home159UiTest {
         compose.onNodeWithText("01 / 06").assertDoesNotExist()
         val hero=compose.onNodeWithTag("home-hero").getUnclippedBoundsInRoot()
         val section=compose.onNodeWithText("CONTINUE WATCHING").getUnclippedBoundsInRoot()
+        val label=compose.onNodeWithTag("hero-trending-label",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        Assert.assertEquals(section.left.value,label.left.value,.5f)
         Assert.assertTrue(section.top-hero.bottom<24.dp)
         capture("hero-and-continue")
         compose.onNodeWithTag("home-hero").performClick();Assert.assertEquals(film.id,opened)
     }
-    @Test fun compactContinueUsesEpisodeStillAndBottomStatusWithoutProviderBrand(){
-        val image=art();val row=MediaItem("fixture",name="The Leftovers",type="series",background=image,logo="https://fixture.invalid/hbo-original.png",nextUp=true,season=1,episode=1)
+    @Test fun compactContinueUsesSmallRealLogoAndBottomStatus(){
+        val image=art();val row=MediaItem("fixture",name="The Leftovers",type="series",background=image,logo=logo(),nextUp=true,season=1,episode=1)
         compose.setContent{Frame{Column(Modifier.padding(16.dp)){ContinueRail(listOf(row),artworkLoader={ContinueArtwork(image,row.logo)}){}}}}
         compose.onNodeWithText("NEXT UP · S01 E01").assertIsDisplayed()
         compose.onNodeWithText("NEXT UP",substring=false).assertDoesNotExist()
-        compose.onNodeWithTag("continue-logo",useUnmergedTree=true).assertDoesNotExist()
+        compose.onNodeWithTag("continue-logo",useUnmergedTree=true).assertIsDisplayed()
+        compose.waitUntil(5000){runCatching{
+            val pixels=compose.onNodeWithTag("continue-logo",useUnmergedTree=true).captureToImage().toPixelMap()
+            var bright=0
+            for(y in 0 until pixels.height step 2)for(x in 0 until pixels.width step 2)
+                if(pixels[x,y].red>.8f&&pixels[x,y].green>.8f&&pixels[x,y].blue>.8f)bright++
+            bright>40
+        }.getOrDefault(false)}
+        compose.onNodeWithText("The Leftovers").assertDoesNotExist()
         val card=compose.onNodeWithTag("continue-card").getUnclippedBoundsInRoot()
-        val mark=compose.onNodeWithTag("continue-wordmark",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        val mark=compose.onNodeWithTag("continue-logo",useUnmergedTree=true).getUnclippedBoundsInRoot()
         val info=compose.onNodeWithTag("continue-info",useUnmergedTree=true).getUnclippedBoundsInRoot()
-        Assert.assertTrue(mark.right-mark.left<(card.right-card.left)*.8f);Assert.assertTrue(info.top>card.top+(card.bottom-card.top)*.55f)
-        capture("continue-clean-episode")
+        Assert.assertTrue(mark.right-mark.left<(card.right-card.left)*.7f);Assert.assertTrue(mark.bottom-mark.top<=24.dp);Assert.assertTrue(info.top>card.top+(card.bottom-card.top)*.55f)
+        capture("continue-small-logo")
     }
     @Test fun upcomingDateAndLongEpisodeRemainReadableAtLargeFont(){
         val event=ReleaseEvent(MediaItem("fixture",name="A Longer Returning Series",background=art()),today,"The Courier Returns",1,4)
@@ -89,6 +106,8 @@ class Home159UiTest {
         compose.onNodeWithText("S01 E04").assertIsDisplayed();compose.onNodeWithText("The Courier Returns").assertIsDisplayed()
         val card=compose.onNodeWithTag("coming-up-card").getUnclippedBoundsInRoot()
         val title=compose.onNodeWithText("The Courier Returns",useUnmergedTree=true).getUnclippedBoundsInRoot()
-        Assert.assertTrue(title.bottom<card.bottom);capture("coming-up-large-font")
+        val date=compose.onNodeWithTag("coming-up-date",useUnmergedTree=true).getUnclippedBoundsInRoot()
+        val rail=compose.onNodeWithTag("coming-up-rail").getUnclippedBoundsInRoot()
+        Assert.assertTrue(date.bottom<card.top);Assert.assertTrue(card.right-card.left<(rail.right-rail.left)*.8f);Assert.assertTrue(title.bottom<card.bottom);capture("coming-up-large-font")
     }
 }

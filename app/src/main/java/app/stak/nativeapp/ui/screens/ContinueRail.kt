@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import app.stak.nativeapp.data.*
 import app.stak.nativeapp.ui.components.*
 import app.stak.nativeapp.ui.theme.*
@@ -28,7 +29,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 @Composable internal fun ContinueRail(items:List<MediaItem>,
-    artworkLoader:suspend(MediaItem)->ContinueArtwork={DirectCatalog().continueArtwork(it)},onOpenTitle:(MediaItem)->Unit){
+    artworkLoader:suspend(MediaItem)->ContinueArtwork={DirectCatalog().continueArtwork(it,::continueSeriesMetadata)},onOpenTitle:(MediaItem)->Unit){
     val scope=credentialScope(NativeRuntime.settings.tmdbKey.orEmpty())+jellyfinScope()
     val permits=remember{Semaphore(3)}
     BoxWithConstraints(Modifier.fillMaxWidth().testTag("continue-rail")){
@@ -36,8 +37,8 @@ import kotlinx.coroutines.sync.withPermit
         val height=(148f+(androidx.compose.ui.platform.LocalDensity.current.fontScale-1f).coerceIn(0f,1f)*36f).dp
         LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)){
             items(items,key={it.jellyfinId?:it.mediaKey}){item->
-                val fallback=ContinueArtwork(item.continueBackground)
-                val art by produceState(fallback,item.type,item.mediaKey,scope,item.background,item.jellyfinSeriesId,item.jellyfinProviderKeys){
+                val fallback=ContinueArtwork(item.continueBackground,item.logo)
+                val art by produceState(fallback,item.type,item.mediaKey,scope,item.background,item.logo,item.imdbId,item.jellyfinSeriesId,item.jellyfinProviderKeys){
                     value=try{permits.withPermit{artworkLoader(item)}}catch(c:CancellationException){throw c}catch(_:Exception){fallback}
                 }
                 ContinueCard(item,art,width,height){onOpenTitle(item)}
@@ -46,8 +47,21 @@ import kotlinx.coroutines.sync.withPermit
     }
 }
 
+/** Resolve only the explicit parent, using the same credential scope as the episode. */
+private suspend fun continueSeriesMetadata(id:String):MediaItem? {
+    val settings=NativeRuntime.settings
+    if(!settings.jellyfinConnected)return null
+    val scope=jellyfinScope(settings)
+    val user=settings.jellyfinUserId.orEmpty()
+    val server=DirectJellyfin.normalizeServer(settings.jellyfinUrl.orEmpty())
+    val data=DirectJellyfin.sessionRequest("/Users/$user/Items/$id",expectedScope=scope)
+    if(data.text("Id")!=id||data.text("Type")!="Series")return null
+    return jellyfinMediaItem(data,server)
+}
+
 @Composable private fun ContinueCard(item:MediaItem,art:ContinueArtwork,width:androidx.compose.ui.unit.Dp,height:androidx.compose.ui.unit.Dp,onOpen:()->Unit){
     var menu by remember(item.mediaKey){mutableStateOf(false)}
+    var logoFailed by remember(art.logo){mutableStateOf(false)}
     val press=rememberPressMotion()
     Box(Modifier.width(width).height(height).testTag("continue-card").semantics{contentDescription=item.name}
         .pressMotion(press).clip(RoundedCornerShape(16.dp)).background(StakSurface)
@@ -56,7 +70,10 @@ import kotlinx.coroutines.sync.withPermit
         StakArtwork(art.image,null,Modifier.fillMaxSize().testTag("continue-image"),fallbackModel=item.continueImageFallback)
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color.Transparent,.35f to Color.Black.copy(alpha=.04f),.67f to Color.Black.copy(alpha=.40f),1f to Color.Black.copy(alpha=.88f))))
         Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
-            Text(item.name,Modifier.fillMaxWidth(.76f).widthIn(max=184.dp).testTag("continue-wordmark"),
+            if(!art.logo.isNullOrBlank()&&!logoFailed)AsyncImage(CinematicArtwork.original(art.logo),null,
+                Modifier.width((width*.60f).coerceAtMost(164.dp)).height(24.dp).testTag("continue-logo"),
+                contentScale=ContentScale.Fit,alignment=Alignment.CenterStart,onError={logoFailed=true})
+            else Text(item.name,Modifier.fillMaxWidth(.76f).widthIn(max=184.dp).testTag("continue-wordmark"),
                 fontFamily=HankenFont,fontWeight=FontWeight.SemiBold,fontSize=15.sp,lineHeight=18.sp,
                 letterSpacing=.3.sp,color=StakText,maxLines=2,overflow=TextOverflow.Ellipsis)
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){

@@ -20,7 +20,7 @@ internal fun Modifier.edgeToEdge(inset: Dp = 16.dp): Modifier = layout { measura
 
 /** Bounded phone/tablet geometry; keep controls usable in landscape and large text. */
 internal fun homeHeroHeight(screenHeight: Int, fontScale: Float = 1f): Float =
-    (screenHeight * .5f + (fontScale - 1f).coerceIn(0f, 1f) * 32f)
+    (screenHeight * .55f + (fontScale - 1f).coerceIn(0f, 1f) * 32f)
         .coerceIn(minOf(220f, screenHeight * .7f), screenHeight * .7f)
 
 internal fun detailArtworkHeight(screenHeight: Int): Float =

@@ -38,6 +38,20 @@ internal object CinematicArtwork {
     fun englishBackdrop(images: JsonObject?): String? = image(best(
         images?.objects("backdrops").orEmpty().filter { it.text("iso_639_1") == "en" }))
 
+    /** Prefer a compact horizontal title over a stacked studio/title lockup when available.
+     * Dimensions are a layout hint, not a guarantee that an image has no provider branding. */
+    fun continueLogo(images: JsonObject?,fallback:String?):String? {
+        val rows=images?.objects("logos").orEmpty()
+        val english=rows.filter{it.text("iso_639_1")=="en"}
+        val neutral=rows.filter{it.text("iso_639_1").isNullOrBlank()}
+        fun compact(group:List<JsonObject>)=group.filter{
+            val height=it.number("height")?:0.0
+            height>0&&(it.number("width")?:0.0)/height>=3.0
+        }
+        return image(best(compact(english)))?:image(best(english))
+            ?:image(best(compact(neutral)))?:image(best(neutral))?:original(fallback)
+    }
+
     fun neutralBackdrop(images: JsonObject?,fallback: String?): String? = image(best(
         images?.objects("backdrops").orEmpty().filter { it.text("iso_639_1").isNullOrBlank() })) ?: original(fallback)
 }

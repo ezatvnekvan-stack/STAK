@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.9 / versionCode 85**. Next distributable versionCode: **86+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.10 / versionCode 86**. Next distributable versionCode: **87+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -50,3 +50,7 @@ The owner superseded the Nothing panel with original 1.4 Continue Watching geome
 ## Android 1.5.9 — current Home override
 
 Read docs/RELEASE-1.5.9.md. Home hero uses TMDb's mixed daily trending order, TRENDING TODAY without a visible counter, a longer transparent artwork fade and a smaller gap to Continue Watching. Continue Watching now uses the episode's own still for series (explicit parent backdrop only on image error), a compact clean typographic wordmark instead of unverified studio-branded logos, and bottom inline NEXT UP/IN PROGRESS plus episode/time. Short segmented progress remains; the owner's final correction removes its numeric percentage. Coming Up uses a wide date-led card, full width for one item and a next-card peek for multiple items; no air time is invented. Only explicit Auto-add rules supply Coming Up. Tracking/Discover, Details, data/backup/account guards and cached-only read-only behavior remain. No server update. Next code86+.
+
+## Android 1.5.10 — current Home refinement
+
+Read docs/RELEASE-1.5.10.md. Hero is 10% taller (55% of screen before bounded large-text allowance). TRENDING TODAY remains 11sp, now Doto, left-aligned with the shelves, inset from the status bar with no dot/chip. Continue Watching restores small real English/neutral title logos over episode stills; explicit account-scoped parent lookup may resolve logo identity only. Prefer horizontal logo variants, without claiming provider branding can be reliably detected. Text is a missing/error fallback. Bottom status and short percentage-free progress remain. Coming Up uses compact fixed-width timeline entries even for a single item, with day/date above, artwork/logo/episode copy over a soft shade, no separate lower band or bell. Rule-only data and all existing guards remain; no server update. Next code87+.
