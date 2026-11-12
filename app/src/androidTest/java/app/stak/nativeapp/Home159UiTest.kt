@@ -62,19 +62,18 @@ class Home159UiTest {
             Box(Modifier.fillMaxSize().background(StakBackground).statusBarsPadding()){content()}
         }}
     }
-    @Test fun heroHeaderHasNoVisibleCounterAndFlowsIntoContinueWatching(){
+    @Test fun heroHasNoTrendingHeadingAndFlowsIntoContinueWatching(){
         val image=art();val film=MediaItem("fixture",name="Night Signal",background=image,year="2026",runtime="112 min",genres=listOf("Drama"))
         var opened=""
         compose.setContent{Frame{LazyColumn(Modifier.fillMaxSize().testTag("fixture-feed")){
             item{HeroCarousel(listOf(film),{opened=it.id},null,null,true,autoPlay=false)}
             item{Column(Modifier.padding(horizontal=16.dp).padding(top=6.dp)){StakSectionHeader("Continue watching");Spacer(Modifier.height(12.dp));ContinueRail(listOf(film.copy(progress=.4f,durationMs=100*60000L,positionMs=40*60000L)),artworkLoader={ContinueArtwork(image)}){}}}
         }}}
-        compose.onNodeWithText("TRENDING TODAY").assertIsDisplayed()
+        compose.onNodeWithText("TRENDING TODAY").assertDoesNotExist()
         compose.onNodeWithText("01 / 06").assertDoesNotExist()
         val hero=compose.onNodeWithTag("home-hero").getUnclippedBoundsInRoot()
         val section=compose.onNodeWithText("CONTINUE WATCHING").getUnclippedBoundsInRoot()
-        val label=compose.onNodeWithTag("hero-trending-label",useUnmergedTree=true).getUnclippedBoundsInRoot()
-        Assert.assertEquals(section.left.value,label.left.value,.5f)
+        compose.onNodeWithTag("hero-trending-label",useUnmergedTree=true).assertDoesNotExist()
         Assert.assertTrue(section.top-hero.bottom<24.dp)
         capture("hero-and-continue")
         compose.onNodeWithTag("home-hero").performClick();Assert.assertEquals(film.id,opened)

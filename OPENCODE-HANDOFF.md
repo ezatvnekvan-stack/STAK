@@ -1,6 +1,6 @@
 # OpenCode handoff
 
-Continue this repository: **STAK Android 1.5.10 / code86**, **STAK Server 1.2.3**. The next distributable Android update must use code87 or greater.
+Continue this repository: **STAK Android 1.5.10 / code87**, **STAK Server 1.2.3**. The next distributable Android update must use code88 or greater.
 
 Start with [README](README.md), [contributor setup](CONTRIBUTING.md), [agent rules](AGENTS.md), [architecture](docs/ARCHITECTURE.md) and [Series Center notes](docs/RELEASE-1.5.5.md).
 
@@ -23,3 +23,5 @@ Current changes: docs/RELEASE-1.5.10.md. Original 1.4.0 Tracking/Discover remain
 1.5.7 supersedes the 1.5.6 tall Home hero and blurred Continue Watching information band. Home is about half-screen; Continue info is below the image, without a separate title. Parent-series artwork/identity replaces episode-still fallback. See current release notes.
 
 1.5.10 refines only Home: 10% taller hero with left Doto daily heading, small real Continue Watching logos over episode stills, and compact Coming Up timeline cards without a separate footer or bell. Read docs/RELEASE-1.5.10.md; its rules supersede the wide 1.5.9 cards and text-only titles.
+
+Current replacement code87 removes the Home Trending Today label; hero height and other Home changes remain. Same v1.5.10 release, next code88+.

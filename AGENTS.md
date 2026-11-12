@@ -1,6 +1,6 @@
 # STAK development
 
-Current Android source: **1.5.10 / versionCode 86**. Next distributable versionCode: **87+**. Current optional backend: **STAK Server 1.2.3**.
+Current Android source: **1.5.10 / versionCode 87**. Next distributable versionCode: **88+**. Current optional backend: **STAK Server 1.2.3**.
 
 Read `README.md`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md` and `docs/SERIES-CENTER-1.4.0.md` first. This repository is the native Kotlin / Jetpack Compose project. Do not restore the retired web app or separate legacy watcher/filter implementations.
 
@@ -54,3 +54,7 @@ Read docs/RELEASE-1.5.9.md. Home hero uses TMDb's mixed daily trending order, TR
 ## Android 1.5.10 — current Home refinement
 
 Read docs/RELEASE-1.5.10.md. Hero is 10% taller (55% of screen before bounded large-text allowance). TRENDING TODAY remains 11sp, now Doto, left-aligned with the shelves, inset from the status bar with no dot/chip. Continue Watching restores small real English/neutral title logos over episode stills; explicit account-scoped parent lookup may resolve logo identity only. Prefer horizontal logo variants, without claiming provider branding can be reliably detected. Text is a missing/error fallback. Bottom status and short percentage-free progress remain. Coming Up uses compact fixed-width timeline entries even for a single item, with day/date above, artwork/logo/episode copy over a soft shade, no separate lower band or bell. Rule-only data and all existing guards remain; no server update. Next code87+.
+
+## Android 1.5.10 replacement / code87
+
+Owner removed TRENDING TODAY from the Home hero. Keep its 55% height, daily feed and existing lower fade, Continue Watching logos and compact timeline. Replace the existing v1.5.10 release APK; next distributable code88+.

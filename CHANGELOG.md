@@ -1,3 +1,8 @@
+# 1.5.10 replacement (code87)
+
+- Remove the Trending Today heading from the Home hero; its height and daily feed remain.
+- Replaces the existing v1.5.10 APK, with a higher code for in-place updates.
+
 # 1.5.10 (code86) — Home artwork and timeline refinement
 
 - Hero is 10% taller; the existing-size Trending Today heading uses left-aligned Doto without a dot or chip.

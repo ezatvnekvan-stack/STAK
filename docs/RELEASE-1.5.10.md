@@ -1,3 +1,11 @@
+# Current v1.5.10 replacement / code87
+
+Owner follow-up: remove the Trending Today label from the Home hero. Its 55% screen height, daily feed, artwork/fade and all Continue Watching/Coming Up changes remain. The existing v1.5.10 GitHub release is replaced with a code87 APK for in-place updates. The code86 notes below document the original release and its earlier validation.
+
+Replacement verification: managed gradle_run.py workflow `4f4e464345f83232595ce2613d365c88`, designated `gradlew-local.cmd`, question "Eltűnt a Trending Today felirat, és elkészült az aláírt APK?" — PASS. Tasks `:app:connectedDebugAndroidTest` (one focused hero fixture) and `:app:assemblePreview` passed. The replacement screenshot `outputs/home1510-verification/replacement87/hero-and-continue.png` was inspected. Original signer/package and exact existing cloud inputs were verified inside the signed APK. Unchanged data/card behavior reuses the previous results. Workflow finished; only wrapper-owned temporary logs removed.
+
+Current APK: versionName `1.5.10`, versionCode `87`, SHA-256 `7674300439d80e6cfd7bbeb6f36c7964fcc5a58195a46e510b5cea12a6b6948b`.
+
 # Android 1.5.10 / code86 — Home artwork and timeline refinement
 
 Three owner-approved refinements to Home. STAK Server stays 1.2.3; no server update is needed. Original package and signing identity preserve in-place updates.
